@@ -44,6 +44,7 @@ public sealed class AuditionArchiveService(
         }
         catch (Exception exception) when (exception is ArgumentException
                                           or IOException
+                                          or InvalidDataException
                                           or InvalidOperationException
                                           or UnauthorizedAccessException)
         {
@@ -104,6 +105,7 @@ public sealed class AuditionArchiveService(
         }
         catch (Exception exception) when (exception is ArgumentException
                                           or IOException
+                                          or InvalidDataException
                                           or InvalidOperationException
                                           or UnauthorizedAccessException)
         {
@@ -186,6 +188,13 @@ public sealed class AuditionArchiveService(
             throw new InvalidDataException("The pristine archive source is missing or empty.");
         }
 
+        var sourceHash = await FileSha256.ComputeAsync(sourcePath, cancellationToken).ConfigureAwait(false);
+        if (request.Archive.Sha256 is not null
+            && !FileSha256.EqualsHex(request.Archive.Sha256, sourceHash))
+        {
+            throw new InvalidDataException("The pristine archive source failed SHA-256 verification.");
+        }
+
         var workingRoot = request.Workspace.SecureWorkspace.Paths.WorkingDirectory;
         var destinationPath = pathSecurity.ResolvePathWithinRoot(
             workingRoot,
@@ -193,7 +202,13 @@ public sealed class AuditionArchiveService(
         pathSecurity.EnsureNoReparsePoints(workingRoot, destinationPath);
         if (File.Exists(destinationPath))
         {
-            throw new IOException("The isolated workspace already contains a working archive.");
+            var existingHash = await FileSha256.ComputeAsync(destinationPath, cancellationToken).ConfigureAwait(false);
+            if (!FileSha256.EqualsHex(sourceHash, existingHash))
+            {
+                throw new IOException("The existing working archive does not match the pristine source.");
+            }
+
+            return;
         }
 
         var temporaryPath = pathSecurity.ResolvePathWithinRoot(
@@ -221,7 +236,6 @@ public sealed class AuditionArchiveService(
                 destination.Flush(flushToDisk: true);
             }
 
-            var sourceHash = await FileSha256.ComputeAsync(sourcePath, cancellationToken).ConfigureAwait(false);
             var copyHash = await FileSha256.ComputeAsync(temporaryPath, cancellationToken).ConfigureAwait(false);
             if (!FileSha256.EqualsHex(sourceHash, copyHash)
                 || request.Archive.Sha256 is not null

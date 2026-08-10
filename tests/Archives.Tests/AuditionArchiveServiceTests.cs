@@ -118,6 +118,21 @@ public sealed class AuditionArchiveServiceTests
     }
 
     [Fact]
+    public async Task Verified_existing_working_archive_is_reused_without_overwrite()
+    {
+        await using var context = TestContext.Create("015.ab");
+        var workingPath = Path.Combine(context.Workspace.Paths.WorkingDirectory, "015.ab");
+        File.Copy(context.SourcePath, workingPath);
+        var before = await ComputeHashAsync(workingPath);
+
+        var result = await context.Service.ExtractAsync(context.CreateExtractRequest());
+
+        Assert.True(result.Command.Succeeded);
+        Assert.Equal(1, context.Engine.ExtractCalls);
+        Assert.Equal(before, await ComputeHashAsync(workingPath));
+    }
+
+    [Fact]
     public async Task Pack_resolves_engine_without_exposing_tool_commands()
     {
         await using var context = TestContext.Create("015.ab");

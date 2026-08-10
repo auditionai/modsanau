@@ -156,3 +156,30 @@ Project/Caller
 `AcvTool5ArchiveEngine` là implementation của `ArchiveEngineType.AcvTool5` ở module `Archives`. Engine map semantic intent sang runner mà không leak `-da`, `-ca`, `Select:` hoặc `Process`. Provisioning/integrity luôn xảy ra trước keydat inspection và runner launch. Keydat `Missing` được runner xử lý bằng trusted region profile; `PresentUnverified` được reuse; `Invalid` chặn launch.
 
 App composition đăng ký archive service và các low-level security boundary. Concrete ACV engine chỉ được đăng ký khi có approved trusted tool location; PLAN 08 không tự tin một path từ settings hoặc chạy proprietary tool. `015.ab` chỉ là archive mẫu thật, không phải tên hay extension toàn cục. DDS về sau đến từ recursive scan của working archive đã extract; `tn_coby_logo.dds` vẫn chỉ là optional sample.
+
+## Project Archive Workspace từ PLAN 09
+
+`Core` định nghĩa `IProjectArchiveWorkspaceService`, lease `IProjectArchiveWorkspace`, descriptor, template reference và structured create/validation result. `Projects` triển khai lifecycle filesystem; `App` chỉ đăng ký composition qua DI.
+
+Pipeline chuẩn bị project archive:
+
+```text
+Pristine Archive Template (read-only)
+  → validate path/reparse point/hash
+  → SecureWorkspaceService.CreateAsync
+  → Working/<exact archive filename>
+  → Extracted/<descriptor extract folder>
+  → BuildOutput/
+  → atomic .project-archive-workspace.json
+  → Ready
+```
+
+Mỗi create operation nhận `ProjectId` dạng GUID và `WorkspaceId` random độc lập. `DisplayName` chỉ là metadata đã validate, không tham gia directory path. Template reference snapshot giữ `TemplateId`, version, source SHA-256, engine ID và region profile; project cũ không tự động đổi theo template catalog tương lai.
+
+Manifest schema v1 chỉ là recovery metadata tối thiểu cho archive workspace, không phải file project `.audproj`. Nó lưu relative/logical path, không lưu executable hoặc secret. Ghi manifest dùng temp file cùng filesystem, flush-to-disk rồi atomic move. Chỉ sau khi working copy/hash/directories và manifest hoàn tất service mới trả state `Ready`; failure/cancellation dispose lease để `SecureWorkspaceService` cleanup partial tree.
+
+Validation phân biệt manifest missing/corrupt/mismatch, working archive missing/hash mismatch, extracted/build directory missing và invalid path. Không tự sửa âm thầm. Dispose project A chỉ cleanup workspace A; pristine source và workspace B không bị ảnh hưởng.
+
+PLAN 09 dùng randomized lease dưới `Temp\Workspaces`, đúng phạm vi cleanup abandoned temp workspace trong roadmap. Durable project directory dưới `Projects`, `.audproj`, load/recover project lâu dài và reset workflow thuộc PLAN 31–35. Repository-root `015\` không phải production workspace và không được service tham chiếu.
+
+`AuditionArchiveService` có thể reuse working archive đã được PLAN 09 chuẩn bị nếu SHA-256 khớp pristine source; mismatch bị từ chối và không overwrite. Nhờ vậy `ProjectArchiveWorkspace.ArchiveWorkspace` sẵn sàng cho PLAN 10 mà Project layer không biết `acv.exe`, command hoặc keydat internals.

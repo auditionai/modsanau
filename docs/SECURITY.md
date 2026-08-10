@@ -104,3 +104,13 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - ACV Tool 5 orchestration bắt buộc provisioning/integrity trước keydat/runner. Invalid keydat hoặc integrity failure chặn process launch; missing keydat vẫn được lower-level runner xử lý bằng trusted `GameRegionProfile`.
 - Archive-level diagnostic là bounded structured summary; UI không nhận raw process object hoặc dùng stdout/stderr làm nguồn trạng thái chính.
 - PLAN 08 chỉ dùng fake engine/runner/provisioning/keydat trong test, không chạy `acv.exe` thật và không extract/pack fixture proprietary.
+
+## Project Archive Workspace boundary từ PLAN 09
+
+- Project workspace luôn được cấp bởi `SecureWorkspaceService` dưới randomized managed `Temp\Workspaces`; `ProjectId` và `DisplayName` không được dùng trực tiếp làm path.
+- Pristine source nằm ngoài writable lease, được canonicalize, kiểm tra reparse point, mở read-only và hash trước copy. Working archive giữ exact filename, được copy qua temp + flush + SHA-256 verification và không overwrite file đã tồn tại.
+- Working, Extracted và BuildOutput là ba vùng riêng. Hai project dùng cùng template vẫn có archive, keydat tương lai và extracted tree writable độc lập.
+- Manifest schema v1 chỉ chứa non-secret metadata và relative path. Không chứa executable path, credential, token hoặc encryption/signing key. Manifest chỉ được promote atomically sau khi workspace hoàn chỉnh.
+- Failure/cancellation không trả workspace `Ready`; partial lease được cleanup an toàn. Validation báo corruption/missing/hash mismatch thay vì tự chữa hoặc tin local metadata.
+- Random workspace ID và LocalAppData isolation là filesystem safety, không phải DRM hoặc bảo vệ tuyệt đối trước local Administrator. Restrictive NTFS ACL/broker hardening sâu hơn vẫn thuộc PLAN 74 và kiến trúc elevation tương lai.
+- Folder `015\` do người dùng extract thủ công ở repository không nằm trong trust boundary production. PLAN 09 không chạy tool, không đọc extracted asset thật và không sửa proprietary fixture.
