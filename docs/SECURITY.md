@@ -78,9 +78,19 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 ## Archive process boundary từ PLAN 06
 
 - `AcvTool5Runner` chỉ chạy executable tuyệt đối nằm trong isolated working workspace; archive và extract directory phải resolve qua `IPathSecurity` dưới cùng root và không đi qua reparse point đã tồn tại.
-- `IArchiveToolExecutionPolicy` là trust boundary bắt buộc trước launch. `ExactPathArchiveToolExecutionPolicy` chỉ là allowlist đường dẫn của PLAN 06, không được mô tả như integrity guarantee; hash/version verification đầy đủ thuộc PLAN 07.
+- `IArchiveToolExecutionPolicy` là trust boundary bắt buộc trước launch. Từ PLAN 07, production policy kiểm tra trusted manifest, containment, reparse point, filename và SHA-256 thay vì chỉ allowlist đường dẫn.
 - Không dùng shell, `cmd.exe`, PowerShell, `SendKeys`, mouse/keyboard simulation hoặc UI Automation. Arguments được truyền riêng qua `ProcessStartInfo.ArgumentList`.
 - Stdout parser đọc theo chunk với buffer hữu hạn. Country selection lấy từ trusted `GameRegionProfile` và chỉ gửi một lần qua redirected stdin.
 - Timeout/cancellation dùng process-tree termination để không bỏ mặc child process. Kết quả chỉ thành công sau khi kiểm tra progress marker và artifact workspace tương ứng.
 - Log chỉ chứa operation/state/exit code/count; không log executable, archive hoặc asset path đầy đủ. Raw stdout/stderr được trả về dưới giới hạn dung lượng cấu hình để diagnostic nhưng không tự động dump vào log.
 - Real proprietary `acv.exe`, archive và keydat không được chạy/sửa trong PLAN 06; integration protocol dùng fake child process. Keydat tiếp tục là runtime artifact, không phải secret hay DRM boundary.
+
+## Keydat và tool integrity boundary từ PLAN 07
+
+- Keydat là runtime companion artifact ACV Tool 5 có thể tự tạo từ country selection. Nó không phải password, encryption key, license secret hoặc DRM; ẩn/mã hóa keydat không thay thế server authorization, entitlement, template access control hay executable integrity.
+- Mỗi workspace sở hữu writable keydat riêng. Derivation theo archive basename được tập trung trong `IKeydatService`; file có mặt chỉ được đánh dấu `PresentUnverified`, không giả định semantic validity.
+- Keydat source chỉ được đọc từ trusted root đã canonicalize; working copy được hash sau copy và cleanup theo workspace. Không API nào nhận arbitrary destination hoặc xóa source/global fixture.
+- Approved `acv.exe` được xác định bởi code-owned manifest gồm tool id, exact filename, approved flag và SHA-256. User settings/project content không thể cung cấp hash để tự whitelist executable.
+- Integrity rejection có reason riêng cho missing file, outside location, reparse point, filename mismatch, hash mismatch, unapproved tool và invalid manifest. Mismatch luôn chặn launch.
+- Tool source được verify, copy vào isolated workspace và verify lại. Runner hash working copy ngay trước launch. PE version được ghi nhận khi có nhưng thiếu version resource không làm fail nếu SHA-256 đúng.
+- Hash verification không phải DRM và chưa xóa hoàn toàn TOCTOU `hash → replace → launch`. Handle-based execution binding, restrictive ACL và elevated broker vẫn là technical debt cho hardening về sau.

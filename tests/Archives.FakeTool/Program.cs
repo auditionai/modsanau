@@ -4,6 +4,8 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
+        await File.WriteAllTextAsync(Path.Combine(Environment.CurrentDirectory, ".fake-launched"), "started");
+
         if (args.Length != 3 || args[0] is not ("-da" or "-ca"))
         {
             await Console.Error.WriteLineAsync("Invalid arguments");

@@ -125,3 +125,13 @@ Fixture có thể không tồn tại trong CI vì proprietary binary/game asset 
 Process chạy trực tiếp với `UseShellExecute=false`, `CreateNoWindow=true`, redirect stdin/stdout/stderr và dùng `ArgumentList`. Stdout được đọc theo chunk; parser giữ buffer hữu hạn nên nhận được `Select:` kể cả khi không có newline hoặc bị chia giữa nhiều chunk. Khi keydat thiếu, selection từ trusted `GameRegionProfile` chỉ được gửi một lần. Khi keydat có sẵn, runner không chờ prompt.
 
 State/progress có cấu trúc độc lập với UI. Cancellation và timeout kết thúc toàn bộ process tree. Sau exit, runner kết hợp exit code, progress marker và artifact trong workspace để quyết định kết quả; không coi exit code 0 là đủ. PLAN 06 dùng fake child process để kiểm chứng protocol và không chạy real `acv.exe` hay sửa fixture.
+
+## Keydat lifecycle và ACV Tool integrity từ PLAN 07
+
+`IKeydatService` là nơi duy nhất suy ra companion path từ archive basename. Status phân biệt `Missing`, `PresentUnverified` và `Invalid`; file chỉ tồn tại không bao giờ được gọi là valid khi format chưa được hiểu. Keydat nằm cạnh working archive trong từng `ISecureWorkspace`, được giữ lại giữa extract/pack và bị cleanup cùng workspace. Copy từ trusted source dùng source root + relative path đã canonicalize, copy tạm, flush, SHA-256 verification và atomic move; source không bị ghi.
+
+`TrustedArchiveToolManifest.Production` chứa descriptor code-owned cho `acv_tool_5`: filename `acv.exe`, approved SHA-256 `6A52C808D7E5A59EB41E43D86A32E78067F424C8531E34981887F093E81547D3` và optional version metadata. Manifest này không thuộc user-editable settings. `ArchiveToolIntegrityPolicy` kiểm tra tool id, containment, reparse point, filename và streaming SHA-256; version resource chỉ là secondary diagnostic nên việc thiếu version không phủ định hash đúng.
+
+`ArchiveToolProvisioningService` thực hiện `verify trusted source → copy vào isolated Working → verify copy`. `AcvTool5Runner` gọi cùng `IArchiveToolExecutionPolicy` ngay trước `Process.Start`; integrity failure dùng structured reason và không launch process. Hash không cache để tránh stale decision.
+
+Vẫn còn cửa sổ TOCTOU giữa lần hash cuối và Windows mở executable. PLAN 07 giảm rủi ro bằng controlled workspace, reparse rejection, verify source/copy và verify lại ngay trước launch, nhưng chưa có handle-based execution binding hoặc ACL/broker hardening tuyệt đối.

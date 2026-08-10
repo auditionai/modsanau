@@ -2,6 +2,7 @@ using Archives.FakeTool;
 using AuditionModStudio.Archives;
 using AuditionModStudio.Core.Workspaces;
 using AuditionModStudio.Infrastructure.Paths;
+using System.Security.Cryptography;
 
 namespace Archives.Tests;
 
@@ -18,7 +19,7 @@ public sealed class AcvTool5RunnerTests
         Assert.True(result.Succeeded);
         Assert.Equal(AcvTool5RunnerState.Completed, result.State);
         Assert.Equal(KeydatStatus.Missing, result.KeydatStatusBefore);
-        Assert.Equal(KeydatStatus.Present, result.KeydatStatusAfter);
+        Assert.Equal(KeydatStatus.PresentUnverified, result.KeydatStatusAfter);
         Assert.True(result.CountrySelectionSent);
         Assert.Contains(result.Progress, item => item.CurrentItemPath?.EndsWith("file.dds", StringComparison.Ordinal) == true);
         Assert.True(File.Exists(Path.Combine(context.WorkingDirectory, "mẫu 015.keydat")));
@@ -33,7 +34,7 @@ public sealed class AcvTool5RunnerTests
         var result = await context.Runner.RunAsync(context.CreateRequest(AcvTool5Operation.Extract));
 
         Assert.True(result.Succeeded);
-        Assert.Equal(KeydatStatus.Present, result.KeydatStatusBefore);
+        Assert.Equal(KeydatStatus.PresentUnverified, result.KeydatStatusBefore);
         Assert.False(result.CountrySelectionSent);
         Assert.DoesNotContain(result.Progress, item => item.State == AcvTool5RunnerState.WaitingForCountrySelection);
     }
@@ -63,7 +64,7 @@ public sealed class AcvTool5RunnerTests
         Assert.True(result.Succeeded);
         Assert.True(result.CountrySelectionSent);
         Assert.Equal(KeydatStatus.Missing, result.KeydatStatusBefore);
-        Assert.Equal(KeydatStatus.Present, result.KeydatStatusAfter);
+        Assert.Equal(KeydatStatus.PresentUnverified, result.KeydatStatusAfter);
         Assert.Contains(result.Progress, item => item.Operation == AcvTool5Operation.Pack && item.CurrentItemPath is not null);
     }
 
@@ -126,9 +127,8 @@ public sealed class AcvTool5RunnerTests
     {
         await using var context = TestRunContext.Create();
         var missing = Path.Combine(context.WorkingDirectory, "missing.exe");
-        var runner = new AcvTool5Runner(new PathSecurity(), new ExactPathArchiveToolExecutionPolicy(missing));
 
-        await Assert.ThrowsAsync<FileNotFoundException>(() => runner.RunAsync(
+        await Assert.ThrowsAsync<FileNotFoundException>(() => context.Runner.RunAsync(
             context.CreateRequest(AcvTool5Operation.Extract) with { ExecutablePath = missing }));
     }
 
@@ -150,8 +150,7 @@ public sealed class AcvTool5RunnerTests
         await File.WriteAllTextAsync(outside, "not executable");
         try
         {
-            var runner = new AcvTool5Runner(new PathSecurity(), new ExactPathArchiveToolExecutionPolicy(outside));
-            await Assert.ThrowsAnyAsync<Exception>(() => runner.RunAsync(
+            await Assert.ThrowsAnyAsync<Exception>(() => context.Runner.RunAsync(
                 context.CreateRequest(AcvTool5Operation.Extract) with { ExecutablePath = outside }));
         }
         finally
@@ -180,6 +179,19 @@ public sealed class AcvTool5RunnerTests
             context.CreateRequest(AcvTool5Operation.Extract) with { RegionProfile = unsafeProfile }));
     }
 
+    [Fact]
+    public async Task Integrity_policy_rejects_modified_tool_before_process_launch()
+    {
+        await using var context = TestRunContext.Create();
+        await File.AppendAllTextAsync(context.ExecutablePath, "modified");
+
+        var exception = await Assert.ThrowsAsync<ArchiveToolIntegrityException>(() =>
+            context.Runner.RunAsync(context.CreateRequest(AcvTool5Operation.Extract)));
+
+        Assert.Equal(ArchiveToolIntegrityFailureReason.HashMismatch, exception.Result.FailureReason);
+        Assert.False(File.Exists(Path.Combine(context.WorkingDirectory, ".fake-launched")));
+    }
+
     private sealed class TestRunContext : IAsyncDisposable
     {
         private TestRunContext(string rootDirectory, string executablePath)
@@ -192,9 +204,21 @@ public sealed class AcvTool5RunnerTests
             ArchivePath = Path.Combine(WorkingDirectory, "mẫu 015.custom");
             File.WriteAllBytes(ArchivePath, [0x01, 0x02, 0x03]);
             Workspace = new TestWorkspace(rootDirectory, WorkingDirectory);
+            var pathSecurity = new PathSecurity();
+            var expectedHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(ExecutablePath)));
+            var manifest = new TrustedArchiveToolManifest(
+            [
+                new ArchiveToolDescriptor(
+                    ArchiveToolIds.AcvTool5,
+                    Path.GetFileName(ExecutablePath),
+                    expectedHash,
+                    ExpectedVersion: null,
+                    IsApproved: true),
+            ]);
             Runner = new AcvTool5Runner(
-                new PathSecurity(),
-                new ExactPathArchiveToolExecutionPolicy(ExecutablePath));
+                pathSecurity,
+                new ArchiveToolIntegrityPolicy(pathSecurity, manifest),
+                new KeydatService(pathSecurity));
         }
 
         public string RootDirectory { get; }

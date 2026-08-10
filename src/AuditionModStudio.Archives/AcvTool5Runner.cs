@@ -8,6 +8,7 @@ namespace AuditionModStudio.Archives;
 public sealed class AcvTool5Runner(
     IPathSecurity pathSecurity,
     IArchiveToolExecutionPolicy executionPolicy,
+    IKeydatService keydatService,
     ILogger<AcvTool5Runner>? logger = null) : IArchiveToolRunner
 {
     private readonly ILogger<AcvTool5Runner> _logger = logger ?? NullLogger<AcvTool5Runner>.Instance;
@@ -21,7 +22,18 @@ public sealed class AcvTool5Runner(
         ValidateRequest(request);
 
         var context = ResolveContext(request);
-        await executionPolicy.EnsureApprovedAsync(context.ExecutablePath, cancellationToken).ConfigureAwait(false);
+        var keydatBefore = keydatService.Describe(request.Workspace, request.ArchiveRelativePath);
+        if (keydatBefore.Status == KeydatStatus.Invalid)
+        {
+            throw new InvalidDataException("The workspace keydat is structurally invalid.");
+        }
+
+        await executionPolicy.EnsureApprovedAsync(
+                ArchiveToolIds.AcvTool5,
+                context.ExecutablePath,
+                context.WorkingDirectory,
+                cancellationToken)
+            .ConfigureAwait(false);
 
         var operationState = request.Operation == AcvTool5Operation.Extract
             ? AcvTool5RunnerState.Extracting
@@ -32,7 +44,6 @@ public sealed class AcvTool5Runner(
         var stdout = new BoundedTextCapture(request.MaximumDiagnosticCharacters);
         var stderr = new BoundedTextCapture(request.MaximumDiagnosticCharacters);
         var parser = new AcvTool5OutputParser();
-        var keydatBefore = File.Exists(context.KeydatPath) ? KeydatStatus.Present : KeydatStatus.Missing;
         var selectionSent = 0;
         var processedItems = 0;
 
@@ -81,7 +92,7 @@ public sealed class AcvTool5Runner(
                 switch (parsedEvent.Kind)
                 {
                     case AcvTool5ParsedEventKind.CountrySelectionRequested
-                        when keydatBefore == KeydatStatus.Missing
+                        when keydatBefore.Status == KeydatStatus.Missing
                              && Interlocked.CompareExchange(ref selectionSent, 1, 0) == 0:
                         Report(AcvTool5RunnerState.WaitingForCountrySelection);
                         await process.StandardInput.WriteLineAsync(request.RegionProfile.AcvToolCountrySelection)
@@ -173,8 +184,8 @@ public sealed class AcvTool5Runner(
                 process.ExitCode,
                 stdout,
                 stderr,
-                keydatBefore,
-                context.KeydatPath,
+                keydatBefore.Status,
+                keydatService.Describe(request.Workspace, request.ArchiveRelativePath).Status,
                 selectionSent,
                 progressItems,
                 diagnostics);
@@ -186,7 +197,8 @@ public sealed class AcvTool5Runner(
         }
 
         Report(AcvTool5RunnerState.VerifyingArtifacts);
-        VerifyResult(context, request.Operation, process.ExitCode, processedItems, keydatBefore, diagnostics);
+        var keydatAfter = keydatService.Describe(request.Workspace, request.ArchiveRelativePath);
+        VerifyResult(context, request.Operation, process.ExitCode, processedItems, keydatBefore.Status, keydatAfter.Status, diagnostics);
         Report(diagnostics.Count == 0 ? AcvTool5RunnerState.Completed : AcvTool5RunnerState.Failed);
 
         _logger.Log(
@@ -203,8 +215,8 @@ public sealed class AcvTool5Runner(
             process.ExitCode,
             stdout,
             stderr,
-            keydatBefore,
-            context.KeydatPath,
+            keydatBefore.Status,
+            keydatAfter.Status,
             selectionSent,
             progressItems,
             diagnostics);
@@ -275,17 +287,11 @@ public sealed class AcvTool5Runner(
 
         var archiveArgument = Path.GetRelativePath(workingDirectory, archivePath);
         var extractDirectoryArgument = Path.GetRelativePath(workingDirectory, extractDirectoryPath);
-        var keydatPath = Path.Combine(
-            Path.GetDirectoryName(archivePath)!,
-            $"{Path.GetFileNameWithoutExtension(archivePath)}.keydat");
-        pathSecurity.EnsureNoReparsePoints(workingDirectory, keydatPath);
-
         return new(
             workingDirectory,
             approvedExecutablePath,
             archivePath,
             extractDirectoryPath,
-            keydatPath,
             archiveArgument,
             extractDirectoryArgument);
     }
@@ -296,6 +302,7 @@ public sealed class AcvTool5Runner(
         int exitCode,
         int processedItems,
         KeydatStatus keydatBefore,
+        KeydatStatus keydatAfter,
         ICollection<string> diagnostics)
     {
         if (exitCode != 0)
@@ -303,9 +310,14 @@ public sealed class AcvTool5Runner(
             diagnostics.Add($"The archive tool exited with code {exitCode}.");
         }
 
-        if (keydatBefore == KeydatStatus.Missing && !File.Exists(context.KeydatPath))
+        if (keydatBefore == KeydatStatus.Missing && keydatAfter != KeydatStatus.PresentUnverified)
         {
             diagnostics.Add("The expected workspace keydat was not generated.");
+        }
+
+        if (keydatAfter == KeydatStatus.Invalid)
+        {
+            diagnostics.Add("The workspace keydat is structurally invalid.");
         }
 
         if (processedItems == 0)
@@ -359,7 +371,7 @@ public sealed class AcvTool5Runner(
         BoundedTextCapture stdout,
         BoundedTextCapture stderr,
         KeydatStatus keydatBefore,
-        string keydatPath,
+        KeydatStatus keydatAfter,
         int selectionSent,
         IReadOnlyList<AcvTool5Progress> progress,
         IReadOnlyList<string> diagnostics) => new(
@@ -372,7 +384,7 @@ public sealed class AcvTool5Runner(
             stdout.IsTruncated,
             stderr.IsTruncated,
             keydatBefore,
-            File.Exists(keydatPath) ? KeydatStatus.Present : KeydatStatus.Missing,
+            keydatAfter,
             selectionSent != 0,
             progress,
             diagnostics);
@@ -382,7 +394,6 @@ public sealed class AcvTool5Runner(
         string ExecutablePath,
         string ArchivePath,
         string ExtractDirectoryPath,
-        string KeydatPath,
         string ArchiveArgument,
         string ExtractDirectoryArgument);
 }
