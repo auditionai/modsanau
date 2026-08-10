@@ -66,3 +66,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - External game/tool/project path chỉ được kiểm tra cấu trúc ở PLAN 04. Giá trị cấu hình local vẫn là untrusted input; module sử dụng sau này phải kiểm tra existence, integrity, reparse point và authorization ngay trước operation.
 - Log chỉ ghi schema version, source, operation result và validation code/path; không serialize toàn bộ settings object.
 - Save dùng temp file cùng `SettingsDirectory`, flush-to-disk và atomic replace/move. Backup chỉ có một thế hệ. Primary corrupt được giữ tại một evidence file hữu hạn khi backup hợp lệ được phục hồi.
+
+## Test fixture boundary từ PLAN 05
+
+- `acv.exe`, `015.ab`, `015.keydat`, extracted folder và `samples/private/` nằm ngoài source control.
+- Fixture registration là test metadata, không phải production trust hoặc integrity policy.
+- Test mutation chỉ diễn ra trên copy trong randomized secure workspace. Source được mở read-only và hash source/copy phải khớp sau copy.
+- Registered relative path được canonicalize và kiểm tra reparse point trước khi mở.
+- Không chạy `acv.exe`, không extract/pack archive và không parse DDS tại PLAN 05.

@@ -12,7 +12,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 03: centralized managed directories, canonical relative-path validation, randomized isolated workspace, exclusive active marker, abandoned cleanup và reparse-point mitigation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 04 — Settings System.
 - Phạm vi PLAN 04: strongly typed non-secret JSON settings, schema v1, validation, atomic save, bounded backup, corruption recovery, concurrency và cancellation.
-- PLAN kế tiếp theo đặc tả: PLAN 05 — Real Sample Fixture Registration; chỉ bắt đầu sau khi PLAN 04 được người dùng phê duyệt.
+- PLAN đã hoàn thành kiểm chứng tự động: PLAN 05 — Real Sample Fixture Registration.
+- Phạm vi PLAN 05: private fixture catalog, DDS expected metadata, canonical source location và copy-before-mutation trong isolated workspace.
+- PLAN kế tiếp theo đặc tả: PLAN 06 — ACV Tool 5 Interactive Process Runner; chỉ bắt đầu sau khi PLAN 05 được người dùng phê duyệt.
 
 ## Stage Gates
 

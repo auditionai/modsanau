@@ -109,3 +109,11 @@ ApplicationSettings
 `Cache`, `Temp` và `Temp\Workspaces` không phải settings có thể chỉnh sửa. Các path nội bộ tiếp tục do `IAppPaths` kiểm soát. Game/tool/project path là external configuration và vẫn phải được validate lại theo trust boundary của operation sử dụng chúng.
 
 Settings nằm tại `Settings\settings.json`, backup hữu hạn tại `settings.json.bak`. Save được serialize trong process, validate lại, ghi temp file cùng filesystem, flush xuống disk rồi promote bằng replace/move. Một `SemaphoreSlim` serialize các operation trong singleton service. Schema mới hơn bị từ chối; migration cũ chỉ chạy qua `ISettingsSchemaMigration` được đăng ký rõ ràng.
+
+## Real sample fixture registration từ PLAN 05
+
+Fixture metadata chỉ nằm trong `IntegrationTests`, không đi vào production client. Catalog đăng ký `acv.exe`, `015.ab` và private `samples\private\tn_coby_logo.dds`. DDS expectation là 6000×1801, DXT5/BC3, 1 mip level.
+
+Test không nhận arbitrary source path. `RepositoryFixtureLocator` tìm repository root bằng solution marker, sau đó resolve registered relative path qua `IPathSecurity`. `FixtureCopyService` mở source read-only, copy bất đồng bộ vào `SecureWorkspace.Paths.WorkingDirectory`, flush và so sánh SHA-256 trước khi trả working copy. Chỉ working copy được phép mutation.
+
+Fixture có thể không tồn tại trong CI vì proprietary binary/game asset bị loại khỏi Git. Availability được báo tường minh; metadata test vẫn deterministic. Không có tool execution, archive extraction hoặc DDS decoding trong PLAN 05.
