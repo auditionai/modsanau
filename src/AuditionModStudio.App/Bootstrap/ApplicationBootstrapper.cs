@@ -1,5 +1,6 @@
 using AuditionModStudio.Archives;
 using AuditionModStudio.Core.Archives;
+using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Paths;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Startup;
@@ -62,6 +63,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAuditionArchiveService, AuditionArchiveService>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceManifestStore, ProjectArchiveWorkspaceManifestStore>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceService, ProjectArchiveWorkspaceService>();
+        builder.Services.AddSingleton<IArchiveAssetScanner, ArchiveAssetScanner>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

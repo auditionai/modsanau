@@ -1,5 +1,15 @@
 # Kiến trúc Audition AI Mod Studio
 
+## Recursive Asset Scanner (PLAN 11)
+
+Luồng production là `Working Archive → Extract → extracted directory của IProjectArchiveWorkspace → Recursive Scan → ArchiveAssetCatalog`. Scanner không đọc cây `015\` ở repository và không chứa logic DDS decode/convert, UI hay pack archive.
+
+Contract/model (`ArchiveAsset`, `TextureAsset`, `ArchiveAssetCatalog`, `IArchiveAssetScanner`) nằm trong Core. Implementation filesystem `ArchiveAssetScanner` nằm trong Projects và chỉ nhận project workspace đã được cấp. DDS được phân loại thành `TextureAsset`; PNG, SLK, RGM và extension khác vẫn là asset catalog hợp lệ.
+
+Identity ổn định là normalized relative directory path cộng exact filename, được biểu diễn bởi `RelativePath`; không dùng filename đơn lẻ và không đổi case/name. Kết quả sort bằng `StringComparer.Ordinal`. Duplicate logic theo filesystem Windows được phát hiện bằng `StringComparer.OrdinalIgnoreCase` và không bị overwrite.
+
+Scanner duyệt không theo reparse point, resolve lại từng relative path qua `IPathSecurity`, hash SHA-256 theo stream 64 KiB, hỗ trợ cancellation/progress và không giữ mutable global state. Policy lỗi là fail toàn scan để không phát hành catalog thiếu mà caller tưởng là đầy đủ.
+
 ## Baseline
 
 - C#, .NET 10 LTS.

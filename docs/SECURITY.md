@@ -124,3 +124,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Raw stdout/stderr chỉ được giữ bounded trong result diagnostic và không tự ghi toàn bộ asset path vào log. Test report chỉ giữ counts, byte totals, protocol metadata và keydat hash/length.
 - Generated keydat và extracted game assets chỉ tồn tại trong disposable workspace, không được stage/commit. Keydat vẫn không phải secret hoặc DRM boundary.
 - PLAN 10 không loại bỏ TOCTOU/Administrator risk đã ghi nhận; tool hash được kiểm tra source, copy và ngay trước launch, còn hardening handle/ACL/broker thuộc PLAN sau.
+
+## Asset scanner boundary từ PLAN 11
+
+- Source production duy nhất là extracted directory thuộc `IProjectArchiveWorkspace`; cây extracted thủ công ở repository không được scanner contract nhận trực tiếp.
+- Mọi entry được chuyển thành relative path, resolve lại qua `IPathSecurity` và kiểm tra reparse point. Scanner không recurse qua symbolic link/junction và fail toàn catalog khi một entry không đọc an toàn được.
+- Domain catalog không lưu absolute path. Identity giữ normalized relative directory path cộng exact filename; duplicate theo Windows case semantics bị từ chối thay vì overwrite.
+- SHA-256 được tính streaming, hỗ trợ cancellation; hash là content identity/diagnostic, không phải chữ ký hay trust proof. Scanner không log danh sách tên asset.
+- Enumeration/validation/open vẫn có cửa sổ TOCTOU trước local attacker có quyền ghi workspace; handle-based traversal là hardening tương lai.

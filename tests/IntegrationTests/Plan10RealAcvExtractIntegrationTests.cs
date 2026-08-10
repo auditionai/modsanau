@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using AuditionModStudio.Archives;
 using AuditionModStudio.Core.Archives;
+using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Infrastructure.Paths;
 using AuditionModStudio.Infrastructure.Workspaces;
@@ -146,6 +147,22 @@ public sealed class Plan10RealAcvExtractIntegrationTests(ITestOutputHelper outpu
             WriteInventory("first-run", firstInventory);
             Assert.True(Directory.Exists(firstExtractDirectory));
             Assert.True(firstInventory.FileCount > 0);
+            var scanResult = await new ArchiveAssetScanner(pathSecurity).ScanAsync(firstWorkspace);
+            Assert.True(scanResult.IsSuccess, scanResult.ErrorCode);
+            var assetCatalog = Assert.IsType<ArchiveAssetCatalog>(scanResult.Catalog);
+            Assert.Equal(firstInventory.FileCount, assetCatalog.TotalFileCount);
+            Assert.Equal(firstInventory.TotalBytes, assetCatalog.TotalByteSize);
+            Assert.All(assetCatalog.Assets, asset => Assert.False(Path.IsPathFullyQualified(asset.RelativePath)));
+            output.WriteLine(
+                "PLAN 11 inventory: files={0}, directories={1}, dds={2}, png={3}, slk={4}, rgm={5}, other={6}, bytes={7}",
+                assetCatalog.TotalFileCount,
+                assetCatalog.DirectoryCount,
+                assetCatalog.Count(ArchiveAssetKind.Dds),
+                assetCatalog.Count(ArchiveAssetKind.Png),
+                assetCatalog.Count(ArchiveAssetKind.Slk),
+                assetCatalog.Count(ArchiveAssetKind.Rgm),
+                assetCatalog.Count(ArchiveAssetKind.Other),
+                assetCatalog.TotalByteSize);
             var workingArchivePath = Path.Combine(
                 firstWorkspace.ArchiveWorkspace.SecureWorkspace.Paths.WorkingDirectory,
                 archiveTemplate.FileName);

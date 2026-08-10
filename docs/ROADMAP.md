@@ -24,7 +24,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 09: per-project randomized secure workspace lease; verified pristine-to-working copy; separate extracted/build output; template identity/version snapshot; atomic schema-v1 manifest; structured validation và isolated cleanup.
 - PLAN đã hoàn thành kiểm chứng Gate A: PLAN 10 — Real Extract Integration POC With AuditionVN Selection.
 - Phạm vi PLAN 10: real approved `acv.exe` + working copy `015.ab`; AuditionVN stdin automation; missing/existing-`PresentUnverified` keydat flows; bounded real stdout diagnostics; Unicode/space workspace; aggregate extract inventory; pristine hash verification và cleanup.
-- PLAN kế tiếp theo đặc tả: PLAN 11 — Recursive Asset Scanner; không bắt đầu trước khi PLAN 10 được người dùng phê duyệt.
+- PLAN đã hoàn thành kiểm chứng tự động: PLAN 11 — Recursive Asset Scanner.
+- Phạm vi PLAN 11: catalog deterministic từ extracted directory của project workspace; relative-path identity; DDS/PNG/SLK/RGM/Other classification; streaming SHA-256; inventory; progress/cancellation; path confinement; reparse-point và duplicate rejection.
+- PLAN kế tiếp theo đặc tả: PLAN 12 — Real Archive Repack POC + Keydat Cases; không tự động bắt đầu.
 
 ## Stage Gates
 
