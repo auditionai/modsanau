@@ -216,3 +216,19 @@ IProjectArchiveWorkspace
 Behavior thực tế bổ sung cho process protocol: binary ACV Tool 5 này block-buffer stdout khi chờ stdin, nên runner phải pre-seed trusted AuditionVN selection cho keydat `Missing` thay vì chỉ đợi parser thấy `Select:`. Ngoài ra, keydat vừa được tool tạo có trạng thái `PresentUnverified` và hash trùng sample vẫn khiến binary hỏi country ở lần chạy kế tiếp. Runner cho nhánh này một grace period để process có thể tự hoàn tất; chỉ khi process vẫn đứng mới dùng cùng trusted selection làm liveness fallback. Fake regression vẫn chứng minh trường hợp existing keydat tự hoàn tất không nhận selection.
 
 Output thật giữ đúng casing/spacing `writing :`; `Select:` không kết thúc ngay bằng newline mà theo sau bởi một khoảng trắng. Cả hai real extract exit `0`, tạo 101 file trong 7 thư mục và được cleanup cùng project workspace. Đây là Gate A cho extract; không bao gồm pack, DDS decode hoặc semantic scan.
+
+## DDS Metadata Reader từ PLAN 13
+
+Pipeline texture hiện tại là:
+
+```text
+Archive → Extract → Asset Scanner → IDdsMetadataReader → DdsMetadata
+```
+
+`Core` sở hữu contract `IDdsMetadataReader`, structured result/failure và model metadata strongly typed. `AuditionModStudio.Dds` triển khai parser managed, little-endian, read-only; không phụ thuộc UI, Projects hay native DDS library. Reader chỉ đọc tối đa 148 byte header cần thiết, không load payload theo dimensions trong header.
+
+Legacy header và `DDS_PIXELFORMAT` được validate lần lượt với size 124 và 32. FourCC hỗ trợ `DXT1`, `DXT3`, `DXT5`, `ATI1`, `ATI2`, `BC4U/S`, `BC5U/S` và `DX10`. DX10 header expose numeric DXGI format, resource dimension, cubemap, array size và nhận diện BC1–BC7 cùng RGBA8/BGRA8 phổ biến. Format chưa biết vẫn trả metadata với `Unknown`/`Unsupported`, không crash.
+
+`DeclaredMipMapCount` giữ nguyên giá trị header; `EffectiveMipLevelCount` là 1 khi declared count bằng 0 để biểu diễn base level. Alpha chỉ là khả năng/channel theo format; không khẳng định pixel thực tế có sử dụng alpha. Legacy color space là `Unknown`; chỉ DXGI `_SRGB` được ghi `Srgb`.
+
+Metadata reader không phải DDS decoder, encoder, thumbnail renderer hay image converter. `PixelDataOffset` chỉ là 128 cho legacy hoặc 148 cho DX10; PLAN 13 không đọc pixel data.

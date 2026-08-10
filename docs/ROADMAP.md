@@ -28,7 +28,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 11: catalog deterministic từ extracted directory của project workspace; relative-path identity; DDS/PNG/SLK/RGM/Other classification; streaming SHA-256; inventory; progress/cancellation; path confinement; reparse-point và duplicate rejection.
 - PLAN đã hoàn thành kiểm chứng Stage Gate archive round-trip: PLAN 12 — Real Archive Repack POC + Keydat Cases.
 - Phạm vi PLAN 12: no-edit extract/pack/re-extract thật; existing/missing-keydat; trusted AuditionVN selection; real pack exit-code convention; Unicode/space workspace; logical asset identity/size/kind/SHA-256 preservation và pristine fixture safety.
-- PLAN kế tiếp theo đặc tả: PLAN 13 — DDS Metadata Reader; không tự động bắt đầu.
+- PLAN đã hoàn thành kiểm chứng: PLAN 13 — DDS Metadata Reader.
+- Phạm vi PLAN 13: contract/model strongly typed trong Core; parser legacy/DX10 little-endian read-only; FourCC/DXGI mapping; dimensions NPOT; mip/alpha/color-space semantics; structured malformed/unknown handling; synthetic tests và real extracted DDS inventory gate.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 14; không tự động bắt đầu.
 
 ## Stage Gates
 

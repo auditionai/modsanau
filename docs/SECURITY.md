@@ -140,3 +140,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Existing `PresentUnverified` keydat và missing keydat đều có thể dẫn tới country prompt. Selection luôn lấy từ code-owned `GameRegionProfile.AuditionVietnam`, không từ user input.
 - No-edit logical integrity được xác minh bằng identity, byte size, kind và SHA-256 của toàn bộ asset sau re-extract. Archive binary hash được phép khác vì packing representation không phải logical source of truth.
 - PLAN 12 chưa tạo immutable/atomic `BuildOutput`; pack hiện mutate working archive. Promotion/rollback cho output phát hành vẫn là lifecycle cần triển khai ở PLAN phù hợp.
+
+## DDS parser boundary từ PLAN 13
+
+- DDS là binary input không tin cậy. Reader xác minh magic `DDS ` trước khi parse, sau đó xác minh legacy header size 124, pixel-format size 32 và DX10 header nếu có.
+- File chỉ được mở `FileMode.Open` + `FileAccess.Read`; production read không hash payload, không ghi, không `OpenOrCreate` và không load toàn file.
+- Parser chỉ cấp phát buffer header cố định 148 byte. Width, height, depth, mip count và array size không được dùng để cấp phát bitmap/payload; arithmetic offset có giới hạn và field little-endian được đọc từ span đã kiểm tra length.
+- Malformed/truncated/missing/cancelled/I/O failure trả reason và error code có cấu trúc; UI không cần parse exception string. Unknown FourCC/DXGI không là process crash.
+- Reader không dùng unsafe code hoặc native DLL. Integration gate hash toàn bộ DDS trước/sau chỉ trong test để chứng minh tính read-only; production không gánh chi phí này.
