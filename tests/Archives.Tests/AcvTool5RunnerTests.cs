@@ -32,6 +32,24 @@ public sealed class AcvTool5RunnerTests
     }
 
     [Fact]
+    public async Task Missing_keydat_preseeds_selection_when_tool_waits_before_flushing_output()
+    {
+        await using var context = TestRunContext.Create();
+        File.WriteAllText(Path.Combine(context.WorkingDirectory, ".fake-read-before-output"), string.Empty);
+
+        var result = await context.Runner.RunAsync(context.CreateRequest(AcvTool5Operation.Extract));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(AcvTool5RunnerState.Completed, result.State);
+        Assert.True(result.CountrySelectionSent);
+        Assert.Single(
+            result.Progress,
+            item => item.State == AcvTool5RunnerState.WaitingForCountrySelection);
+        Assert.Contains("SUPPORT COUNTRY LIST", result.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("writing :", result.StandardOutput, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Existing_keydat_completes_without_waiting_for_prompt()
     {
         await using var context = TestRunContext.Create();
@@ -43,6 +61,27 @@ public sealed class AcvTool5RunnerTests
         Assert.Equal(KeydatStatus.PresentUnverified, result.KeydatStatusBefore);
         Assert.False(result.CountrySelectionSent);
         Assert.DoesNotContain(result.Progress, item => item.State == AcvTool5RunnerState.WaitingForCountrySelection);
+    }
+
+    [Fact]
+    public async Task Existing_unverified_keydat_uses_liveness_fallback_when_tool_still_prompts()
+    {
+        await using var context = TestRunContext.Create();
+        File.WriteAllText(Path.Combine(context.WorkingDirectory, "mẫu 015.keydat"), "existing");
+        File.WriteAllText(
+            Path.Combine(context.WorkingDirectory, ".fake-prompt-with-existing-keydat"),
+            string.Empty);
+
+        var result = await context.Runner.RunAsync(context.CreateRequest(AcvTool5Operation.Extract));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(AcvTool5RunnerState.Completed, result.State);
+        Assert.True(result.CountrySelectionSent);
+        Assert.Single(
+            result.Progress,
+            item => item.State == AcvTool5RunnerState.WaitingForCountrySelection);
+        Assert.Contains("SUPPORT COUNTRY LIST", result.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("writing :", result.StandardOutput, StringComparison.Ordinal);
     }
 
     [Fact]

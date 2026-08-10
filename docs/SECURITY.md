@@ -114,3 +114,13 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Failure/cancellation không trả workspace `Ready`; partial lease được cleanup an toàn. Validation báo corruption/missing/hash mismatch thay vì tự chữa hoặc tin local metadata.
 - Random workspace ID và LocalAppData isolation là filesystem safety, không phải DRM hoặc bảo vệ tuyệt đối trước local Administrator. Restrictive NTFS ACL/broker hardening sâu hơn vẫn thuộc PLAN 74 và kiến trúc elevation tương lai.
 - Folder `015\` do người dùng extract thủ công ở repository không nằm trong trust boundary production. PLAN 09 không chạy tool, không đọc extracted asset thật và không sửa proprietary fixture.
+
+## Real extract boundary từ PLAN 10
+
+- Real execution chỉ được phép sau khi SHA-256 của pristine `015.ab`, `015.keydat` sample và `acv.exe` khớp checkpoint; process chỉ nhận working copies trong randomized managed workspace.
+- Production chain vẫn đi qua project workspace, semantic archive service, ACV engine, provisioning/integrity policy, keydat service và runner. Integration test không chạy executable từ arbitrary project/settings path.
+- ACV Tool 5 thật buffer stdout trong lúc chờ stdin. Selection `1` luôn đến từ code-owned `GameRegionProfile.AuditionVietnam`; pre-seed/liveness fallback không nhận text từ user và vẫn dùng redirected stdin, không shell/UI automation.
+- `PresentUnverified` không đồng nghĩa keydat được tool chấp nhận. Fixture thật vẫn yêu cầu country selection ở lần extract thứ hai dù generated keydat trùng sample; runner ưu tiên cho process tự hoàn tất rồi mới fallback hữu hạn để tránh deadlock.
+- Raw stdout/stderr chỉ được giữ bounded trong result diagnostic và không tự ghi toàn bộ asset path vào log. Test report chỉ giữ counts, byte totals, protocol metadata và keydat hash/length.
+- Generated keydat và extracted game assets chỉ tồn tại trong disposable workspace, không được stage/commit. Keydat vẫn không phải secret hoặc DRM boundary.
+- PLAN 10 không loại bỏ TOCTOU/Administrator risk đã ghi nhận; tool hash được kiểm tra source, copy và ngay trước launch, còn hardening handle/ACL/broker thuộc PLAN sau.

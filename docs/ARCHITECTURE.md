@@ -183,3 +183,20 @@ Validation phân biệt manifest missing/corrupt/mismatch, working archive missi
 PLAN 09 dùng randomized lease dưới `Temp\Workspaces`, đúng phạm vi cleanup abandoned temp workspace trong roadmap. Durable project directory dưới `Projects`, `.audproj`, load/recover project lâu dài và reset workflow thuộc PLAN 31–35. Repository-root `015\` không phải production workspace và không được service tham chiếu.
 
 `AuditionArchiveService` có thể reuse working archive đã được PLAN 09 chuẩn bị nếu SHA-256 khớp pristine source; mismatch bị từ chối và không overwrite. Nhờ vậy `ProjectArchiveWorkspace.ArchiveWorkspace` sẵn sàng cho PLAN 10 mà Project layer không biết `acv.exe`, command hoặc keydat internals.
+
+## Real ACV extract Gate A từ PLAN 10
+
+Integration test Windows/private-fixture chạy đúng production chain:
+
+```text
+IProjectArchiveWorkspace
+  → IAuditionArchiveService
+  → AcvTool5ArchiveEngine
+  → AcvTool5Runner
+```
+
+`015.ab` và approved `acv.exe` chỉ được dùng sau khi hash pristine khớp, rồi được copy/provision vào randomized workspace có path Unicode và khoảng trắng. Real extract dùng working archive và ghi vào `Extracted\015`; test chỉ tạo inventory đếm tổng hợp, không tạo asset scanner của PLAN 11.
+
+Behavior thực tế bổ sung cho process protocol: binary ACV Tool 5 này block-buffer stdout khi chờ stdin, nên runner phải pre-seed trusted AuditionVN selection cho keydat `Missing` thay vì chỉ đợi parser thấy `Select:`. Ngoài ra, keydat vừa được tool tạo có trạng thái `PresentUnverified` và hash trùng sample vẫn khiến binary hỏi country ở lần chạy kế tiếp. Runner cho nhánh này một grace period để process có thể tự hoàn tất; chỉ khi process vẫn đứng mới dùng cùng trusted selection làm liveness fallback. Fake regression vẫn chứng minh trường hợp existing keydat tự hoàn tất không nhận selection.
+
+Output thật giữ đúng casing/spacing `writing :`; `Select:` không kết thúc ngay bằng newline mà theo sau bởi một khoảng trắng. Cả hai real extract exit `0`, tạo 101 file trong 7 thư mục và được cleanup cùng project workspace. Đây là Gate A cho extract; không bao gồm pack, DDS decode hoặc semantic scan.

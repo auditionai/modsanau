@@ -24,8 +24,16 @@ public static class Program
             Path.GetDirectoryName(archivePath)!,
             $"{Path.GetFileNameWithoutExtension(archivePath)}.keydat");
 
-        if (!File.Exists(keydatPath))
+        var keydatMissing = !File.Exists(keydatPath);
+        if (keydatMissing
+            || File.Exists(Path.Combine(workingDirectory, ".fake-prompt-with-existing-keydat")))
         {
+            string? selection = null;
+            if (File.Exists(Path.Combine(workingDirectory, ".fake-read-before-output")))
+            {
+                selection = await Console.In.ReadLineAsync();
+            }
+
             await Console.Out.WriteLineAsync(
                 "Keydat file not found. Program will automatic generate it. Please Select");
             await Console.Out.WriteLineAsync("===== SUPPORT COUNTRY LIST =====");
@@ -43,14 +51,17 @@ public static class Program
             }
 
             await Console.Out.FlushAsync();
-            var selection = await Console.In.ReadLineAsync();
+            selection ??= await Console.In.ReadLineAsync();
             if (!string.Equals(selection, "1", StringComparison.Ordinal))
             {
                 await Console.Error.WriteLineAsync("Unexpected country selection");
                 return 3;
             }
 
-            await File.WriteAllTextAsync(keydatPath, "fake-keydat");
+            if (keydatMissing)
+            {
+                await File.WriteAllTextAsync(keydatPath, "fake-keydat");
+            }
         }
 
         if (File.Exists(Path.Combine(workingDirectory, ".fake-stderr")))

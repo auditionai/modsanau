@@ -85,6 +85,28 @@ public sealed class AcvTool5Runner(
 
         Report(operationState);
 
+        async Task SendCountrySelectionAsync()
+        {
+            if (Interlocked.CompareExchange(ref selectionSent, 1, 0) != 0)
+            {
+                return;
+            }
+
+            Report(AcvTool5RunnerState.WaitingForCountrySelection);
+            await process.StandardInput.WriteLineAsync(request.RegionProfile.AcvToolCountrySelection)
+                .ConfigureAwait(false);
+            await process.StandardInput.FlushAsync().ConfigureAwait(false);
+            Report(operationState);
+        }
+
+        // ACV Tool 5 can buffer its country menu when stdout is redirected. Pre-seeding the
+        // trusted selection for a missing keydat avoids a stdin/stdout deadlock. The parser
+        // remains active as a guarded fallback and for protocol diagnostics.
+        if (keydatBefore.Status == KeydatStatus.Missing)
+        {
+            await SendCountrySelectionAsync().ConfigureAwait(false);
+        }
+
         async Task HandleEventsAsync(IReadOnlyList<AcvTool5ParsedEvent> parsedEvents)
         {
             foreach (var parsedEvent in parsedEvents)
@@ -92,13 +114,8 @@ public sealed class AcvTool5Runner(
                 switch (parsedEvent.Kind)
                 {
                     case AcvTool5ParsedEventKind.CountrySelectionRequested
-                        when keydatBefore.Status == KeydatStatus.Missing
-                             && Interlocked.CompareExchange(ref selectionSent, 1, 0) == 0:
-                        Report(AcvTool5RunnerState.WaitingForCountrySelection);
-                        await process.StandardInput.WriteLineAsync(request.RegionProfile.AcvToolCountrySelection)
-                            .ConfigureAwait(false);
-                        await process.StandardInput.FlushAsync().ConfigureAwait(false);
-                        Report(operationState);
+                        when keydatBefore.Status == KeydatStatus.Missing:
+                        await SendCountrySelectionAsync().ConfigureAwait(false);
                         break;
 
                     case AcvTool5ParsedEventKind.ExtractItem
@@ -159,11 +176,33 @@ public sealed class AcvTool5Runner(
         using var combinedSource = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             timeoutSource.Token);
+        var processExitTask = process.WaitForExitAsync(combinedSource.Token);
+
+        async Task SendPresentKeydatFallbackAsync()
+        {
+            if (keydatBefore.Status != KeydatStatus.PresentUnverified)
+            {
+                return;
+            }
+
+            var gracePeriod = Task.Delay(TimeSpan.FromMilliseconds(500), combinedSource.Token);
+            var completed = await Task.WhenAny(processExitTask, gracePeriod).ConfigureAwait(false);
+            if (completed == gracePeriod)
+            {
+                await gracePeriod.ConfigureAwait(false);
+                if (!process.HasExited)
+                {
+                    await SendCountrySelectionAsync().ConfigureAwait(false);
+                }
+            }
+        }
+
+        var presentKeydatFallbackTask = SendPresentKeydatFallbackAsync();
 
         try
         {
-            await process.WaitForExitAsync(combinedSource.Token).ConfigureAwait(false);
-            await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+            await processExitTask.ConfigureAwait(false);
+            await Task.WhenAll(stdoutTask, stderrTask, presentKeydatFallbackTask).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -173,6 +212,14 @@ public sealed class AcvTool5Runner(
             TerminateProcessTree(process, diagnostics);
             await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
             await Task.WhenAll(stdoutTask, stderrTask).ConfigureAwait(false);
+            try
+            {
+                await presentKeydatFallbackTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // The parent operation already owns the terminal cancellation/timeout state.
+            }
             Report(terminalState);
             diagnostics.Add(terminalState == AcvTool5RunnerState.Cancelled
                 ? "The archive operation was cancelled by the caller."
@@ -193,6 +240,14 @@ public sealed class AcvTool5Runner(
         catch
         {
             TerminateProcessTree(process, diagnostics);
+            try
+            {
+                await presentKeydatFallbackTask.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Preserve the original exception while observing the cancelled fallback task.
+            }
             throw;
         }
 
