@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AuditionModStudio.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "AuditionModStudio.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

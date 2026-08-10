@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AuditionModStudio.Archives\AuditionModStudio.Archives.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Core\AuditionModStudio.Core.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Dds\AuditionModStudio.Dds.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Imaging\AuditionModStudio.Imaging.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Infrastructure\AuditionModStudio.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Mods\AuditionModStudio.Mods.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Projects\AuditionModStudio.Projects.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Security\AuditionModStudio.Security.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <Product>Audition AI Mod Studio</Product>
+    <Company>Audition AI Mod Studio</Company>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latestMajor</LangVersion>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>
