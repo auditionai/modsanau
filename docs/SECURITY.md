@@ -132,3 +132,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Domain catalog không lưu absolute path. Identity giữ normalized relative directory path cộng exact filename; duplicate theo Windows case semantics bị từ chối thay vì overwrite.
 - SHA-256 được tính streaming, hỗ trợ cancellation; hash là content identity/diagnostic, không phải chữ ký hay trust proof. Scanner không log danh sách tên asset.
 - Enumeration/validation/open vẫn có cửa sổ TOCTOU trước local attacker có quyền ghi workspace; handle-based traversal là hardening tương lai.
+
+## Real repack boundary từ PLAN 12
+
+- Real pack chỉ mutate `Working\015.ab` trong randomized project workspace và chỉ đọc extracted tree của workspace đó. Pristine archive/tool/keydat không được mở để ghi; repacked archive chỉ được re-extract từ một disposable trusted source copy.
+- Success không dựa riêng vào exit code. ACV Tool 5 thật trả code `1` sau pack thành công; policy chỉ chấp nhận code này cho Pack khi có `Packing:` progress, keydat không invalid và archive tồn tại/non-empty. Unexpected exit code, thiếu progress hoặc thiếu artifact vẫn fail và không được coi là promoted build.
+- Existing `PresentUnverified` keydat và missing keydat đều có thể dẫn tới country prompt. Selection luôn lấy từ code-owned `GameRegionProfile.AuditionVietnam`, không từ user input.
+- No-edit logical integrity được xác minh bằng identity, byte size, kind và SHA-256 của toàn bộ asset sau re-extract. Archive binary hash được phép khác vì packing representation không phải logical source of truth.
+- PLAN 12 chưa tạo immutable/atomic `BuildOutput`; pack hiện mutate working archive. Promotion/rollback cho output phát hành vẫn là lifecycle cần triển khai ở PLAN phù hợp.

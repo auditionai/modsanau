@@ -26,7 +26,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 10: real approved `acv.exe` + working copy `015.ab`; AuditionVN stdin automation; missing/existing-`PresentUnverified` keydat flows; bounded real stdout diagnostics; Unicode/space workspace; aggregate extract inventory; pristine hash verification và cleanup.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 11 — Recursive Asset Scanner.
 - Phạm vi PLAN 11: catalog deterministic từ extracted directory của project workspace; relative-path identity; DDS/PNG/SLK/RGM/Other classification; streaming SHA-256; inventory; progress/cancellation; path confinement; reparse-point và duplicate rejection.
-- PLAN kế tiếp theo đặc tả: PLAN 12 — Real Archive Repack POC + Keydat Cases; không tự động bắt đầu.
+- PLAN đã hoàn thành kiểm chứng Stage Gate archive round-trip: PLAN 12 — Real Archive Repack POC + Keydat Cases.
+- Phạm vi PLAN 12: no-edit extract/pack/re-extract thật; existing/missing-keydat; trusted AuditionVN selection; real pack exit-code convention; Unicode/space workspace; logical asset identity/size/kind/SHA-256 preservation và pristine fixture safety.
+- PLAN kế tiếp theo đặc tả: PLAN 13 — DDS Metadata Reader; không tự động bắt đầu.
 
 ## Stage Gates
 

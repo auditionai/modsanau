@@ -362,7 +362,7 @@ public sealed class AcvTool5Runner(
         KeydatStatus keydatAfter,
         ICollection<string> diagnostics)
     {
-        if (exitCode != 0)
+        if (!IsSuccessfulExitCode(operation, exitCode))
         {
             diagnostics.Add($"The archive tool exited with code {exitCode}.");
         }
@@ -392,11 +392,33 @@ public sealed class AcvTool5Runner(
                 diagnostics.Add("The expected extracted files were not produced.");
             }
         }
-        else if (!File.Exists(context.ArchivePath) || new FileInfo(context.ArchivePath).Length == 0)
+        else
         {
-            diagnostics.Add("The packed working archive is missing or empty.");
+            if (!Directory.Exists(context.ExtractDirectoryPath))
+            {
+                diagnostics.Add("The pack source directory is missing.");
+            }
+            else
+            {
+                var sourceFileCount = Directory.EnumerateFiles(
+                    context.ExtractDirectoryPath,
+                    "*",
+                    SearchOption.AllDirectories).Count();
+                if (processedItems != sourceFileCount)
+                {
+                    diagnostics.Add("The pack progress count does not match the source file count.");
+                }
+            }
+
+            if (!File.Exists(context.ArchivePath) || new FileInfo(context.ArchivePath).Length == 0)
+            {
+                diagnostics.Add("The packed working archive is missing or empty.");
+            }
         }
     }
+
+    private static bool IsSuccessfulExitCode(AcvTool5Operation operation, int exitCode) =>
+        exitCode == 0 || operation == AcvTool5Operation.Pack && exitCode == 1;
 
     private static void TerminateProcessTree(Process process, ICollection<string> diagnostics)
     {

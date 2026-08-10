@@ -10,6 +10,12 @@ Identity ổn định là normalized relative directory path cộng exact filena
 
 Scanner duyệt không theo reparse point, resolve lại từng relative path qua `IPathSecurity`, hash SHA-256 theo stream 64 KiB, hỗ trợ cancellation/progress và không giữ mutable global state. Policy lỗi là fail toàn scan để không phát hành catalog thiếu mà caller tưởng là đầy đủ.
 
+## Real archive repack round-trip (PLAN 12)
+
+Luồng đã kiểm chứng thật là `project working archive → extracted tree không sửa → PackAsync → mutate working archive → copy repacked archive sang disposable trusted source → extract lại → asset catalog comparison`. PLAN 12 chưa promote sang `BuildOutput`; working archive và final promoted output vẫn là hai lifecycle cần tách ở PLAN sau.
+
+ACV Tool 5 chạy pack bằng structured arguments tương đương `acv -ca 015.ab ..\Extracted\015` trong isolated `WorkingDirectory`; đường dẫn tương đối này trỏ tới extracted directory riêng của cùng secure workspace. Tool thật phát 101 dòng `Packing:`, stderr rỗng và trả exit code `1` khi pack thành công. Runner chỉ chấp nhận code `1` cho operation Pack, đồng thời vẫn bắt buộc pack progress, keydat hợp lệ và archive artifact tồn tại/non-empty. Extract tiếp tục yêu cầu exit code `0`; mã pack khác `0/1` vẫn fail.
+
 ## Baseline
 
 - C#, .NET 10 LTS.

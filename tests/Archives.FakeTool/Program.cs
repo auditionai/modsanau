@@ -91,6 +91,19 @@ public static class Program
             await Console.Out.WriteLineAsync($"Packing: {args[2]}{Path.DirectorySeparatorChar}texture{Path.DirectorySeparatorChar}file.dds");
         }
 
+        if (args[0] == "-ca")
+        {
+            if (File.Exists(Path.Combine(workingDirectory, ".fake-pack-exit-one")))
+            {
+                return 1;
+            }
+
+            if (File.Exists(Path.Combine(workingDirectory, ".fake-pack-exit-two")))
+            {
+                return 2;
+            }
+        }
+
         return 0;
     }
 }

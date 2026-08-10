@@ -114,6 +114,34 @@ public sealed class AcvTool5RunnerTests
     }
 
     [Fact]
+    public async Task Pack_exit_code_one_is_accepted_when_artifacts_and_progress_are_valid()
+    {
+        await using var context = TestRunContext.Create();
+        File.WriteAllText(Path.Combine(context.WorkingDirectory, ".fake-pack-exit-one"), string.Empty);
+
+        var result = await context.Runner.RunAsync(context.CreateRequest(AcvTool5Operation.Pack));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.ExitCode);
+        Assert.Equal(AcvTool5RunnerState.Completed, result.State);
+        Assert.Contains("Packing:", result.StandardOutput, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Pack_unexpected_exit_code_is_failure_even_when_artifact_and_progress_exist()
+    {
+        await using var context = TestRunContext.Create();
+        File.WriteAllText(Path.Combine(context.WorkingDirectory, ".fake-pack-exit-two"), string.Empty);
+
+        var result = await context.Runner.RunAsync(context.CreateRequest(AcvTool5Operation.Pack));
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(2, result.ExitCode);
+        Assert.Equal(AcvTool5RunnerState.Failed, result.State);
+        Assert.Contains(result.Diagnostics, item => item.Contains("code 2", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Exit_code_zero_without_expected_artifacts_is_not_success()
     {
         await using var context = TestRunContext.Create();
@@ -286,14 +314,27 @@ public sealed class AcvTool5RunnerTests
             return new(root, ResolveFakeToolExecutable());
         }
 
-        public AcvTool5RunRequest CreateRequest(AcvTool5Operation operation) => new(
-            operation,
-            Workspace,
-            ExecutablePath,
-            Path.GetFileName(ArchivePath),
-            "thư mục extract",
-            GameRegionProfile.AuditionVietnam,
-            TimeSpan.FromSeconds(10));
+        public AcvTool5RunRequest CreateRequest(AcvTool5Operation operation)
+        {
+            if (operation == AcvTool5Operation.Pack)
+            {
+                var extractedAssetDirectory = Path.Combine(
+                    Workspace.Paths.ExtractedDirectory,
+                    "thư mục extract",
+                    "texture");
+                Directory.CreateDirectory(extractedAssetDirectory);
+                File.WriteAllBytes(Path.Combine(extractedAssetDirectory, "file.dds"), [0x44, 0x44, 0x53]);
+            }
+
+            return new(
+                operation,
+                Workspace,
+                ExecutablePath,
+                Path.GetFileName(ArchivePath),
+                "thư mục extract",
+                GameRegionProfile.AuditionVietnam,
+                TimeSpan.FromSeconds(10));
+        }
 
         public ValueTask DisposeAsync()
         {
