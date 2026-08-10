@@ -23,6 +23,12 @@ public sealed class AcvTool5RunnerTests
         Assert.True(result.CountrySelectionSent);
         Assert.Contains(result.Progress, item => item.CurrentItemPath?.EndsWith("file.dds", StringComparison.Ordinal) == true);
         Assert.True(File.Exists(Path.Combine(context.WorkingDirectory, "mẫu 015.keydat")));
+        Assert.True(File.Exists(Path.Combine(
+            context.Workspace.Paths.ExtractedDirectory,
+            "thư mục extract",
+            "texture",
+            "file.dds")));
+        Assert.False(Directory.Exists(Path.Combine(context.WorkingDirectory, "thư mục extract")));
     }
 
     [Fact]

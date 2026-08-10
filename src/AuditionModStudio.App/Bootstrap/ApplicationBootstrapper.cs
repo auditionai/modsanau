@@ -1,3 +1,5 @@
+using AuditionModStudio.Archives;
+using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Paths;
 using AuditionModStudio.Core.Startup;
 using AuditionModStudio.Core.Settings;
@@ -47,6 +49,15 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAtomicSettingsWriter, AtomicSettingsWriter>();
         builder.Services.AddSingleton<ISettingsService, SettingsService>();
         builder.Services.AddHostedService<SettingsInitializationService>();
+        builder.Services.AddSingleton(TrustedArchiveToolManifest.Production);
+        builder.Services.AddSingleton<ArchiveToolIntegrityPolicy>();
+        builder.Services.AddSingleton<IArchiveToolExecutionPolicy>(services =>
+            services.GetRequiredService<ArchiveToolIntegrityPolicy>());
+        builder.Services.AddSingleton<IKeydatService, KeydatService>();
+        builder.Services.AddSingleton<IArchiveToolProvisioningService, ArchiveToolProvisioningService>();
+        builder.Services.AddSingleton<IArchiveToolRunner, AcvTool5Runner>();
+        builder.Services.AddSingleton<IGameRegionProfileResolver, GameRegionProfileCatalog>();
+        builder.Services.AddSingleton<IAuditionArchiveService, AuditionArchiveService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

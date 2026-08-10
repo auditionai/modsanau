@@ -280,10 +280,12 @@ public sealed class AcvTool5Runner(
             throw new FileNotFoundException("The working archive was not found.", archivePath);
         }
 
+        var extractedRoot = Path.TrimEndingDirectorySeparator(
+            Path.GetFullPath(request.Workspace.Paths.ExtractedDirectory));
         var extractDirectoryPath = pathSecurity.ResolvePathWithinRoot(
-            workingDirectory,
+            extractedRoot,
             request.ExtractDirectoryRelativePath);
-        pathSecurity.EnsureNoReparsePoints(workingDirectory, extractDirectoryPath);
+        pathSecurity.EnsureNoReparsePoints(extractedRoot, extractDirectoryPath);
 
         var archiveArgument = Path.GetRelativePath(workingDirectory, archivePath);
         var extractDirectoryArgument = Path.GetRelativePath(workingDirectory, extractDirectoryPath);

@@ -135,3 +135,24 @@ State/progress có cấu trúc độc lập với UI. Cancellation và timeout k
 `ArchiveToolProvisioningService` thực hiện `verify trusted source → copy vào isolated Working → verify copy`. `AcvTool5Runner` gọi cùng `IArchiveToolExecutionPolicy` ngay trước `Process.Start`; integrity failure dùng structured reason và không launch process. Hash không cache để tránh stale decision.
 
 Vẫn còn cửa sổ TOCTOU giữa lần hash cuối và Windows mở executable. PLAN 07 giảm rủi ro bằng controlled workspace, reparse rejection, verify source/copy và verify lại ngay trước launch, nhưng chưa có handle-based execution binding hoặc ACL/broker hardening tuyệt đối.
+
+## Audition Archive abstraction từ PLAN 08
+
+`Core` định nghĩa `IAuditionArchiveService` cùng các model `AuditionArchiveTemplate`, `ArchiveEngineType`, `ArchiveWorkspace`, request/result, semantic progress và structured failure. Extension chỉ là metadata của descriptor; `.ab`, `.acv` và extension tương lai đi cùng một luồng. Caller không truyền raw argument, executable path, country selection hoặc trực tiếp thao tác keydat.
+
+Pipeline chính thức:
+
+```text
+Project/Caller
+  → IAuditionArchiveService
+  → IArchiveEngine (resolve bằng explicit EngineId)
+  → IArchiveToolProvisioningService
+  → IKeydatService
+  → IArchiveToolRunner
+```
+
+`AuditionArchiveService` mở pristine source chỉ đọc, copy qua file tạm, flush, so sánh SHA-256 rồi promote vào `SecureWorkspace.Paths.WorkingDirectory`. Nếu working archive đã tồn tại, service từ chối overwrite. Extract target nằm dưới `SecureWorkspace.Paths.ExtractedDirectory`; build output tiếp tục tách riêng và chưa được promote ở PLAN 08.
+
+`AcvTool5ArchiveEngine` là implementation của `ArchiveEngineType.AcvTool5` ở module `Archives`. Engine map semantic intent sang runner mà không leak `-da`, `-ca`, `Select:` hoặc `Process`. Provisioning/integrity luôn xảy ra trước keydat inspection và runner launch. Keydat `Missing` được runner xử lý bằng trusted region profile; `PresentUnverified` được reuse; `Invalid` chặn launch.
+
+App composition đăng ký archive service và các low-level security boundary. Concrete ACV engine chỉ được đăng ký khi có approved trusted tool location; PLAN 08 không tự tin một path từ settings hoặc chạy proprietary tool. `015.ab` chỉ là archive mẫu thật, không phải tên hay extension toàn cục. DDS về sau đến từ recursive scan của working archive đã extract; `tn_coby_logo.dds` vẫn chỉ là optional sample.

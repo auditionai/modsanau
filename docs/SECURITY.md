@@ -94,3 +94,13 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Integrity rejection có reason riêng cho missing file, outside location, reparse point, filename mismatch, hash mismatch, unapproved tool và invalid manifest. Mismatch luôn chặn launch.
 - Tool source được verify, copy vào isolated workspace và verify lại. Runner hash working copy ngay trước launch. PE version được ghi nhận khi có nhưng thiếu version resource không làm fail nếu SHA-256 đúng.
 - Hash verification không phải DRM và chưa xóa hoàn toàn TOCTOU `hash → replace → launch`. Handle-based execution binding, restrictive ACL và elevated broker vẫn là technical debt cho hardening về sau.
+
+## Archive abstraction boundary từ PLAN 08
+
+- Caller chỉ gửi semantic `Extract`/`Pack` qua `IAuditionArchiveService`; không thể cung cấp `-da`, `-ca`, country selection, shell arguments, `ProcessStartInfo` hoặc arbitrary executable path.
+- Archive engine được resolve bằng explicit code-owned `EngineId`, không bằng nhánh extension rải rác. Extension trong descriptor không làm thay đổi trust policy.
+- Pristine archive source được resolve dưới trusted root, kiểm tra reparse point, mở read-only và copy vào isolated `Working` qua temp + flush + SHA-256 verification. Existing working archive không bị overwrite âm thầm.
+- Working archive, extracted directory và build output giữ ba trust/lifecycle role khác nhau. Extract output được canonicalize dưới `Extracted`, không nằm trong pristine source hoặc arbitrary user directory.
+- ACV Tool 5 orchestration bắt buộc provisioning/integrity trước keydat/runner. Invalid keydat hoặc integrity failure chặn process launch; missing keydat vẫn được lower-level runner xử lý bằng trusted `GameRegionProfile`.
+- Archive-level diagnostic là bounded structured summary; UI không nhận raw process object hoặc dùng stdout/stderr làm nguồn trạng thái chính.
+- PLAN 08 chỉ dùng fake engine/runner/provisioning/keydat trong test, không chạy `acv.exe` thật và không extract/pack fixture proprietary.

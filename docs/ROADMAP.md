@@ -18,7 +18,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 06: direct child process, redirected stdin/stdout/stderr, chunk parser, trusted AuditionVN profile, deterministic state/progress, timeout/cancellation, process-tree termination và artifact verification bằng fake process.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 07 — Keydat Lifecycle + ACV Tool Integrity.
 - Phạm vi PLAN 07: centralized keydat derivation/status/copy/lifecycle; code-owned ACV Tool manifest; source/copy/pre-launch SHA-256 verification; structured integrity rejection và TOCTOU documentation.
-- PLAN kế tiếp theo đặc tả: PLAN 08 — Audition Archive Abstraction; không bắt đầu trước khi PLAN 07 được người dùng phê duyệt.
+- PLAN đã hoàn thành kiểm chứng tự động: PLAN 08 — Audition Archive Abstraction.
+- Phạm vi PLAN 08: extension-independent archive descriptor; semantic extract/pack contract; explicit engine resolution; pristine-to-working verified copy; secure extracted path; ACV Tool 5 provisioning/keydat/runner orchestration; structured progress/error/cancellation/timeout.
+- PLAN kế tiếp theo đặc tả: PLAN 09 — Project Archive Workspace; không bắt đầu trước khi PLAN 08 được người dùng phê duyệt.
 
 ## Stage Gates
 
