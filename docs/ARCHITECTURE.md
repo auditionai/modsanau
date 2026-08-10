@@ -112,8 +112,16 @@ Settings nằm tại `Settings\settings.json`, backup hữu hạn tại `setting
 
 ## Real sample fixture registration từ PLAN 05
 
-Fixture metadata chỉ nằm trong `IntegrationTests`, không đi vào production client. Catalog đăng ký `acv.exe`, `015.ab` và private `samples\private\tn_coby_logo.dds`. DDS expectation là 6000×1801, DXT5/BC3, 1 mip level.
+Fixture metadata chỉ nằm trong `IntegrationTests`, không đi vào production client. Catalog đăng ký `acv.exe`, `015.ab` và optional sample `samples\private\tn_coby_logo.dds`. DDS sample 6000×1801, DXT5/BC3, 1 mip level chỉ là một quan sát, không phải yêu cầu DDS toàn cục và việc thiếu sample này không làm fail Stage Gate. Source of truth cho DDS về sau là từng file được scan từ working archive đã extract.
 
 Test không nhận arbitrary source path. `RepositoryFixtureLocator` tìm repository root bằng solution marker, sau đó resolve registered relative path qua `IPathSecurity`. `FixtureCopyService` mở source read-only, copy bất đồng bộ vào `SecureWorkspace.Paths.WorkingDirectory`, flush và so sánh SHA-256 trước khi trả working copy. Chỉ working copy được phép mutation.
 
 Fixture có thể không tồn tại trong CI vì proprietary binary/game asset bị loại khỏi Git. Availability được báo tường minh; metadata test vẫn deterministic. Không có tool execution, archive extraction hoặc DDS decoding trong PLAN 05.
+
+## ACV Tool 5 process runner từ PLAN 06
+
+`IArchiveToolRunner` và `AcvTool5Runner` nằm trong module `Archives`, không phụ thuộc UI. Request mang `ISecureWorkspace`, archive/extract path tương đối và executable path tuyệt đối. Runner canonicalize toàn bộ path qua `IPathSecurity`, chỉ cho chạy executable nằm trong working workspace, rồi yêu cầu `IArchiveToolExecutionPolicy` phê duyệt trước launch. PLAN 07 có thể thay policy bằng kiểm tra hash/version mà không sửa process runner.
+
+Process chạy trực tiếp với `UseShellExecute=false`, `CreateNoWindow=true`, redirect stdin/stdout/stderr và dùng `ArgumentList`. Stdout được đọc theo chunk; parser giữ buffer hữu hạn nên nhận được `Select:` kể cả khi không có newline hoặc bị chia giữa nhiều chunk. Khi keydat thiếu, selection từ trusted `GameRegionProfile` chỉ được gửi một lần. Khi keydat có sẵn, runner không chờ prompt.
+
+State/progress có cấu trúc độc lập với UI. Cancellation và timeout kết thúc toàn bộ process tree. Sau exit, runner kết hợp exit code, progress marker và artifact trong workspace để quyết định kết quả; không coi exit code 0 là đủ. PLAN 06 dùng fake child process để kiểm chứng protocol và không chạy real `acv.exe` hay sửa fixture.

@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AuditionModStudio.Archives\AuditionModStudio.Archives.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Infrastructure\AuditionModStudio.Infrastructure.csproj" />
+    <ProjectReference Include="..\Archives.FakeTool\Archives.FakeTool.csproj" />
   </ItemGroup>
 
   <ItemGroup>

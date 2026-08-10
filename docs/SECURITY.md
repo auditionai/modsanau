@@ -74,3 +74,13 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Test mutation chỉ diễn ra trên copy trong randomized secure workspace. Source được mở read-only và hash source/copy phải khớp sau copy.
 - Registered relative path được canonicalize và kiểm tra reparse point trước khi mở.
 - Không chạy `acv.exe`, không extract/pack archive và không parse DDS tại PLAN 05.
+
+## Archive process boundary từ PLAN 06
+
+- `AcvTool5Runner` chỉ chạy executable tuyệt đối nằm trong isolated working workspace; archive và extract directory phải resolve qua `IPathSecurity` dưới cùng root và không đi qua reparse point đã tồn tại.
+- `IArchiveToolExecutionPolicy` là trust boundary bắt buộc trước launch. `ExactPathArchiveToolExecutionPolicy` chỉ là allowlist đường dẫn của PLAN 06, không được mô tả như integrity guarantee; hash/version verification đầy đủ thuộc PLAN 07.
+- Không dùng shell, `cmd.exe`, PowerShell, `SendKeys`, mouse/keyboard simulation hoặc UI Automation. Arguments được truyền riêng qua `ProcessStartInfo.ArgumentList`.
+- Stdout parser đọc theo chunk với buffer hữu hạn. Country selection lấy từ trusted `GameRegionProfile` và chỉ gửi một lần qua redirected stdin.
+- Timeout/cancellation dùng process-tree termination để không bỏ mặc child process. Kết quả chỉ thành công sau khi kiểm tra progress marker và artifact workspace tương ứng.
+- Log chỉ chứa operation/state/exit code/count; không log executable, archive hoặc asset path đầy đủ. Raw stdout/stderr được trả về dưới giới hạn dung lượng cấu hình để diagnostic nhưng không tự động dump vào log.
+- Real proprietary `acv.exe`, archive và keydat không được chạy/sửa trong PLAN 06; integration protocol dùng fake child process. Keydat tiếp tục là runtime artifact, không phải secret hay DRM boundary.

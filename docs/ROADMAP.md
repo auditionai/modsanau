@@ -13,13 +13,15 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 04 — Settings System.
 - Phạm vi PLAN 04: strongly typed non-secret JSON settings, schema v1, validation, atomic save, bounded backup, corruption recovery, concurrency và cancellation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 05 — Real Sample Fixture Registration.
-- Phạm vi PLAN 05: private fixture catalog, DDS expected metadata, canonical source location và copy-before-mutation trong isolated workspace.
-- PLAN kế tiếp theo đặc tả: PLAN 06 — ACV Tool 5 Interactive Process Runner; chỉ bắt đầu sau khi PLAN 05 được người dùng phê duyệt.
+- Phạm vi PLAN 05: private fixture catalog, optional DDS sample metadata, canonical source location và copy-before-mutation trong isolated workspace. `tn_coby_logo.dds` không phải fixture bắt buộc; source of truth DDS là các file được scan từ working archive đã extract.
+- PLAN đã hoàn thành kiểm chứng tự động: PLAN 06 — ACV Tool 5 Interactive Process Runner.
+- Phạm vi PLAN 06: direct child process, redirected stdin/stdout/stderr, chunk parser, trusted AuditionVN profile, deterministic state/progress, timeout/cancellation, process-tree termination và artifact verification bằng fake process.
+- PLAN kế tiếp theo đặc tả: PLAN 07 — Keydat Lifecycle + ACV Tool Integrity; không bắt đầu trước khi PLAN 06 được người dùng phê duyệt.
 
 ## Stage Gates
 
 - Gate A: real archive extract và interactive AuditionVN selection.
-- Gate B: real DDS roundtrip với `tn_coby_logo.dds`.
+- Gate B: real DDS roundtrip dựa trên metadata của chính target DDS; có thể dùng tập optional sample đa dạng, không phụ thuộc bắt buộc vào `tn_coby_logo.dds`.
 - Gate C: replace, pack và kiểm thử trong Audition thật.
 
 Không phát triển AI/store trước khi Gate A đạt. Archive/DDS pipeline chỉ được xem là đã chứng minh sau Gate C.
