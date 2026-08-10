@@ -1,9 +1,11 @@
 using AuditionModStudio.Core.Paths;
 using AuditionModStudio.Core.Startup;
+using AuditionModStudio.Core.Settings;
 using AuditionModStudio.Core.Workspaces;
 using AuditionModStudio.Infrastructure.Logging;
 using AuditionModStudio.Infrastructure.Paths;
 using AuditionModStudio.Infrastructure.Startup;
+using AuditionModStudio.Infrastructure.Settings;
 using AuditionModStudio.Infrastructure.Workspaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -41,6 +43,10 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAppPaths>(paths);
         builder.Services.AddSingleton<IPathSecurity>(pathSecurity);
         builder.Services.AddSingleton<ISecureWorkspaceService, SecureWorkspaceService>();
+        builder.Services.AddSingleton<ISettingsValidator, SettingsValidator>();
+        builder.Services.AddSingleton<IAtomicSettingsWriter, AtomicSettingsWriter>();
+        builder.Services.AddSingleton<ISettingsService, SettingsService>();
+        builder.Services.AddHostedService<SettingsInitializationService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

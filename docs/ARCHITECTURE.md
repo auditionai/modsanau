@@ -85,3 +85,27 @@ Temp\Workspaces\<128-bit-random-id>\
 `SecureWorkspacePaths` phân tách working archive, extracted files và build output. Pristine template nằm ngoài model writable này, trong `SecureTemplateCache`; PLAN 03 không có API ghi đè pristine template. `ISecureWorkspace` giữ exclusive handle trên `.workspace.lock` đến khi dispose. Host dispose `SecureWorkspaceService`, nhờ đó các lease còn thuộc process được cleanup trong graceful shutdown.
 
 Cleanup abandoned workspace chỉ xét direct child có ID đúng định dạng và marker hợp lệ; workspace còn exclusive lock bị bỏ qua. Cleanup không nhận arbitrary path và không đi vào `Projects`, `SecureTemplateCache` hoặc dữ liệu project.
+
+## Settings system từ PLAN 04
+
+`Core` định nghĩa `ISettingsService`, `ISettingsValidator`, `ApplicationSettings` và validation result. `Infrastructure` sở hữu JSON serialization, schema migration boundary, filesystem I/O, atomic promotion và recovery. `App` chỉ đăng ký các service vào DI; `SettingsInitializationService` load settings khi host khởi động.
+
+Schema v1 có các section strongly typed:
+
+```text
+ApplicationSettings
+  SchemaVersion
+  Game.InstallationDirectory
+  Tooling.AcvExecutablePath
+  Project.DefaultProjectDirectory
+  Project.AutoBackupEnabled
+  Project.DefaultInstallBehavior
+  Appearance.Language
+  Appearance.Theme
+  Appearance.ThumbnailSize
+  Backend.ApiBaseUrl
+```
+
+`Cache`, `Temp` và `Temp\Workspaces` không phải settings có thể chỉnh sửa. Các path nội bộ tiếp tục do `IAppPaths` kiểm soát. Game/tool/project path là external configuration và vẫn phải được validate lại theo trust boundary của operation sử dụng chúng.
+
+Settings nằm tại `Settings\settings.json`, backup hữu hạn tại `settings.json.bak`. Save được serialize trong process, validate lại, ghi temp file cùng filesystem, flush xuống disk rồi promote bằng replace/move. Một `SemaphoreSlim` serialize các operation trong singleton service. Schema mới hơn bị từ chối; migration cũ chỉ chạy qua `ISettingsSchemaMigration` được đăng ký rõ ràng.

@@ -10,7 +10,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Ngoài phạm vi: settings, fixture registration, ACV, DDS, Imaging, Mods, Projects, AI/Cloud và các security feature của PLAN sau.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 03 — App Paths & Secure Workspace Paths.
 - Phạm vi PLAN 03: centralized managed directories, canonical relative-path validation, randomized isolated workspace, exclusive active marker, abandoned cleanup và reparse-point mitigation.
-- PLAN kế tiếp theo đặc tả: PLAN 04 — Settings System; chỉ bắt đầu sau khi PLAN 03 được người dùng phê duyệt.
+- PLAN đã hoàn thành kiểm chứng tự động: PLAN 04 — Settings System.
+- Phạm vi PLAN 04: strongly typed non-secret JSON settings, schema v1, validation, atomic save, bounded backup, corruption recovery, concurrency và cancellation.
+- PLAN kế tiếp theo đặc tả: PLAN 05 — Real Sample Fixture Registration; chỉ bắt đầu sau khi PLAN 04 được người dùng phê duyệt.
 
 ## Stage Gates
 

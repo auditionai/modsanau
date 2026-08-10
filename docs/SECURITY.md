@@ -56,3 +56,13 @@ Policy PLAN 03 là application data thuộc Windows identity đang chạy proces
 - UAC credential prompt dùng administrator account khác: process elevated chạy bằng alternate credentials; LocalAppData có thể thuộc profile của administrator đó, không phải tài khoản đang sở hữu desktop ban đầu. Ứng dụng không tự đoán hoặc hard-code profile của desktop user.
 
 Hệ quả hiện tại là project/log/settings có thể xuất hiện trong profile của alternate administrator. Đây là technical debt do yêu cầu toàn app `requireAdministrator`. Hướng dài hạn là UI chạy unelevated và chỉ privileged operation đi qua elevated broker có protocol/path allowlist; PLAN 03 không thay đổi yêu cầu elevation.
+
+## Settings boundary từ PLAN 04
+
+- `ApplicationSettings` chỉ chứa non-secret configuration. Model không có password, token, API key, payment secret, encryption key, signing key hoặc credential.
+- JSON unknown property bị từ chối; enum dùng tên rõ ràng và integer enum bị cấm; không dùng polymorphic deserialization.
+- Backend URL không được nhúng user-info/credential. Non-loopback backend bắt buộc HTTPS; HTTP loopback chỉ tạo validation warning cho local development.
+- Internal `Cache`, `Temp`, `Workspaces` và `SecureTemplateCache` không thể bị override qua schema settings.
+- External game/tool/project path chỉ được kiểm tra cấu trúc ở PLAN 04. Giá trị cấu hình local vẫn là untrusted input; module sử dụng sau này phải kiểm tra existence, integrity, reparse point và authorization ngay trước operation.
+- Log chỉ ghi schema version, source, operation result và validation code/path; không serialize toàn bộ settings object.
+- Save dùng temp file cùng `SettingsDirectory`, flush-to-disk và atomic replace/move. Backup chỉ có một thế hệ. Primary corrupt được giữ tại một evidence file hữu hạn khi backup hợp lệ được phục hồi.
