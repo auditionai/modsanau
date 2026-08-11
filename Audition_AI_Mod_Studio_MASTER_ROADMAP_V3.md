@@ -885,6 +885,14 @@ Structured errors/warnings/info for:
 - pending edit;
 - tool integrity issue.
 
+Đã triển khai `IProjectValidator` dưới dạng boundary chỉ-đọc. Validator đối chiếu exact project với
+retained workspace, kiểm tra archive/thư mục/path, quét lại cây extracted qua scanner an toàn, đọc lại
+header DDS và so sánh dimensions/format với metadata baseline immutable được lưu lúc tạo project.
+Thiếu metadata baseline là error fail-closed và vẫn kiểm tra khả năng đọc DDS; thiếu file, DDS phát sinh sai tên,
+pending edit hoặc ACV Tool 5 không đạt integrity là error chặn build. Kết quả chỉ gồm severity, kind,
+diagnostic code giới hạn và normalized relative texture identity; không chứa absolute path, raw exception,
+process output hay trusted hash. Validation không sửa project, cache, texture hoặc archive.
+
 ## PLAN 49 — Build Pipeline
 
 `Save → Validate → temp build workspace → pack via ACV Tool 5 → verify output → hash output → copy to project Output`.

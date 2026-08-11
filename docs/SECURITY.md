@@ -400,3 +400,16 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Zoom/pan/crop/mode là numeric hoặc enum typed. NaN/Infinity/out-of-range crop và transform bị PLAN 22 reject; UI không dùng geometry làm path, command, cache identity hoặc log payload.
 - Full `InternalImage` và WinUI bitmap chỉ sống trong editor route rồi được release khi rời route. Row-bounded channel conversion giảm peak managed allocation; resource limits PLAN 15/20 vẫn áp dụng cho decode.
 - PLAN 45 không execute resize, encode, replace, save, pack hoặc mutate pristine/project data. Preview state không cấp authority cho Apply; validate/atomic replacement thuộc PLAN 47.
+
+## Project Validator boundary từ PLAN 48
+
+- Validation chỉ nhận exact `AuditionProject` và retained `IProjectArchiveWorkspace`; mismatch project ID,
+  workspace ID hoặc normalized workspace paths fail-closed. Không nhận absolute path hay tool path từ UI.
+- Enumeration đi qua `IArchiveAssetScanner`, vì vậy containment, reparse-point rejection, duplicate identity
+  và read failure tiếp tục áp dụng. DDS header hiện tại được đọc qua `IDdsMetadataReader`; metadata baseline
+  chỉ dùng để đối chiếu dimensions/format và không cấp trust cho file đã thay đổi.
+- ACV Tool 5 probe dùng production allowlist/hash policy của PLAN 07 với absolute app-local path. Missing,
+  hash mismatch, filename/manifest invalid hoặc trust location không khả dụng đều trở thành structured error;
+  validator không launch process.
+- Kết quả không chứa absolute path, expected/actual hash, raw exception hoặc tool output. Cancellation không
+  tạo partial mutation; toàn bộ operation không ghi project/cache/DDS/archive/pristine template.

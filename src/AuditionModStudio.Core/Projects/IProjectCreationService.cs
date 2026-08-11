@@ -179,6 +179,13 @@ public interface IProjectMetadataCache
     Task<ProjectMetadataCacheValidationResult> ValidateAsync(
         Guid projectId,
         CancellationToken cancellationToken = default);
+
+    Task<ProjectMetadataCacheLoadResult> LoadAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(ProjectMetadataCacheLoadResult.Failure(
+            ProjectMetadataCacheLoadStatus.Missing,
+            "PROJECT_METADATA_MISSING"));
 }
 
 public enum ProjectMetadataCacheFailureReason
@@ -213,4 +220,29 @@ public sealed record ProjectMetadataCacheValidationResult(
     string? DiagnosticCode)
 {
     public bool IsValid => Status == ProjectMetadataCacheValidationStatus.Valid;
+}
+
+public enum ProjectMetadataCacheLoadStatus
+{
+    Success,
+    Missing,
+    Corrupt,
+    InvalidProjectId,
+    Cancelled
+}
+
+public sealed record ProjectMetadataCacheLoadResult(
+    ProjectMetadataCacheLoadStatus Status,
+    string? DiagnosticCode,
+    ImmutableArray<ProjectTextureMetadataSnapshot> Textures)
+{
+    public bool Succeeded => Status == ProjectMetadataCacheLoadStatus.Success;
+
+    public static ProjectMetadataCacheLoadResult Success(
+        IEnumerable<ProjectTextureMetadataSnapshot> textures) =>
+        new(ProjectMetadataCacheLoadStatus.Success, null, textures.ToImmutableArray());
+
+    public static ProjectMetadataCacheLoadResult Failure(
+        ProjectMetadataCacheLoadStatus status,
+        string code) => new(status, code, []);
 }

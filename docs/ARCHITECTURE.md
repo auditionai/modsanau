@@ -733,3 +733,18 @@ revision và prefix SHA-256; target filename/path không đổi. Candidate/backu
 xóa asset snapshots vừa tạo. Global/pristine archive không được resolve hoặc mutate. Sau success, app
 session nhận immutable project mới và workspace inventory được rescan; editor reload working DDS để
 session baseline kế tiếp phản ánh byte thực sau encode, không reuse preview trước nén.
+
+## Project Validator từ PLAN 48
+
+- `IProjectValidator` trong Core định nghĩa kết quả có cấu trúc `Error/Warning/Info`; implementation ở
+  Projects chỉ orchestration các boundary metadata cache, archive scanner, DDS metadata reader và tool
+  integrity probe. Core không phụ thuộc Archives/Projects implementation hoặc UI.
+- Metadata cache có API load immutable structural baseline. Baseline là metadata của exact extracted DDS
+  lúc tạo project, không phải thumbnail/cache pixels và không được dùng thay bytes hiện tại; validator luôn
+  quét và đọc lại working copy hiện tại trước khi cho phép build.
+- Workspace/archive/folder/path được kiểm tra trước; texture identity tiếp tục là normalized relative path.
+  Mỗi expected DDS được phân biệt missing, malformed, wrong dimensions và wrong format; DDS ngoài baseline
+  được báo wrong filename. Thiếu/hỏng baseline, pending edit và integrity failure đều chặn build.
+- Validator là read-only và cancellable: không save project, không tái tạo cache, không sửa DDS/archive,
+  không chạy pack và không tự xử lý lỗi. Build orchestration PLAN 49 phải gọi boundary này và chỉ tiếp tục
+  khi `CanBuild` là true.

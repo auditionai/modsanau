@@ -79,6 +79,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddHostedService<SettingsInitializationService>();
         builder.Services.AddSingleton(TrustedArchiveToolManifest.Production);
         builder.Services.AddSingleton<ArchiveToolIntegrityPolicy>();
+        builder.Services.AddSingleton(ProjectArchiveToolIntegrityOptions.CreateProduction(AppContext.BaseDirectory));
+        builder.Services.AddSingleton<IProjectToolIntegrityValidator, ProjectArchiveToolIntegrityValidator>();
         builder.Services.AddSingleton<IArchiveToolExecutionPolicy>(services =>
             services.GetRequiredService<ArchiveToolIntegrityPolicy>());
         builder.Services.AddSingleton<IKeydatService, KeydatService>();
@@ -151,6 +153,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<ISmartModScanService, SmartModScanService>();
         builder.Services.AddSingleton<IProjectCreationService, ProjectCreationService>();
         builder.Services.AddSingleton<IProjectLoadService, ProjectLoadService>();
+        builder.Services.AddSingleton<IProjectValidator, ProjectValidator>();
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
         builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();

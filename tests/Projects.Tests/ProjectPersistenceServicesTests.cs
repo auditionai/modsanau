@@ -144,6 +144,24 @@ public sealed class ProjectPersistenceServicesTests
             (await context.Cache.ValidateAsync(ProjectId)).Status);
     }
 
+    [Fact]
+    public async Task Metadata_cache_load_round_trips_structural_baseline_and_distinguishes_missing()
+    {
+        await using var context = new Context();
+        Assert.Equal(ProjectMetadataCacheLoadStatus.Missing,
+            (await context.Cache.LoadAsync(ProjectId)).Status);
+        var expected = Metadata("Texture/A.dds", 'A');
+
+        Assert.True((await context.Cache.StoreAsync(ProjectId, [expected])).Succeeded);
+        var loaded = await context.Cache.LoadAsync(ProjectId);
+
+        Assert.True(loaded.Succeeded, loaded.DiagnosticCode);
+        var actual = Assert.Single(loaded.Textures);
+        Assert.Equal(expected.RelativePath, actual.RelativePath);
+        Assert.Equal(expected.SourceSha256, actual.SourceSha256);
+        Assert.Equal(expected.Metadata, actual.Metadata);
+    }
+
     private static readonly Guid ProjectId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     private static AuditionProject Project(string name)

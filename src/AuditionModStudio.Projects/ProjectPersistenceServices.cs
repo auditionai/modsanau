@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Images;
+using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Core.Paths;
 using AuditionModStudio.Core.Projects;
 
@@ -319,6 +320,70 @@ public sealed class ProjectMetadataCache(IAppPaths appPaths, IPathSecurity pathS
         }
     }
 
+    public async Task<ProjectMetadataCacheLoadResult> LoadAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (projectId == Guid.Empty)
+        {
+            return ProjectMetadataCacheLoadResult.Failure(
+                ProjectMetadataCacheLoadStatus.InvalidProjectId,
+                "PROJECT_METADATA_PROJECT_ID_INVALID");
+        }
+
+        try
+        {
+            pathSecurity.EnsureNoReparsePoints(appPaths.CacheDirectory, appPaths.CacheDirectory);
+            var directory = pathSecurity.ResolvePathWithinRoot(appPaths.CacheDirectory, CacheDirectoryName);
+            var path = pathSecurity.ResolvePathWithinRoot(directory, GetFileName(projectId));
+            pathSecurity.EnsureNoReparsePoints(appPaths.CacheDirectory, path);
+            if (!File.Exists(path))
+            {
+                return ProjectMetadataCacheLoadResult.Failure(
+                    ProjectMetadataCacheLoadStatus.Missing,
+                    "PROJECT_METADATA_MISSING");
+            }
+
+            var document = await ProjectAtomicJsonWriter.ReadAsync<ProjectMetadataDocument>(
+                directory,
+                GetFileName(projectId),
+                pathSecurity,
+                cancellationToken).ConfigureAwait(false);
+            if (document is null || document.SchemaVersion != 1 || document.ProjectId != projectId
+                || document.Textures.IsDefault
+                || document.Textures.Select(texture => texture.RelativePath)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).Count() != document.Textures.Length)
+            {
+                return ProjectMetadataCacheLoadResult.Failure(
+                    ProjectMetadataCacheLoadStatus.Corrupt,
+                    "PROJECT_METADATA_INVALID");
+            }
+
+            var snapshots = document.Textures
+                .Select(texture => texture.ToSnapshot())
+                .OrderBy(texture => texture.RelativePath.Value, StringComparer.Ordinal)
+                .ToImmutableArray();
+            return ProjectMetadataCacheLoadResult.Success(snapshots);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return ProjectMetadataCacheLoadResult.Failure(
+                ProjectMetadataCacheLoadStatus.Cancelled,
+                "PROJECT_METADATA_LOAD_CANCELLED");
+        }
+        catch (Exception exception) when (exception is JsonException
+                                          or IOException
+                                          or UnauthorizedAccessException
+                                          or InvalidDataException
+                                          or InvalidOperationException
+                                          or ArgumentException)
+        {
+            return ProjectMetadataCacheLoadResult.Failure(
+                ProjectMetadataCacheLoadStatus.Corrupt,
+                "PROJECT_METADATA_CORRUPT");
+        }
+    }
+
     internal static string GetFileName(Guid projectId) => $"{projectId:N}.metadata.json";
 
     private sealed record ProjectMetadataDocument(
@@ -337,6 +402,12 @@ public sealed class ProjectMetadataCache(IAppPaths appPaths, IPathSecurity pathS
             snapshot.SourceSha256.Value,
             snapshot.Metadata,
             snapshot.ManifestSlotId?.Value);
+
+        public ProjectTextureMetadataSnapshot ToSnapshot() => new(
+            new(RelativePath),
+            new(SourceSha256),
+            Metadata,
+            ManifestSlotId is null ? null : new TextureSlotId(ManifestSlotId));
     }
 }
 
