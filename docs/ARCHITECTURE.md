@@ -577,3 +577,13 @@ Luồng recovery phân biệt rõ:
 `ITextureStateMachine` là pure domain evaluator, nhận immutable `AuditionProject`, normalized `ModRelativePath` và explicit runtime observation; service không đọc filesystem hay DDS header. Sáu state typed là `Original`, `Modified`, `AiGenerated`, `Pending`, `Invalid`, `Missing`.
 
 Thứ tự quyết định deterministic: asset không tồn tại → `Missing`; metadata không valid → `Invalid`; operation đang chạy → `Pending`; edited texture tham chiếu AI asset → `AiGenerated`; edited texture tham chiếu imported image asset → `Modified`; không có edit record → `Original`. Lookup path theo Windows collision semantics, cò display name/filename không drive state. Optional previous state chỉ dùng báo transition, không mutate project và không thay edit history. PLAN 34 không reset file/project, encode/replace DDS, cache thumbnail hay tự poll filesystem.
+
+## Reset Texture / Reset Project từ PLAN 35
+
+`IProjectResetService` luôn resolve exact template version/hash/build, kiểm tra entitlement + trusted acquisition + region, sau đó extract một fresh project workspace qua existing archive boundary. Không đọc texture trực tiếp từ global template và không mutate pristine source.
+
+Reset operations được serialize qua async cancellation-aware gate của singleton service để hai transaction không ghi chồng cùng workspace/project snapshot.
+
+Reset một texture dùng `IProjectTextureRestoreService` copy exact normalized relative asset từ extracted tree của disposable pristine workspace sang current project workspace. Copy dùng temp + durable flush + atomic move và giữ backup transaction; scan/model/save fail thì rollback bytes cũ. Khi commit, edit/history của texture đó bị loại, asset không còn reference bị prune, revision tăng và build state thành `Dirty`.
+
+Reset Project tạo fresh workspace cùng `ProjectId`, extract + Smart Scan, tạo project snapshot rỗng edits/assets/history và `NotBuilt`. Fresh workspace được retain trước atomic `.audproj` save; save fail thì explicit removal fresh workspace, save thành công mới remove exact previous workspace. Cache, old-workspace cleanup hoặc temporary-backup cleanup fail sau commit được trả bằng recovery flags, không hạ success thành failure giả sau khi project đã commit. PLAN 35 không có thumbnail cache/UI và không triển khai PLAN 36.

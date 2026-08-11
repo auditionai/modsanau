@@ -7,7 +7,7 @@ using AuditionModStudio.Core.Workspaces;
 namespace AuditionModStudio.Infrastructure.Workspaces;
 
 public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWorkspaceRecoveryService,
-    ISecureWorkspaceRetentionService, IAsyncDisposable
+    ISecureWorkspaceRetentionService, ISecureWorkspaceRemovalService, IAsyncDisposable
 {
     private const string LockFileName = ".workspace.lock";
     private const int MaximumCreationAttempts = 10;
@@ -190,6 +190,23 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
 
         active.MarkRetained();
         _retainedWorkspaces.TryAdd(workspace.Id, 0);
+    }
+
+    public async Task<bool> RemoveAsync(
+        ISecureWorkspace workspace,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!_activeWorkspaces.TryGetValue(workspace.Id, out var active)
+            || !ReferenceEquals(active, workspace))
+        {
+            return false;
+        }
+
+        _retainedWorkspaces.TryRemove(workspace.Id, out _);
+        await workspace.DisposeAsync().ConfigureAwait(false);
+        return !Directory.Exists(workspace.Paths.RootDirectory);
     }
 
     public Task<int> CleanupAbandonedAsync(CancellationToken cancellationToken = default)

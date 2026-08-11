@@ -222,6 +222,32 @@ public sealed class SecureWorkspaceTests
         }
     }
 
+    [Fact]
+    public async Task Explicit_removal_deletes_only_exact_active_retained_workspace()
+    {
+        var testRoot = CreateTestRoot();
+        try
+        {
+            var paths = new AppPaths(testRoot);
+            await using var service = new SecureWorkspaceService(paths, new PathSecurity());
+            var retained = await service.CreateAsync();
+            await using var other = await service.CreateAsync();
+            service.Retain(retained);
+            var retainedRoot = retained.Paths.RootDirectory;
+
+            var removed = await service.RemoveAsync(retained);
+
+            Assert.True(removed);
+            Assert.False(Directory.Exists(retainedRoot));
+            Assert.True(Directory.Exists(other.Paths.RootDirectory));
+            Assert.False(await service.RemoveAsync(retained));
+        }
+        finally
+        {
+            DeleteTestRoot(testRoot);
+        }
+    }
+
     private static StringComparison PathComparison => OperatingSystem.IsWindows()
         ? StringComparison.OrdinalIgnoreCase
         : StringComparison.Ordinal;

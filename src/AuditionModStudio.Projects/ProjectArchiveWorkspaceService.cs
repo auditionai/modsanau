@@ -15,7 +15,7 @@ public sealed class ProjectArchiveWorkspaceService(
     IProjectArchiveWorkspaceManifestStore manifestStore,
     TimeProvider? timeProvider = null,
     ILogger<ProjectArchiveWorkspaceService>? logger = null) : IProjectArchiveWorkspaceService,
-    IProjectArchiveWorkspaceRetentionService
+    IProjectArchiveWorkspaceRetentionService, IProjectArchiveWorkspaceRemovalService
 {
     public const int CurrentSchemaVersion = 1;
     public const string ManifestFileName = ".project-archive-workspace.json";
@@ -33,6 +33,16 @@ public sealed class ProjectArchiveWorkspaceService(
         }
 
         retention.Retain(workspace.ArchiveWorkspace.SecureWorkspace);
+    }
+
+    public Task<bool> RemoveAsync(
+        IProjectArchiveWorkspace workspace,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        return secureWorkspaceService is ISecureWorkspaceRemovalService removal
+            ? removal.RemoveAsync(workspace.ArchiveWorkspace.SecureWorkspace, cancellationToken)
+            : Task.FromResult(false);
     }
 
     public async Task<ProjectArchiveWorkspaceCreateResult> CreateAsync(

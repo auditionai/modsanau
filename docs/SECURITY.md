@@ -312,3 +312,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - State machine không nhận absolute path, process/tool path hay user display metadata làm identity. Texture lookup reuse normalized `ModRelativePath` và Windows case-collision semantics của project model.
 - `AiGenerated` chỉ xuất phát từ typed AI asset reference trong immutable project; không infer từ filename, display name, extension hay provider string. `Invalid`/`Missing` chỉ phản ánh explicit observation do orchestration tin cậy cung cấp.
 - Evaluation là read-only, thread-safe, không network/process/filesystem, không log secret và không tự reset/replace texture. Filesystem mutation và pristine restore thuộc PLAN 35.
+
+## Reset Texture / Reset Project boundary từ PLAN 35
+
+- Reset chỉ nhận typed project/workspace + normalized relative texture path. Workspace descriptor phải khớp exact project/template/workspace identity; template acquisition không nhận arbitrary path từ UI/settings.
+- Bản gốc texture chỉ đến từ extracted tree của regenerated workspace được tạo bằng exact trusted template. Source/global archive không mở ghi; target chỉ nằm trong current project workspace. Restore transaction dùng backup nội bộ, atomic replace và rollback khi scan/model/save fail.
+- Full reset commit workspace mới trước khi xóa workspace cũ. Explicit removal chỉ chấp nhận active owned lease exact-reference; bỏ retention rồi xóa direct managed workspace, không nhận raw directory. Cleanup failure sau commit được report để retry, không xóa global template hay workspace khác.
+- Workflow không tự tạo process arguments, không network/secret, không infer engine/region/version và không triển khai thumbnail cache.

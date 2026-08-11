@@ -61,6 +61,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
             services.GetRequiredService<SecureWorkspaceService>());
         builder.Services.AddSingleton<ISecureWorkspaceRetentionService>(services =>
             services.GetRequiredService<SecureWorkspaceService>());
+        builder.Services.AddSingleton<ISecureWorkspaceRemovalService>(services =>
+            services.GetRequiredService<SecureWorkspaceService>());
         builder.Services.AddSingleton<ISettingsValidator, SettingsValidator>();
         builder.Services.AddSingleton<IAtomicSettingsWriter, AtomicSettingsWriter>();
         builder.Services.AddSingleton<ISettingsService, SettingsService>();
@@ -137,6 +139,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IProjectCreationService, ProjectCreationService>();
         builder.Services.AddSingleton<IProjectLoadService, ProjectLoadService>();
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
+        builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
+        builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 
