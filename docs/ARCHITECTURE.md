@@ -539,3 +539,23 @@ AuditionProject schema v1
 `Sha256Digest` centralize generic content-hash validation; `TemplateSha256` tiếp tục là typed template-specific wrapper. Relative references reuse `ModRelativePath` canonical semantics và không chứa absolute path. `ProjectAssetId` là stable machine ID, không phải filename/display name. Validation reject unsupported schema, default identity, malformed workspace reference, Windows path collision, duplicate asset ID/path, dangling texture/history asset reference, invalid revision graph, inconsistent build artifact và timestamp đảo ngược.
 
 PLAN 31 chỉ định nghĩa aggregate/validation; chưa ghi hoặc load filesystem, chưa tạo workspace, extract/scan/save workflow, recovery, Texture State Machine hay reset. Runtime `IProjectArchiveWorkspace`, thumbnail pixels và process/tool path không được serialize vào model.
+
+## Create Project Workflow từ PLAN 32
+
+`IProjectCreationService` điều phối đúng selection `(GameId, ModId, ProjectName)`; UI không truyền template path, archive engine, region selector hoặc entitlement flag. Workflow resolve trusted catalogs trước, gọi `ITemplateEntitlementService`, acquire exact template qua `IProjectTemplateAcquisitionService`, xác minh region, rồi reuse project workspace/archive/Smart Scan boundaries hiện có.
+
+```text
+Game + Mod + Name
+  → trusted game/mod lookup
+  → entitlement decision → exact template acquisition
+  → IProjectArchiveWorkspaceService (verified working copy)
+  → ReuseOrGenerate keydat policy inside archive engine
+  → IAuditionArchiveService.ExtractAsync
+  → ISmartModScanService (scanner + DDS metadata + manifest)
+  → ProjectMetadataCache
+  → AuditionProjectStore (.audproj)
+```
+
+Workflow có typed phase/progress, cancellation và structured failure. Chỉ sau extract + complete Smart Scan + atomic metadata cache + atomic `.audproj` save mới trả success cùng live workspace lease. Mọi failure sau workspace allocation sẽ xóa exact project/cache ID và dispose workspace; rollback failure được báo riêng, không che thành success.
+
+`AuditionProjectStore` dùng filename `<ProjectId:N>.audproj` dưới managed `Projects`; project name không tham gia path. `ProjectMetadataCache` lưu full observed DDS metadata dưới managed `Cache/ProjectMetadata`, sort theo normalized path và reject Windows collision. Cả hai ghi temp cùng filesystem, flush-to-disk rồi atomic replace. Production DI đăng ký provider entitlement/acquisition fail-closed vì chưa có authoritative premium/template distribution; không tự tin local setting hoặc network endpoint. PLAN 32 chưa load/recover project, re-extract policy, Texture State Machine hay reset.

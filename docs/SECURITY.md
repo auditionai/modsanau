@@ -291,3 +291,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Template linkage là exact `TemplateIdentity` PLAN 30. Model không default version/hash/build, không rebind sang current catalog và không dùng filename làm template/version identity.
 - Edit/history chỉ lưu revision cùng before/after asset references; dangling reference, duplicate revision và revision ngoài current snapshot bị reject. Không serialize `InternalImage` runtime object hoặc mutable edit-history session.
 - PLAN 31 chưa có filesystem serializer, load/recovery, process, network hoặc workspace mutation. Những trust boundary đó chỉ được mở ở workflow PLAN tương ứng.
+
+## Create Project Workflow boundary từ PLAN 32
+
+- Request chỉ có typed Game/Mod identity và display name. Template source, premium policy, expected hash, engine và region đều đến từ trusted catalog/provider; local user input không thể override chúng.
+- Entitlement luôn được kiểm tra trước acquisition. Provider production mặc định fail-closed cho đến khi trusted backend/template distribution được triển khai; desktop không chứa service-role/payment/provider secret và không tự coi local client là entitlement authority.
+- Working archive/extracted tree chỉ được tạo qua managed workspace và existing verified-copy/archive engine. Interactive AuditionVN selection tiếp tục thuộc trusted region profile + redirected runner; workflow không xây process command hoặc chạm raw selector.
+- `.audproj` và DDS metadata cache dùng ProjectId-derived filename dưới managed directories, reject reparse/path collision và atomic temp/flush/promote. Project name không tham gia path; cache không chứa thumbnail pixels, executable path hoặc secret.
+- Failure/cancellation sau allocation xóa đúng project/cache ID và dispose isolated workspace. Không sửa pristine template; rollback failure là typed fatal result. PLAN 32 không tự recover/load, re-extract khi reopen, mutate texture hoặc reset project.

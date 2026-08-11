@@ -76,6 +76,10 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAuditionArchiveService, AuditionArchiveService>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceManifestStore, ProjectArchiveWorkspaceManifestStore>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceService, ProjectArchiveWorkspaceService>();
+        builder.Services.AddSingleton<IAuditionProjectStore, AuditionProjectStore>();
+        builder.Services.AddSingleton<IProjectMetadataCache, ProjectMetadataCache>();
+        builder.Services.AddSingleton<ITemplateEntitlementService, UnavailableTemplateEntitlementService>();
+        builder.Services.AddSingleton<IProjectTemplateAcquisitionService, UnavailableProjectTemplateAcquisitionService>();
         builder.Services.AddSingleton<IArchiveAssetScanner, ArchiveAssetScanner>();
         builder.Services.AddSingleton<IDdsMetadataReader, DdsMetadataReader>();
         builder.Services.AddSingleton(DirectXTexEvaluationToolCatalog.May2026X64);
@@ -123,6 +127,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
             return result.Catalog!;
         });
         builder.Services.AddSingleton<ISmartModScanService, SmartModScanService>();
+        builder.Services.AddSingleton<IProjectCreationService, ProjectCreationService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 
