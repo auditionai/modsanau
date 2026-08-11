@@ -232,3 +232,21 @@ Legacy header và `DDS_PIXELFORMAT` được validate lần lượt với size 1
 `DeclaredMipMapCount` giữ nguyên giá trị header; `EffectiveMipLevelCount` là 1 khi declared count bằng 0 để biểu diễn base level. Alpha chỉ là khả năng/channel theo format; không khẳng định pixel thực tế có sử dụng alpha. Legacy color space là `Unknown`; chỉ DXGI `_SRGB` được ghi `Srgb`.
 
 Metadata reader không phải DDS decoder, encoder, thumbnail renderer hay image converter. `PixelDataOffset` chỉ là 128 cho legacy hoặc 148 cho DX10; PLAN 13 không đọc pixel data.
+
+## DirectXTex Evaluation Harness từ PLAN 14
+
+`Core` định nghĩa `IDirectXTexEvaluationHarness` và request/result/progress có cấu trúc. `AuditionModStudio.Dds` triển khai harness bằng Microsoft `texconv` được pin version/hash. Harness chỉ là prototype và compatibility oracle, không phải `IDdsPreviewService` hoặc production encoder.
+
+Pipeline evaluation:
+
+```text
+ISecureWorkspace input
+  → managed metadata/PNG-header preflight + size/pixel policy
+  → verify source texconv SHA-256
+  → copy + verify trong Working/DirectXTexEvaluation
+  → structured process arguments
+  → output tại BuildOutput/<evaluation-id>
+  → IDdsMetadataReader hoặc PNG-header post-validation
+```
+
+UI không tham chiếu harness. Kết quả, command/API và quyết định native-wrapper cho PLAN sau được ghi tại `docs/DIRECTXTEX_EVALUATION.md`.

@@ -148,3 +148,12 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Parser chỉ cấp phát buffer header cố định 148 byte. Width, height, depth, mip count và array size không được dùng để cấp phát bitmap/payload; arithmetic offset có giới hạn và field little-endian được đọc từ span đã kiểm tra length.
 - Malformed/truncated/missing/cancelled/I/O failure trả reason và error code có cấu trúc; UI không cần parse exception string. Unknown FourCC/DXGI không là process crash.
 - Reader không dùng unsafe code hoặc native DLL. Integration gate hash toàn bộ DDS trước/sau chỉ trong test để chứng minh tính read-only; production không gánh chi phí này.
+
+## DirectXTex evaluation boundary từ PLAN 14
+
+- Harness không resolve `texconv.exe` từ `PATH`, current directory hoặc project content. Descriptor code-owned pin exact filename, version và SHA-256 của Microsoft DirectXTex `may2026` x64.
+- Tool source phải là absolute path, không qua reparse point; binary được hash, copy và hash lại trong randomized secure workspace trước launch. Arguments dùng `ArgumentList`; shell bị tắt.
+- DDS input được preflight bằng PLAN 13 metadata reader; PNG input được kiểm tra signature/IHDR. File size, pixel count, target dimension và mip count có upper bound trước khi native process có thể allocate.
+- Input/output bị confine trong `ISecureWorkspace`; output chỉ được tạo dưới `BuildOutput`. Existing output không bị overwrite âm thầm.
+- Process có timeout/cancellation, kill process tree và diagnostic capture hữu hạn. Malformed/preflight failure không launch native tool.
+- Hash pinning chưa loại bỏ hoàn toàn TOCTOU/DLL-load risk và không thay thế Authenticode/supply-chain review. Harness không được expose thành production UX.
