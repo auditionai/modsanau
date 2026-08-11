@@ -429,5 +429,17 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   temp cùng filesystem, durable flush, hash verification và atomic replace/move. Existing output có backup
   transaction; final `.audproj` save fail/cancel/exception phục hồi bytes cũ hoặc xóa output mới.
 - Log/result không chứa absolute path, asset filename list, raw stdout/stderr hoặc trusted expected hash.
-  SHA-256 là integrity/content identity, không phải chữ ký hay DRM; Gate C gameplay compatibility vẫn thuộc
-  PLAN 50 và chưa được suy ra từ build success.
+  SHA-256 là integrity/content identity, không phải chữ ký hay DRM.
+
+## Product Gate C boundary từ PLAN 50
+
+- Gate chỉ mutate disposable working copy. Test hash lại pristine `015.ab`, companion keydat, approved
+  `acv.exe` và source target sau pack/re-extract để phát hiện mutation ngoài ý muốn.
+- Production pack/re-extract tiếp tục đi qua archive abstraction, tool allowlist/hash, absolute executable,
+  isolated workspace, structured arguments và resource/path/reparse protections hiện có.
+- Controlled artifact có SHA-256 xác định nhưng hash không phải signature, provenance hoặc compatibility
+  proof. Artifact/runtime outputs nằm trong ignored output root; Git artifact scan phải chứng minh không có
+  proprietary fixture, generated archive, keydat hay tool binary mới được track.
+- Manual game observation nằm ngoài application trust/acceptance boundary. Không có code launch, login,
+  automation hoặc runtime observation được thêm để làm Gate C PASS, và không tuyên bố compatibility in-game
+  khi chưa có external QA riêng.

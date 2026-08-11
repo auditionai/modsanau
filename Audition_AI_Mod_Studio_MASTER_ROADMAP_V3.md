@@ -292,13 +292,21 @@ Với `tn_coby_logo.dds`:
 - encode replacement đúng size/format;
 - đọc lại header xác nhận.
 
-## GATE C — REAL GAME TEST
-- Replace 1 DDS.
-- `acv -ca` pack working archive.
-- Copy output vào game test.
-- Audition load được và texture hiển thị đúng.
+## GATE C — REAL REPLACE + PACK PRODUCT GATE
+- Tạo replacement đúng metadata của một DDS an toàn trong working copy.
+- Chỉ intended asset được thay đổi; non-target assets giữ nguyên integrity.
+- Pack bằng production ACV Tool 5 pipeline và tạo archive non-empty trong controlled output.
+- Re-extract bằng production archive pipeline; inventory đầy đủ, intended content đúng và không phát hiện
+  corruption qua extract/scan pipeline.
+- Pristine fixture/template không bị mutate; artifact có SHA-256 xác định và không track runtime/proprietary
+  artifact ngoài source deliverable dự kiến.
+- Full build, regression và security verification PASS.
 
-**Chỉ sau Gate C mới coi archive/DDS pipeline đã chứng minh.**
+Manual launch Audition, visual confirmation và gameplay/runtime compatibility là **OPTIONAL EXTERNAL
+COMPATIBILITY QA**. Ứng dụng không launch, đăng nhập, điều khiển hoặc quan sát runtime game; QA này không
+block Gate C trong phạm vi acceptance hiện tại và không được tuyên bố đã thực hiện nếu chưa có bằng chứng.
+
+**Chỉ sau Product Gate C mới coi archive/DDS generation pipeline đã chứng minh trong phạm vi ứng dụng.**
 
 ---
 
@@ -910,7 +918,10 @@ build workspace luôn được dispose và không được retain.
 
 ## PLAN 50 — Real Replace + Pack Gate
 
-Replace only `tn_coby_logo.dds` or another safe test texture in a copy of `015.ab`, pack, then manually test in Audition. Document exact outcome. This is Gate C.
+Replace only `tn_coby_logo.dds` or another safe test texture in a copy of `015.ab`; preserve target metadata,
+pack bằng production pipeline, re-extract và chứng minh intended/non-target integrity, pristine safety cùng
+artifact SHA-256. Đây là Product Gate C. Manual test trong Audition chỉ là optional external compatibility QA
+và không block PLAN 50 trong current application acceptance scope.
 
 ## PLAN 51 — Audition Install Path
 

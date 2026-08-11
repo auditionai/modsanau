@@ -775,3 +775,16 @@ Save current project
 - Progress public chỉ có `Preparing/Validating/Packing/Verifying/Completed/Failed/Cancelled`, count và stable
   diagnostic code. Không publish asset path, tool output hoặc hash trust metadata. Build concurrency được
   serialize trong service; ACV execution tiếp tục async/cancellable và dùng progress của archive boundary.
+
+## Product Gate C từ PLAN 50
+
+- Product boundary kết thúc sau khi tạo controlled `.ab`/ACV artifact bằng production archive service và
+  xác minh bằng production re-extract/scan pipeline. Ứng dụng không launch, đăng nhập, điều khiển hoặc quan
+  sát Audition runtime.
+- Gate dùng một working copy và một intended DDS identity. Replacement phải giữ exact dimensions, format và
+  mip profile; re-extracted target phải có expected changed hash, còn toàn bộ non-target inventory phải giữ
+  byte integrity.
+- Packed artifact phải tồn tại, non-empty, đọc/re-extract được, có inventory đầy đủ và SHA-256 xác định.
+  Pristine archive, keydat, tool và source extracted fixture phải giữ nguyên hash.
+- Manual launch/visual/gameplay validation chỉ là optional external compatibility QA, không được suy ra từ
+  technical gate và không block PLAN 50 trong current application acceptance scope.
