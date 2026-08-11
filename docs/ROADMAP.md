@@ -70,7 +70,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 32: typed Game/Mod/Name orchestration; fail-closed entitlement/template acquisition; trusted region resolution; verified project workspace; archive extract với existing keydat policy; Smart Scan/manifest/DDS metadata cache; atomic `.audproj` save; cancellation/progress và full rollback partial state.
 - PLAN đã hoàn thành: PLAN 33 — Load/Recover Project.
 - Phạm vi PLAN 33: strict `.audproj` load; exact template version/hash/build binding; secure retained-workspace reopen; manifest/archive validation; cache validation/rebuild; chỉ re-extract khi workspace thiếu hoặc không hợp lệ; typed progress/failure và atomic save sau recovery.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 34 — Texture State Machine; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 34 — Texture State Machine.
+- Phạm vi PLAN 34: pure immutable state evaluation cho `Original`, `Modified`, `AiGenerated`, `Pending`, `Invalid`, `Missing`; reuse project edited/image/AI asset references và explicit runtime observation; deterministic priority, typed failure và transition reporting, không filesystem mutation.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 35 — Reset Texture / Reset Project; không tự động bắt đầu.
 
 ## Stage Gates
 

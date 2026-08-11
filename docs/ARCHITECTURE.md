@@ -571,3 +571,9 @@ Luồng recovery phân biệt rõ:
 3. Workspace thiếu/không hợp lệ: kiểm tra entitlement, acquire lại exact trusted template, tạo workspace cùng `ProjectId`, extract, scan/cache và atomic-save workspace reference mới.
 
 `ISecureWorkspaceRecoveryService` chỉ mở direct managed child có lowercase-hex ID, marker `version=1`, cấu trúc thư mục đầy đủ và không reparse point. Project workspace được retain chỉ sau khi `.audproj` save thành công; nhờ đó rollback workspace mới vẫn xóa atomically, cò close/reopen project chỉ nhả/tái chiếm lock. PLAN 33 không triển khai Texture State Machine, reset hay thumbnail cache.
+
+## Texture State Machine từ PLAN 34
+
+`ITextureStateMachine` là pure domain evaluator, nhận immutable `AuditionProject`, normalized `ModRelativePath` và explicit runtime observation; service không đọc filesystem hay DDS header. Sáu state typed là `Original`, `Modified`, `AiGenerated`, `Pending`, `Invalid`, `Missing`.
+
+Thứ tự quyết định deterministic: asset không tồn tại → `Missing`; metadata không valid → `Invalid`; operation đang chạy → `Pending`; edited texture tham chiếu AI asset → `AiGenerated`; edited texture tham chiếu imported image asset → `Modified`; không có edit record → `Original`. Lookup path theo Windows collision semantics, cò display name/filename không drive state. Optional previous state chỉ dùng báo transition, không mutate project và không thay edit history. PLAN 34 không reset file/project, encode/replace DDS, cache thumbnail hay tự poll filesystem.

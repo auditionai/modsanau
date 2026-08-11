@@ -306,3 +306,9 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Recovery chỉ bind exact template version/hash/compatible build đã lưu. Thiếu version không fallback sang current; re-extract phải qua entitlement, trusted acquisition, region profile và existing archive service.
 - Workspace reopen chỉ nhận lowercase 32-hex managed child, exclusive marker hợp lệ, directory layout đầy đủ và tree không reparse point. Manifest phải khớp project ID, workspace ID, template identity và normalized relative paths trước khi publish lease.
 - Retention chỉ áp dụng sau atomic project save hoặc khi mở workspace project đã tồn tại. Workspace recovery mới bị hủy trước commit vẫn được xóa; retained workspace dispose chỉ nhả lock. Cache hỏng không là lý do mutate pristine archive.
+
+## Texture State Machine boundary từ PLAN 34
+
+- State machine không nhận absolute path, process/tool path hay user display metadata làm identity. Texture lookup reuse normalized `ModRelativePath` và Windows case-collision semantics của project model.
+- `AiGenerated` chỉ xuất phát từ typed AI asset reference trong immutable project; không infer từ filename, display name, extension hay provider string. `Invalid`/`Missing` chỉ phản ánh explicit observation do orchestration tin cậy cung cấp.
+- Evaluation là read-only, thread-safe, không network/process/filesystem, không log secret và không tự reset/replace texture. Filesystem mutation và pristine restore thuộc PLAN 35.
