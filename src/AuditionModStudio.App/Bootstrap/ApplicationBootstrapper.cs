@@ -9,11 +9,13 @@ using AuditionModStudio.Core.Paths;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Startup;
 using AuditionModStudio.Core.Settings;
+using AuditionModStudio.Core.Tasks;
 using AuditionModStudio.Core.Workspaces;
 using AuditionModStudio.Infrastructure.Logging;
 using AuditionModStudio.Infrastructure.Paths;
 using AuditionModStudio.Infrastructure.Startup;
 using AuditionModStudio.Infrastructure.Settings;
+using AuditionModStudio.Infrastructure.Tasks;
 using AuditionModStudio.Infrastructure.Workspaces;
 using AuditionModStudio.Imaging;
 using AuditionModStudio.Mods;
@@ -144,6 +146,12 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
         builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();
+        builder.Services.AddSingleton(BackgroundTaskManagerOptions.Default);
+        builder.Services.AddSingleton<BackgroundTaskManager>();
+        builder.Services.AddSingleton<IBackgroundTaskManager>(services =>
+            services.GetRequiredService<BackgroundTaskManager>());
+        builder.Services.AddHostedService(services =>
+            services.GetRequiredService<BackgroundTaskManager>());
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

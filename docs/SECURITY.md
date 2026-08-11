@@ -334,3 +334,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Thumbnail chỉ đi qua `IThumbnailCache`. Full texture chỉ đi qua explicit `LoadSelectedTextureAsync`, rồi reuse `IDdsPreviewService` hash-pinned và in-memory image importer; không có đường decode/process trực tiếp mới.
 - Metadata do preview đọc lại phải exact-match snapshot từ Smart Scan trước khi pixels được publish. Mismatch được xem là stale selection và fail có cấu trúc, không silently dùng bytes đã thay đổi với metadata cũ.
 - Service không cache full-resolution image, không mutate DDS/extracted tree/archive/project, không network và không nhận executable/config trust override. Cancellation/failure không trả partial image.
+
+## Background Task Manager boundary từ PLAN 38
+
+- Queue chỉ nhận typed job kind và internal delegate; snapshot/notification không chứa executable path, raw arguments, token, secret hoặc arbitrary result payload. Job implementation không được dùng manager để bỏ qua archive/DDS/image/AI trust boundary hiện có.
+- Capacity, worker concurrency và completed-history đều bị giới hạn. Queue full/shutdown/cancel là structured result; một exception hoặc notification subscriber lỗi không được làm chết worker hay biến job khác thành success/failure giả.
+- Progress stage/diagnostic code bị giới hạn chiều dài và grammar machine-readable trước khi publish; exception message không được đưa vào snapshot hoặc log. Log lỗi chỉ chứa task ID, typed kind và exception type.
+- Application shutdown ngừng nhận job mới, complete channel và cancel token liên kết; queued/running job đi đến terminal cancellation. PLAN 38 chỉ giữ state in-memory, vì vậy không tuyên bố crash durability; stale session detection/cleanup thuộc PLAN 39.

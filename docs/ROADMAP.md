@@ -78,7 +78,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 36: thumbnail được định danh bằng SHA-256 nội dung nguồn + kích thước yêu cầu + schema cache; cache hai tầng memory/disk có giới hạn; async single-flight theo key; ghi disk atomic; entry thiếu/hỏng được tạo lại qua pipeline preview/import/resize hiện có.
 - PLAN đã hoàn thành: PLAN 37 — Lazy Loading.
 - Phạm vi PLAN 37: Smart Scan phát hành metadata-only texture catalog; thumbnail được yêu cầu riêng qua cache PLAN 36; full immutable texture chỉ decode/import qua explicit selected-texture API và không được service giữ lại.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 38 — Background Task Manager; không tự động bắt đầu ngoài batch đã được phê duyệt.
+- PLAN đã hoàn thành: PLAN 38 — Background Task Manager.
+- Phạm vi PLAN 38: bounded central channel cho Extract/Scan/Thumbnail/Resize/Convert/Build/Download/AI; configurable workers; immutable queued/running/progress/terminal snapshots; cancel queued/running; notifications; structured failure và bounded in-memory history.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 39 — Temp Cleanup & Crash Recovery; không tự động bắt đầu ngoài batch đã được phê duyệt.
 
 ## Stage Gates
 

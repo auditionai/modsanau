@@ -620,3 +620,19 @@ Open/recover project → Smart Scan → metadata-only texture catalog
 `ITextureLazyLoadingService` là orchestration boundary cho hai bước sau metadata. Thumbnail reuse content-hash cache PLAN 36. Selected-texture load decode mip 0 qua DirectXTex preview boundary hiện có, đối chiếu toàn bộ observed DDS metadata với snapshot scan trước khi import pixels, rồi trả immutable full image. Service stateless và không giữ full-resolution cache; lifetime ảnh full thuộc caller/editor tương lai.
 
 Thumbnail miss có thể transiently decode nguồn để tạo ảnh nhỏ theo pipeline PLAN 36, nhưng full-resolution editor image không được publish hoặc resident cho đến explicit selected API. PLAN 37 chưa có UI selection model, viewport prefetch, task queue, notification, crash recovery hay App Shell.
+
+## Background Task Manager từ PLAN 38
+
+`IBackgroundTaskManager` là queue trung tâm, UI-independent cho tám typed job kind: `Extract`, `Scan`, `Thumbnail`, `Resize`, `Convert`, `Build`, `Download`, `Ai`. Request cung cấp internal async operation nhận `IProgress<BackgroundTaskProgress>` và manager-owned cancellation token; operation thực tế vẫn phải gọi archive/DDS/image/AI boundary tương ứng.
+
+```text
+typed request → bounded Channel
+                → N workers (configured cap)
+                → Queued → Running → Succeeded | Failed | Cancelled
+                            └─ validated progress snapshots
+                                  └─ ordered per-task notifications
+```
+
+Manager là singleton hosted service. Queue có backpressure fail-fast, worker concurrency có hard cap, cancellation source riêng từng job được link với application shutdown. Cancel queued job publish terminal state ngay và operation không chạy; cancel running job truyền token cho operation. Exception ngoài dự kiến được cô lập thành safe diagnostic code nên worker tiếp tục xử lý job sau.
+
+Snapshot/notification là immutable; invalid progress không thay thế last valid progress; completed history được giữ in-memory có giới hạn và evict oldest completion. PLAN 38 không persist task/delegate/result payload, không tự động chuyển toàn bộ workflow cũ vào queue, không triển khai download/AI backend, UI notification, session file hoặc crash recovery PLAN 39.
