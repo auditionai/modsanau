@@ -103,8 +103,9 @@ public sealed class Plan12RealArchiveRepackIntegrationTests(ITestOutputHelper ou
                     context.PristineTemplate.EngineType,
                     context.PristineTemplate.RegionProfileId,
                     context.PristineTemplate.ExpectedExtractFolderName,
-                    context.PristineTemplate.TemplateVersion,
-                    postPackHash);
+                    context.PristineTemplate.TemplateVersion?.Value,
+                    postPackHash,
+                    context.PristineTemplate.CompatibleGameBuild?.Value);
                 var roundTripWorkspace = await context.CreateWorkspaceAsync(
                     repackedSourceRoot,
                     repackedTemplate,
@@ -342,7 +343,8 @@ public sealed class Plan12RealArchiveRepackIntegrationTests(ITestOutputHelper ou
                 GameRegionProfile.AuditionVietnam.RegionId,
                 "015",
                 templateVersion: "real-fixture-v1",
-                sha256: ExpectedArchiveSha256);
+                sha256: ExpectedArchiveSha256,
+                compatibleGameBuild: "audition-vn-fixture");
         }
 
         public string TestRoot { get; }

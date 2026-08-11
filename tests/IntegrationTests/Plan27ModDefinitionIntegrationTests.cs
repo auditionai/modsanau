@@ -22,7 +22,7 @@ public sealed class Plan27ModDefinitionIntegrationTests
             new ModId("login_screen"),
             out var resolved));
         Assert.Equal("audition-login-template", resolved!.ArchiveTemplate.ArchiveId);
-        Assert.Equal("2026.1", resolved.ArchiveTemplate.TemplateVersion);
+        Assert.Equal("2026.1", resolved.ArchiveTemplate.TemplateVersion?.Value);
         Assert.Equal("015.ab", resolved.ArchiveTemplate.FileName);
         Assert.Equal("015", resolved.ArchiveTemplate.ExpectedExtractFolderName);
         Assert.Same(ArchiveEngineType.AcvTool5, resolved.ArchiveTemplate.EngineType);
@@ -86,7 +86,9 @@ public sealed class Plan27ModDefinitionIntegrationTests
                 ArchiveEngineType.AcvTool5,
                 GameRegionProfile.AuditionVietnam.RegionId,
                 extractFolder,
-                "2026.1"),
+                "2026.1",
+                new string('A', 64),
+                "audition-vn-current"),
             ModKeydatStrategy.ReuseOrGenerate,
             new ModRelativePath($"Data/{fileName}"),
             "Synthetic compatibility metadata.");

@@ -53,8 +53,8 @@ public sealed class ProjectArchiveWorkspaceService(
 
             sourceHash = await ProjectFileSha256.ComputeAsync(sourcePath, cancellationToken)
                 .ConfigureAwait(false);
-            if (request.ArchiveTemplate.Sha256 is not null
-                && !ProjectFileSha256.EqualsHex(request.ArchiveTemplate.Sha256, sourceHash))
+            if (request.ArchiveTemplate.ExpectedSha256 is not null
+                && !ProjectFileSha256.EqualsHex(request.ArchiveTemplate.ExpectedSha256.Value.Value, sourceHash))
             {
                 return ProjectArchiveWorkspaceCreateResult.Failure(
                     ProjectArchiveWorkspaceFailureReason.SourceHashMismatch,
@@ -138,11 +138,12 @@ public sealed class ProjectArchiveWorkspaceService(
                 request.DisplayName.Trim(),
                 secureWorkspace.Id,
                 new(
-                    request.ArchiveTemplate.ArchiveId,
-                    request.ArchiveTemplate.TemplateVersion,
+                    request.ArchiveTemplate.TemplateId.Value,
+                    request.ArchiveTemplate.TemplateVersion?.Value,
                     sourceHash,
                     request.ArchiveTemplate.EngineType,
-                    request.ArchiveTemplate.RegionProfileId),
+                    request.ArchiveTemplate.RegionProfileId,
+                    request.ArchiveTemplate.CompatibleGameBuild?.Value),
                 Path.Combine("Working", request.ArchiveTemplate.FileName),
                 Path.Combine("Extracted", request.ArchiveTemplate.ExpectedExtractFolderName),
                 "BuildOutput",
@@ -304,7 +305,7 @@ public sealed class ProjectArchiveWorkspaceService(
     private static ProjectArchiveWorkspaceCreateResult? ValidateRequest(
         ProjectArchiveWorkspaceCreateRequest request)
     {
-        if (request.ArchiveTemplate is null || request.PristineSource is null)
+        if (request.ArchiveTemplate?.Identity is not { IsValid: true } || request.PristineSource is null)
         {
             return ProjectArchiveWorkspaceCreateResult.Failure(
                 ProjectArchiveWorkspaceFailureReason.InvalidRequest,
@@ -401,9 +402,10 @@ public sealed class ProjectArchiveWorkspaceService(
         && actual.ProjectId == expected.ProjectId
         && string.Equals(actual.DisplayName, expected.DisplayName, StringComparison.Ordinal)
         && string.Equals(actual.WorkspaceId, expected.WorkspaceId, StringComparison.Ordinal)
-        && string.Equals(actual.ArchiveTemplate.TemplateId, expected.ArchiveTemplate.TemplateId, StringComparison.Ordinal)
-        && string.Equals(actual.ArchiveTemplate.TemplateVersion, expected.ArchiveTemplate.TemplateVersion, StringComparison.Ordinal)
-        && string.Equals(actual.ArchiveTemplate.SourceSha256, expected.ArchiveTemplate.SourceSha256, StringComparison.OrdinalIgnoreCase)
+        && actual.ArchiveTemplate.TemplateId == expected.ArchiveTemplate.TemplateId
+        && actual.ArchiveTemplate.TemplateVersion == expected.ArchiveTemplate.TemplateVersion
+        && actual.ArchiveTemplate.SourceSha256 == expected.ArchiveTemplate.SourceSha256
+        && actual.ArchiveTemplate.CompatibleGameBuild == expected.ArchiveTemplate.CompatibleGameBuild
         && actual.ArchiveTemplate.EngineType == expected.ArchiveTemplate.EngineType
         && string.Equals(actual.ArchiveTemplate.RegionProfileId, expected.ArchiveTemplate.RegionProfileId, StringComparison.Ordinal)
         && string.Equals(actual.WorkingArchiveRelativePath, expected.WorkingArchiveRelativePath, StringComparison.Ordinal)

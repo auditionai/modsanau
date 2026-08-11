@@ -76,7 +76,8 @@ public sealed class Plan10RealAcvExtractIntegrationTests(ITestOutputHelper outpu
             GameRegionProfile.AuditionVietnam.RegionId,
             "015",
             templateVersion: "real-fixture-v1",
-            sha256: ExpectedArchiveSha256);
+            sha256: ExpectedArchiveSha256,
+            compatibleGameBuild: "audition-vn-fixture");
 
         string? firstWorkspaceRoot = null;
         IProjectArchiveWorkspace? firstWorkspace = null;

@@ -10,7 +10,8 @@ public sealed record AuditionArchiveTemplate
         string regionProfileId,
         string expectedExtractFolderName,
         string? templateVersion = null,
-        string? sha256 = null)
+        string? sha256 = null,
+        string? compatibleGameBuild = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(archiveId);
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -30,23 +31,20 @@ public sealed record AuditionArchiveTemplate
             throw new ArgumentException("Archive source metadata must end with the exact archive file name.", nameof(sourceRelativePath));
         }
 
-        if (sha256 is not null
-            && (sha256.Length != 64 || sha256.Any(character => !char.IsAsciiHexDigit(character))))
-        {
-            throw new ArgumentException("Archive SHA-256 must contain exactly 64 hexadecimal characters.", nameof(sha256));
-        }
-
-        ArchiveId = archiveId;
+        TemplateId = new TemplateId(archiveId);
         FileName = fileName;
         SourceRelativePath = sourceRelativePath;
         EngineType = engineType;
         RegionProfileId = regionProfileId;
         ExpectedExtractFolderName = expectedExtractFolderName;
-        TemplateVersion = templateVersion;
-        Sha256 = sha256;
+        TemplateVersion = templateVersion is null ? null : new TemplateVersion(templateVersion);
+        ExpectedSha256 = sha256 is null ? null : new TemplateSha256(sha256);
+        CompatibleGameBuild = compatibleGameBuild is null ? null : new CompatibleGameBuild(compatibleGameBuild);
     }
 
-    public string ArchiveId { get; }
+    public TemplateId TemplateId { get; }
+
+    public string ArchiveId => TemplateId.Value;
 
     public string FileName { get; }
 
@@ -62,7 +60,18 @@ public sealed record AuditionArchiveTemplate
 
     public string ExpectedExtractFolderName { get; }
 
-    public string? TemplateVersion { get; }
+    public TemplateVersion? TemplateVersion { get; }
 
-    public string? Sha256 { get; }
+    public TemplateSha256? ExpectedSha256 { get; }
+
+    public string? Sha256 => ExpectedSha256?.Value;
+
+    public CompatibleGameBuild? CompatibleGameBuild { get; }
+
+    public TemplateIdentity? Identity =>
+        TemplateVersion is { } version
+        && ExpectedSha256 is { } sha256
+        && CompatibleGameBuild is { } compatibleGameBuild
+            ? new(TemplateId, version, sha256, compatibleGameBuild)
+            : null;
 }

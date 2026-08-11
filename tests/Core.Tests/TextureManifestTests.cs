@@ -219,7 +219,8 @@ public sealed class TextureManifestTests
         const string region = "audition_vn";
         var mod = new ModDefinition(
             new("login_mod"), game.Id, "Login", new("interface"), new("covers/login.png"), "Description",
-            new("archive", "015.ab", "templates/015.ab", ArchiveEngineType.AcvTool5, region, "015", "1"),
+            new("archive", "015.ab", "templates/015.ab", ArchiveEngineType.AcvTool5, region, "015", "1",
+                new string('A', 64), "audition-vn-current"),
             ModKeydatStrategy.ReuseOrGenerate, new("data"), "Compatible");
         return ModCatalog.Create([mod], gameCatalog, new StubRegionResolver(region)).Catalog!;
     }

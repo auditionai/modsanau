@@ -64,7 +64,8 @@ public sealed class Plan13RealDdsMetadataIntegrationTests(ITestOutputHelper outp
             GameRegionProfile.AuditionVietnam.RegionId,
             "015",
             "real-fixture-v1",
-            ExpectedArchiveSha256);
+            ExpectedArchiveSha256,
+            "audition-vn-fixture");
         var created = await projectService.CreateAsync(new(
             "Kiểm thử DDS metadata thật",
             template,

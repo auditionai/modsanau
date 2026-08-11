@@ -67,6 +67,12 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IArchiveToolProvisioningService, ArchiveToolProvisioningService>();
         builder.Services.AddSingleton<IArchiveToolRunner, AcvTool5Runner>();
         builder.Services.AddSingleton<IGameRegionProfileResolver, GameRegionProfileCatalog>();
+        var templateVersions = TemplateVersionCatalog.Create([]);
+        if (!templateVersions.Succeeded)
+        {
+            throw new InvalidOperationException("Built-in template version catalog validation failed.");
+        }
+        builder.Services.AddSingleton(templateVersions.Catalog!);
         builder.Services.AddSingleton<IAuditionArchiveService, AuditionArchiveService>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceManifestStore, ProjectArchiveWorkspaceManifestStore>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceService, ProjectArchiveWorkspaceService>();

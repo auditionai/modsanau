@@ -43,6 +43,7 @@ public sealed class Plan28TextureManifestIntegrationTests
         new("login_screen"), new("audition"), "Login screen", new("interface"),
         new("Mods/Covers/login.png"), "Synthetic PLAN 28 integration definition.",
         new("audition-login-template", "015.ab", "Templates/015.ab", ArchiveEngineType.AcvTool5,
-            GameRegionProfile.AuditionVietnam.RegionId, "015", "2026.1"),
+            GameRegionProfile.AuditionVietnam.RegionId, "015", "2026.1", new string('A', 64),
+            "audition-vn-current"),
         ModKeydatStrategy.ReuseOrGenerate, new("Data/015.ab"), "Synthetic compatibility metadata.");
 }

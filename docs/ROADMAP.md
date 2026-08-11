@@ -62,7 +62,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 28: immutable manifest gắn explicit với Game/Mod; semantic texture slot ID; normalized relative DDS identity; friendly display/category/description/tags/preview/editable/recommended-edit metadata; atomic duplicate/collision validation; code-owned catalog và raw filename/path fallback khi mapping thiếu. Không có built-in production mapping khi chưa có authoritative metadata.
 - PLAN đã hoàn thành: PLAN 29 — Smart Mod Scan.
 - Phạm vi PLAN 29: reuse recursive archive scanner; validate Game/Mod identity; enrich observed DDS bằng real `IDdsMetadataReader`; generate bounded thumbnails qua preview + in-memory import + resize; exact manifest mapping; raw unknown fallback; missing-slot reporting; deterministic folder grouping; cancellation/progress và atomic structured failure. Real `015.ab` gate xác minh 101 files/52 DDS/46 PNG/3 RGM mà không sửa source.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 30 — Template Versioning; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 30 — Template Versioning.
+- Phạm vi PLAN 30: canonical typed identity `templateId + version + SHA256 + compatible game build`; immutable multi-version catalog với exact lookup và explicit current marker; atomic conflict validation; exact project snapshot; structured exact/current-differs/missing/hash/build/legacy-invalid resolution; tuyệt đối không silent migration. Production catalog rỗng vì chưa có authoritative template metadata.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 31 — Project Model `.audproj`; không tự động bắt đầu.
 
 ## Stage Gates
 

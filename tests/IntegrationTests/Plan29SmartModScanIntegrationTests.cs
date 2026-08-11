@@ -63,7 +63,8 @@ public sealed class Plan29SmartModScanIntegrationTests
             new ProjectArchiveWorkspaceManifestStore(pathSecurity));
         var template = new AuditionArchiveTemplate(
             "archive-015", "015.ab", "015.ab", ArchiveEngineType.AcvTool5,
-            GameRegionProfile.AuditionVietnam.RegionId, "015", "real-fixture-v1", ExpectedArchiveSha256);
+            GameRegionProfile.AuditionVietnam.RegionId, "015", "real-fixture-v1", ExpectedArchiveSha256,
+            "audition-vn-fixture");
         var created = await projectService.CreateAsync(new(
             "Smart scan real fixture", template, new PristineArchiveSource(repositoryRoot)));
         Assert.True(created.Succeeded, created.DiagnosticCode);

@@ -500,3 +500,24 @@ ModDefinition + optional TextureManifest + extracted project workspace
 Exact manifest mapping dùng normalized full relative path với Windows `OrdinalIgnoreCase`; không filename-only, fuzzy, similarity hay category inference. DDS ngoài manifest vẫn xuất hiện với raw filename/path, `UnknownSemantics=true` và `CanBeLabeled=true`. Slot khai báo nhưng không observed nằm trong informational `MissingManifestSlots`, không làm scan fail vì PLAN 28 không có required/optional semantics. Output chỉ được publish khi scanner, metadata và thumbnail cho mọi DDS đều thành công; cancellation/failure không trả partial catalog.
 
 Thumbnail tối đa 256 mặc định, hard-cap 1024. Decode reuse controlled preview boundary; PNG được chuyển thẳng qua immutable memory import và resize, không tạo bridge file riêng. Preview implementation có thể dùng isolated temporary `BuildOutput` operation theo PLAN 15 và cleanup trong `finally`; Smart Scan không sửa extracted files, archive hoặc manifest. Production manifest rỗng được hỗ trợ: toàn bộ DDS trở thành raw unknown assets. Admin labeling persistence/UI, editor, replacement/repack và Template Versioning PLAN 30 không thuộc PLAN 29.
+
+## Template Versioning từ PLAN 30
+
+Template có canonical identity bất biến `TemplateId + TemplateVersion + TemplateSha256 + CompatibleGameBuild`. `TemplateVersion` là opaque, bounded ASCII identifier: catalog không áp đặt SemVer, không so sánh lớn/nhỏ và không suy ra "latest" từ chuỗi. Mỗi `TemplateId` có thể chứa nhiều version nhưng phải đánh dấu đúng một `IsCurrent` explicit; lookup exact luôn dùng cặp `(TemplateId, TemplateVersion)`.
+
+```text
+Trusted TemplateVersionCatalog
+  ├─ exact (TemplateId, TemplateVersion) → AuditionArchiveTemplate
+  └─ current TemplateId → explicitly marked version
+
+Project ArchiveTemplateReference
+  → exact TemplateId + version + SHA-256 + compatible game build snapshot
+  → Resolve(snapshot)
+       ├─ ExactMatch
+       ├─ CurrentVersionDiffers (không suy ra upgrade/downgrade, không mutate/rebind)
+       └─ structured missing/hash/build/legacy-invalid status
+```
+
+`AuditionArchiveTemplate` vẫn giữ filename, source-relative path, engine, region và extract-folder mapping của archive boundary, đồng thời expose typed identity PLAN 30. `ArchiveTemplateReference` trong project lưu exact identity; project creation mới từ chối template thiếu version/hash/build. Manifest schema 1 đọc được field build bị thiếu từ dữ liệu legacy nhưng không tự điền current/default: identity đó được xem là invalid cho resolution và không bao giờ silently migrate.
+
+`TemplateVersionCatalog` immutable, construction atomic và đăng ký singleton. Catalog production hiện rỗng có chủ ý vì chưa có authoritative built-in template metadata. Version và SHA-256 là hai trục riêng: cùng version khác hash là conflict/mismatch, không phải version mới. Compatible game build dùng exact ordinal equality. Vì version không có ordering, `CurrentVersionDiffers` cố ý không kết luận upgrade hay downgrade; migration execution, project model `.audproj`, UI prompt, network/download và external manifest không thuộc PLAN 30.

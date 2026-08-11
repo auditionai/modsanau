@@ -36,7 +36,7 @@ public sealed class ProjectArchiveWorkspaceServiceTests
 
         Assert.Equal(sourceHashBefore, await ComputeHashAsync(context.SourcePath));
         Assert.Equal(sourceHashBefore, await ComputeHashAsync(workingPath));
-        Assert.Equal(sourceHashBefore, workspace.Descriptor.ArchiveTemplate.SourceSha256);
+        Assert.Equal(sourceHashBefore, workspace.Descriptor.ArchiveTemplate.SourceSha256.Value);
         Assert.Equal(sourceHashBefore, workspace.Descriptor.WorkingArchiveSha256);
     }
 
@@ -214,6 +214,11 @@ public sealed class ProjectArchiveWorkspaceServiceTests
 
         Assert.Equal(1, json.RootElement.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("ready", json.RootElement.GetProperty("state").GetString());
+        Assert.Equal("template_015", json.RootElement.GetProperty("archiveTemplateId").GetString());
+        Assert.Equal("1.0", json.RootElement.GetProperty("archiveTemplateVersion").GetString());
+        Assert.Equal(context.Template.ExpectedSha256!.Value.Value,
+            json.RootElement.GetProperty("sourceSha256").GetString());
+        Assert.Equal("audition-vn-current", json.RootElement.GetProperty("compatibleGameBuild").GetString());
         Assert.False(Path.IsPathRooted(json.RootElement.GetProperty("workingArchiveRelativePath").GetString()));
         Assert.Empty(Directory.EnumerateFiles(root, "*.tmp", SearchOption.AllDirectories));
     }
@@ -332,10 +337,24 @@ public sealed class ProjectArchiveWorkspaceServiceTests
         var result = await context.CreateAsync();
         await using var workspace = AssertWorkspace(result);
 
-        Assert.Equal("template_015", workspace.Descriptor.ArchiveTemplate.TemplateId);
-        Assert.Equal("1.0.7", workspace.Descriptor.ArchiveTemplate.TemplateVersion);
+        Assert.Equal("template_015", workspace.Descriptor.ArchiveTemplate.TemplateId.Value);
+        Assert.Equal("1.0.7", workspace.Descriptor.ArchiveTemplate.TemplateVersion?.Value);
+        Assert.Equal(context.Template.ExpectedSha256, workspace.Descriptor.ArchiveTemplate.SourceSha256);
+        Assert.Equal("audition-vn-current", workspace.Descriptor.ArchiveTemplate.CompatibleGameBuild?.Value);
         Assert.Equal(ArchiveEngineType.AcvTool5, workspace.Descriptor.ArchiveTemplate.EngineType);
         Assert.Equal("audition_vn", workspace.Descriptor.ArchiveTemplate.RegionProfileId);
+    }
+
+    [Fact]
+    public async Task Project_creation_rejects_template_without_exact_version_snapshot()
+    {
+        await using var context = TestContext.Create(templateVersion: null);
+
+        var result = await context.CreateAsync();
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(ProjectArchiveWorkspaceFailureReason.InvalidRequest, result.FailureReason);
+        Assert.Empty(Directory.EnumerateDirectories(context.AppPaths.WorkspacesDirectory));
     }
 
     [Fact]
@@ -402,7 +421,8 @@ public sealed class ProjectArchiveWorkspaceServiceTests
                 "audition_vn",
                 "extracted assets",
                 templateVersion,
-                expectedHash);
+                expectedHash ?? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(SourcePath))),
+                "audition-vn-current");
             Request = new(displayName, Template, new PristineArchiveSource(SourceRoot));
             IProjectArchiveWorkspaceManifestStore manifestStore = failManifestWrite
                 ? new FailingManifestStore()

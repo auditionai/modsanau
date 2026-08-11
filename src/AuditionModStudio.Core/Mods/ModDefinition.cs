@@ -64,12 +64,10 @@ public sealed class ModDefinition
                 nameof(archiveTemplate));
         }
 
-        if (string.IsNullOrWhiteSpace(archiveTemplate.TemplateVersion)
-            || archiveTemplate.TemplateVersion.Length > 64
-            || archiveTemplate.TemplateVersion.Any(char.IsControl))
+        if (archiveTemplate.Identity is not { IsValid: true })
         {
             throw new ArgumentException(
-                "PLAN 27 archive mappings require a bounded template version.",
+                "Mod archive mappings require a complete template ID, version, SHA-256, and compatible game build.",
                 nameof(archiveTemplate));
         }
 

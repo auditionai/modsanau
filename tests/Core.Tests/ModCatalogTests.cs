@@ -78,7 +78,7 @@ public sealed class ModCatalogTests
             property => Assert.False(property.SetMethod?.IsPublic ?? false));
         Assert.Equal("015.ab", definition.ArchiveTemplate.FileName);
         Assert.Equal("015", definition.ArchiveTemplate.ExpectedExtractFolderName);
-        Assert.Equal("1", definition.ArchiveTemplate.TemplateVersion);
+        Assert.Equal("1", definition.ArchiveTemplate.TemplateVersion?.Value);
         Assert.Equal(ArchiveEngineType.AcvTool5, definition.ArchiveTemplate.EngineType);
         Assert.Equal("audition_vn", definition.ArchiveTemplate.RegionProfileId);
         Assert.Equal(ModKeydatStrategy.ReuseOrGenerate, definition.KeydatStrategy);
@@ -325,7 +325,9 @@ public sealed class ModCatalogTests
                 ArchiveEngineType.AcvTool5,
                 regionProfileId,
                 "015",
-                "1"),
+                "1",
+                new string('A', 64),
+                "audition-vn-current"),
             ModKeydatStrategy.ReuseOrGenerate,
             new ModRelativePath($"Data/{fileName}"),
             compatibility);
