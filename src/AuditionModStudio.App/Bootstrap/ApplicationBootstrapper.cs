@@ -80,6 +80,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton(ImageImportResourcePolicy.Default);
         builder.Services.AddSingleton<IImageImportService, ImageImportService>();
         builder.Services.AddSingleton<IImageResizeService, ImageResizeService>();
+        builder.Services.AddSingleton<IImageTransformService, ImageTransformService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

@@ -206,3 +206,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Source được copy vào per-operation premultiplied native bitmap; destination, canvas và color-space objects chỉ sống trong operation và được dispose deterministically. Output được unpremultiply/copy thành immutable managed `InternalImage`, không giữ reference tới native buffer đã dispose.
 - Service stateless, không dùng shared bitmap/temp filename nên concurrent requests độc lập. Cancellation được kiểm tra trước geometry/allocation, trước và sau native draw, trước output promotion; native draw không hỗ trợ interrupt giữa call.
 - Resize giữ cả source, native source/destination và managed output tại peak; policy hạn chế nhưng chưa thay thế memory-pressure telemetry. SkiaSharp native runtime/provenance risk đã ghi nhận ở PLAN 20 tiếp tục áp dụng.
+
+## Crop/transform state boundary từ PLAN 22
+
+- Geometry request không nhận path, stream, native pointer, UI object hoặc executable. State chỉ chứa immutable numeric/value data và image dimensions; geometry update O(1), không copy/cấp phát pixel buffer và không gọi native decoder/resizer.
+- Mọi crop/viewport/point/zoom/pan/scale/translate/aspect/constraint input reject NaN/Infinity và invalid ranges. Crop bị clamp theo explicit policy; zero/outside/minimum-size crop, invalid zoom/scale/rotation/viewport và source-dimension mismatch trả structured failure.
+- Canonical crop là normalized continuous state. Pixel conversion duy nhất dùng floor left/top, ceil right/bottom và checked/clamped bounds, giảm off-by-one và repeated-quantization drift.
+- Projection matrix được derive từ immutable state theo transform order documented và inverse chỉ được dùng khi invertible. Service stateless, không cần UI thread và concurrent calculations không chia sẻ mutable state.
+- PLAN 22 không execute arbitrary transform code, không resample, không tạo file và không log user geometry/metadata. Pixel execution duy nhất là strongly typed request translation tới validated PLAN 21 Manual Crop service.

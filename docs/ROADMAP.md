@@ -46,7 +46,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 20: PNG/JPEG/WebP/BMP signature-based import; metadata preflight; immutable packed straight-alpha RGBA8; EXIF orientation normalization; sRGB decode; structured failures; cancellation/concurrency; source read-only và DDS encoder interoperability.
 - PLAN đã hoàn thành: PLAN 21 — Arbitrary Resize Engine.
 - Phạm vi PLAN 21: `InternalImage` in/out; arbitrary NPOT dimensions; Stretch/Fit/Fill/Keep Aspect/Free Aspect/Manual Crop/Canvas Resize/Transparent Padding; center/top/bottom/left/right alignment; explicit nearest/linear sampling; premultiplied-alpha filtering; centralized resource limits và direct pixel backend không filesystem.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 22 — Interactive Crop/Transform Model; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 22 — Interactive Crop/Transform Model.
+- Phạm vi PLAN 22: immutable normalized crop state; custom aspect/anchor/minimum constraints; image-pixel/normalized/viewport coordinate mapping; fit-letterbox projection; zoom/pan/scale/quarter-turn rotate/flip/translate/reset; deterministic pixel crop và translation sang PLAN 21 Manual Crop without pixel copy.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 23 — Image Adjustments Core; không tự động bắt đầu.
 
 ## Stage Gates
 

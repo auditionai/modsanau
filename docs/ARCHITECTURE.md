@@ -364,3 +364,21 @@ Modes có semantic cố định: Stretch/Free Aspect tạo exact target không g
 Filter công khai tối thiểu là Nearest Neighbor và Linear, default Linear; library default không được dùng. Filtering diễn ra theo sRGB channel behavior, chưa phải gamma-linear/perceptual resize. Engine premultiply alpha trước filter và unpremultiply trước output để không gắn nhãn premultiplied data thành straight alpha hoặc tạo black fringe ở transparent edge.
 
 Target dùng chung policy PLAN 20: dimension 16384, 100 triệu pixel và 512 MiB decoded RGBA, checked trước native allocation. Same-size Stretch/Free Aspect trả lại cùng immutable source; các operation khác không mutate source. PLAN 21 không phải interactive crop/transform model, editor, AI upscaler hoặc DDS/archive orchestration.
+
+## Interactive Crop/Transform Model từ PLAN 22
+
+`IImageTransformService` là pure, stateless geometry boundary. Canonical crop state dùng `NormalizedImageRectangle` trong `[0,1]`; viewport logical coordinates, image pixel coordinates và normalized coordinates có value types riêng. State là immutable record và chỉ giữ image dimensions, không giữ/copy `InternalImage.Pixels`.
+
+```text
+InternalImage dimensions
+  → immutable InteractiveImageTransformState
+  → normalized crop + derived viewport projection
+  → deterministic ImageCropRectangle
+  → PLAN 21 Manual Crop request khi cần execute pixels
+```
+
+Crop bounds dùng half-open semantics. Interactive crop bị clamp vào image; zero/outside/minimum crop bị reject. Custom finite positive aspect ratio được áp theo actual image pixels với center/top-left/top-right/bottom-left/bottom-right anchor. Final integer crop tập trung một policy: floor left/top, ceil right/bottom, rồi clamp vào image.
+
+Transform order explicit: flip/scale quanh image center → quarter-turn rotation → image-space translation → fit/letterbox viewport → zoom quanh viewport center → viewport pan. Inverse mapping đảo cùng matrix. Rotation chỉ 0/90/180/270; pan dùng viewport logical units, translate dùng image pixels. Zoom mặc định giới hạn 0.1–32; pan không clamp vì roadmap không đặt visibility constraint.
+
+Reset trả identity state. Viewport resize chỉ derive projection mới, không quantize hoặc mutate normalized crop. Model không biết DPI, XAML, pointer event, Canvas/Skia UI, không resample pixels và không triển khai undo/redo.
