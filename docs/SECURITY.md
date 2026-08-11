@@ -223,3 +223,13 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Managed loop kiểm tra cancellation theo row/column và không trả partial image. Service không có static mutable state nên concurrent request độc lập và deterministic với cùng input/settings/version.
 - Sharpen/blur cần thêm full-image buffer và có peak-memory cost; policy hiện giảm allocation abuse nhưng chưa có memory-pressure telemetry hay pooled-buffer budget. Không filesystem/process/native dependency mới được thêm trong adjustment engine.
 - Math RGB chạy trên sRGB channel và hidden RGB của transparent pixel vẫn được adjust. Alpha giữ exact cho mọi operation trừ opacity explicit; đây là contract pixel, không phải color-management/ICC hoặc compositing security boundary.
+
+## Edit history boundary từ PLAN 24
+
+- History là local in-memory state, không đọc/ghi filesystem, không chạy process, không deserialize command, không chứa secret và không biết UI thread/Dispatcher.
+- Editor state và operation kind là strongly typed. Invalid state/dimension, enum, options, transaction transition và capacity failure trả structured result; caller không parse exception text.
+- Revision và memory arithmetic dùng checked 64-bit operation. Revision không reuse sau branch invalidation; failed push/commit không advance revision hoặc mutate committed stacks.
+- Mỗi editor có session riêng. Private lock serialize push/undo/redo/transaction/checkpoint/clear để concurrent caller không corrupt stack; immutable snapshots không expose mutable collection.
+- Entry count và estimated memory đều bounded. Unique immutable image buffer chỉ tính một lần theo reference identity; oldest undo entry được evict trước và current state không bị evict. Entry không thể vừa budget bị reject atomically.
+- Memory estimate bao gồm exact RGBA pixel bytes và fixed entry overhead, chưa bao gồm toàn bộ GC/object overhead. Đây là resource-control policy, không phải memory sandbox hay bảo vệ trước local Administrator.
+- PLAN 24 không persist history hoặc deserialize polymorphic commands. Project history schema, recovery và untrusted durable data validation thuộc PLAN project tương ứng.

@@ -400,3 +400,23 @@ Range contract: brightness/contrast/saturation/vibrance/temperature/tint/highlig
 Processing order cố định là brightness → contrast → exposure → saturation → vibrance → hue → temperature → tint → highlights → shadows → gamma → sharpen → blur → opacity. Brightness là offset `value × 255`; contrast dùng midpoint 127.5 và factor `1 + value`; exposure dùng `2^EV`; saturation dùng Rec.709 luma coefficients; vibrance dùng chroma-adaptive saturation; hue dùng deterministic luma-preserving RGB rotation. Temperature/tint và highlight/shadow là transform sRGB-channel có semantic đơn giản, không được mô tả là physical white balance hoặc tone-mapping engine. Gamma là arbitrary `channel^(1/gamma)`, không phải sRGB transfer conversion.
 
 Sharpen dùng four-neighbor unsharp kernel; blur dùng separable box blur với radius tối đa 20 và fractional blend. Math chạy trực tiếp trên sRGB channels, chưa phải linear-light/ICC pipeline. Hidden RGB của fully-transparent pixel vẫn được adjust deterministic. Tất cả operation trừ opacity giữ alpha byte exact; opacity chỉ nhân alpha, không đổi RGB. Service kiểm tra cancellation theo row/column, không trả partial image, và concurrent call không dùng shared mutable state.
+
+## Edit History / Undo Redo từ PLAN 24
+
+`IEditHistoryService` là stateless factory tạo một `IEditHistorySession` riêng cho từng editor. Session giữ linear operation history độc lập WinUI và serialize mọi mutation bằng private lock. Public state, entry và stack view đều immutable; Core không dùng `ICommand`, XAML, Dispatcher, localized label, filesystem hoặc process.
+
+```text
+ImageEditorState
+  ├─ immutable InternalImage reference
+  ├─ InteractiveImageTransformState
+  └─ ImageAdjustmentSettings
+       → EditHistorySession
+       → stable RevisionId
+       → Undo / Redo
+```
+
+Snapshot strategy là hybrid. Transform/crop và non-destructive adjustment chỉ snapshot lightweight state, reuse cùng `InternalImage`; resize/destructive image state giữ exact immutable image reference để undo không dùng lossy inverse. History memory accounting tính mỗi image buffer một lần theo reference identity cộng estimated entry overhead 512 bytes. Default budget là 100 entries và 256 MiB; configurable options vẫn bị hard-cap ở 10.000 entries/4 GiB. Budget bao gồm current image cùng mọi unique image được history giữ. Khi vượt budget, oldest undo entry bị evict; current state không bị evict. Nếu một entry mới vẫn không vừa sau eviction, commit bị reject atomically.
+
+Revision tăng đơn điệu và không reuse sau khi redo branch bị discard. Saved checkpoint lưu exact revision; `IsDirty` so current/saved revision và phản ánh pending transaction update. Standard linear behavior áp dụng: undo chuyển latest entry sang redo; redo phục hồi exact after-state; edit mới sau undo xóa toàn redo branch.
+
+Transaction hỗ trợ `Begin → Update* → Commit | Cancel` để coalesce slider hoặc pointer drag. Intermediate update thay preview state nhưng không tăng revision hoặc tạo entry. Commit tạo đúng một entry; cancel phục hồi exact before-state. Nested transaction và push/undo/redo/save/clear trong transaction bị reject có cấu trúc. History chỉ ghi state sau khi caller đã thực hiện edit thành công; PLAN 24 không replay operation, persist project history hoặc cung cấp UI command.

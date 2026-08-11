@@ -50,7 +50,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 22: immutable normalized crop state; custom aspect/anchor/minimum constraints; image-pixel/normalized/viewport coordinate mapping; fit-letterbox projection; zoom/pan/scale/quarter-turn rotate/flip/translate/reset; deterministic pixel crop và translation sang PLAN 21 Manual Crop without pixel copy.
 - PLAN đã hoàn thành: PLAN 23 — Image Adjustments Core.
 - Phạm vi PLAN 23: managed deterministic `InternalImage` adjustment pipeline cho brightness/contrast/exposure/saturation/vibrance/hue/temperature/tint/highlights/shadows/gamma/sharpen/blur/opacity; explicit range/order/sRGB semantics; exact alpha policy; cancellation/concurrency/resource validation và DDS RGBA interoperability.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 24 — Edit History / Undo Redo; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 24 — Edit History / Undo Redo.
+- Phạm vi PLAN 24: UI-independent per-editor history session; hybrid immutable state/image-reference snapshots; linear undo/redo và redo invalidation; stable revisions, saved checkpoint/dirty state; transaction coalescing; bounded entry/byte budget, unique image accounting và oldest-undo eviction.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 25 — Alpha Channel Utilities; không tự động bắt đầu.
 
 ## Stage Gates
 
