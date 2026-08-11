@@ -115,7 +115,11 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 53: workflow file-only trong Project Workspace cho chọn folder/tên archive, explicit replace,
   Validate → Build → Export qua application services và một Background Task Manager job; progress/cancel,
   structured safe status, final path/size/SHA-256. Không copy trong code-behind, không game path/install/launch.
-- PLAN kế tiếp: PLAN 54 — Batch Build & Export.
+- PLAN đã hoàn thành kiểm chứng: PLAN 54 — Batch Build & Export.
+- Phạm vi PLAN 54: typed multi-project jobs `Queued → Validating → Building → Exporting → terminal`; deterministic
+  project-ID filename + trusted extension, full destination preflight, explicit duplicate conflict policy,
+  bounded concurrency qua PLAN 38 và per-job failure/cancellation isolation. Không batch game install.
+- PLAN kế tiếp: PLAN 55 — File-Only Production Gate.
 
 ## Stage Gates
 

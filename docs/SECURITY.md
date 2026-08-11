@@ -493,3 +493,18 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   game filesystem authority và không thêm install/restore/launch/login/runtime validation.
 - Cập nhật build state dùng compare-and-swap dưới session gate với exact project/workspace reference; job cũ không
   thể ghi đè project mới vừa được activate. Folder-picker exception chỉ log exception type và trả safe UI message.
+
+## Batch Build & Export boundary từ PLAN 54
+
+- Mỗi job chỉ dùng exact project/workspace object; batch không nhận project file path, source archive path, tool path
+  hoặc raw command. Workspace lease vẫn thuộc caller và phải còn valid tới terminal result.
+- Filename do service sinh từ code-owned prefix + ProjectId + trusted extension; project name không thành path.
+  Tất cả destination vẫn là untrusted input và qua PLAN 51 trước build, PLAN 52 revalidation trước mutation.
+- Canonical path comparison dùng ordinal-ignore-case. Duplicate path mặc định fail trước build; explicit serialize
+  còn yêu cầu từng job `ReplaceExisting`, và per-path semaphore ngăn concurrent promotion tới cùng final file.
+- Code-owned job/concurrency limits cùng PLAN 38 queue ngăn resource exhaustion và unbounded ACV process. Batch token
+  được đăng ký về exact Background Task ID; queued/running job đi đến typed terminal cancellation.
+- Một job không cấp authority cho job khác và không chia sẻ writable temp workspace/keydat. PLAN 49/52 tiếp tục sở
+  hữu isolated workspace, hash verification, atomicity và rollback; batch layer không copy file hoặc gọi process.
+- Progress/diagnostic chỉ dùng stable code, job index/ID và số đếm; không log destination, hash, archive asset list,
+  raw exception hoặc tool output. Batch không discover/mutate/install/launch/automate game.

@@ -66,6 +66,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IArchiveExportDestinationValidator, ArchiveExportDestinationValidator>();
         builder.Services.AddSingleton<IArchiveExportFileOperations, SystemArchiveExportFileOperations>();
         builder.Services.AddSingleton<IArchiveExportService, ArchiveExportService>();
+        builder.Services.AddSingleton(BatchBuildExportOptions.Default);
+        builder.Services.AddSingleton<IBatchBuildExportService, BatchBuildExportService>();
         builder.Services.AddSingleton<SecureWorkspaceService>();
         builder.Services.AddSingleton<ISecureWorkspaceService>(services =>
             services.GetRequiredService<SecureWorkspaceService>());

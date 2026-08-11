@@ -846,3 +846,20 @@ Save current project
   explicit labels/help text, target nút tối thiểu 44 px và trạng thái không chỉ dựa vào màu.
 - PLAN 53 không persist machine-local export path, không thêm game path/detection/install/restore/launch/login hoặc
   runtime observation. Export final archive là điểm kết thúc product pipeline.
+
+## Batch Build & Export từ PLAN 54
+
+- `IBatchBuildExportService` nhận bounded list job có unique code/caller-owned JobId, exact immutable project,
+  retained workspace lease, arbitrary output directory và explicit overwrite intent. Caller phải giữ mỗi workspace
+  sống suốt batch; service không tự load project từ raw path và không sở hữu/dispose lease.
+- Output filename deterministic là `project-{ProjectId:N}{trusted extension}`; extension lấy từ exact workspace
+  archive contract, không hard-code `.ab`/`.acv` và project display name không tham gia path. PLAN 51 preflight toàn
+  bộ destination trước khi job tương ứng build.
+- Canonical duplicate destination mặc định fail typed cho mọi job xung đột. `SerializeConflicts` chỉ cho chạy khi
+  từng job đồng thời có `ReplaceExisting`; một per-path gate bảo đảm không có hai transaction ghi cùng path.
+- Batch concurrency bị giới hạn code-owned trước khi enqueue; mỗi active job reuse một PLAN 38 `Build` task rồi gọi
+  PLAN 49 và PLAN 52. Vì vậy không spawn unbounded pack process và không có archive pipeline thay thế.
+- Per-job state/progress/result typed, giữ input order. Build/export failure của một job không stop job khác; batch
+  cancellation gọi `TryCancel` trên exact manager task ID và đợi terminal state trước khi trả kết quả.
+- Result success có deterministic filename, final path, size, SHA-256 và updated project aggregate; failure không
+  publish partial artifact. PLAN 54 không thêm UI project picker, game path, install, backup, restore hoặc launch.
