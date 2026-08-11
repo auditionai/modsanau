@@ -98,15 +98,21 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 46: Before là immutable working-copy baseline của editor session; After là live non-destructive resize/crop preview có cancellation và generation guard; side-by-side/slider/toggle dùng chung compare camera; checkerboard chỉ là presentation; bitmap được reuse giữa mode và compare không mutate project/history/DDS/archive.
 - PLAN đã hoàn thành kiểm chứng: PLAN 47 — Apply Texture UX.
 - Phạm vi PLAN 47: validate target; render typed crop/resize; temporary Match Original encode + independent validation; atomic extracted-workspace replacement có rollback; durable before/after history assets; Modified/build-dirty state; content-hash thumbnail regeneration; atomic project save; UI progress/cancel qua Background Task Manager.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 48 — Project Validator; chưa được triển khai.
+- PLAN đã hoàn thành kiểm chứng: PLAN 48 — Project Validator.
+- PLAN đã hoàn thành kiểm chứng: PLAN 49 — Build Pipeline.
+- PLAN đã hoàn thành Product Gate C: PLAN 50 — Real Replace + Pack Gate.
+- Product direction hậu PLAN 50 xác nhận ứng dụng là file editor/archive builder; mọi future game
+  install/detect/backup/restore/launch direction bị supersede.
+- PLAN kế tiếp: PLAN 51 — Export Destination.
 
 ## Stage Gates
 
 - Gate A: real archive extract và interactive AuditionVN selection.
 - Gate B: real DDS roundtrip dựa trên metadata của chính target DDS; có thể dùng tập optional sample đa dạng, không phụ thuộc bắt buộc vào `tn_coby_logo.dds`.
-- Gate C: replace, pack và kiểm thử trong Audition thật.
+- Gate C: replace, production pack/re-extract, intended/non-target integrity, pristine safety và artifact hash.
 
-Không phát triển AI/store trước khi Gate A đạt. Archive/DDS pipeline chỉ được xem là đã chứng minh sau Gate C.
+Manual in-game QA không thuộc product acceptance scope. Không phát triển AI/store trước khi Gate A đạt.
+Archive/DDS pipeline chỉ được xem là đã chứng minh sau file-only Product Gate C.
 
 ## Quy trình
 

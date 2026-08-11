@@ -24,9 +24,9 @@
 
 Xây dựng **Audition AI Mod Studio** cho Windows với workflow:
 
-`Login → Chọn Game → Chọn Mod Type → lấy đúng Archive Template → tạo Project → extract archive → scan DDS → preview/edit/AI → match kích thước/format DDS gốc → replace → validate → pack archive → export/install`.
+`Login → Chọn Game → Chọn Mod Type → lấy đúng Archive Template → tạo Project → extract archive → scan DDS → preview/edit/AI → match kích thước/format DDS gốc → replace → validate → pack archive → export final archive`.
 
-Người dùng thông thường không cần biết tên archive thật, câu lệnh CMD, DXT5/BC3 hay cấu trúc folder nội bộ. App phải chuyển các chi tiết đó thành một UX kiểu game mod manager/editor trực quan.
+Người dùng thông thường không cần biết tên archive thật, câu lệnh CMD, DXT5/BC3 hay cấu trúc folder nội bộ. App phải chuyển các chi tiết đó thành một UX archive editor/builder trực quan.
 
 ## Mục tiêu V1 bắt buộc
 - Windows desktop app hiện đại.
@@ -41,7 +41,7 @@ Người dùng thông thường không cần biết tên archive thật, câu l�
 - Texture browser + thumbnail.
 - Replace, reset, compare.
 - Batch mapping/replace.
-- Build + validate + install + backup/restore.
+- Build + validate + atomic export `.ab`/`.acv`.
 - AI Generate/Edit/Inpaint/Outpaint/Remove/Replace/Upscale qua backend API.
 - Supabase Auth/database/storage.
 - Credit ledger server-authoritative.
@@ -620,7 +620,7 @@ After encoding, reopen DDS and validate against target metadata. Do not replace 
 
 ## PLAN 19 — Real DDS Roundtrip Gate
 
-Use `tn_coby_logo.dds` as real test fixture. Encode a known image to 6000×1801 DXT5, mip 1. Read it back and compare required metadata. Then manually test in archive/game later.
+Use `tn_coby_logo.dds` as real test fixture. Encode a known image to 6000×1801 DXT5, mip 1. Read it back and compare required metadata. Historical manual game-test direction is superseded by the file-only product boundary confirmed after PLAN 50.
 
 ---
 
@@ -699,6 +699,9 @@ Each Mod Type has:
 - compatibility information
 
 User sees semantic mod name, not raw archive filename.
+
+`install relative path` ở đây là metadata lịch sử của PLAN 27 và không cấp authority để discover, validate
+hoặc mutate game installation. Product boundary sau PLAN 50 chỉ export archive tới user-selected destination.
 
 ## PLAN 28 — Texture Manifest
 
@@ -879,7 +882,7 @@ On Apply:
 
 ---
 
-# PHASE I — BUILD / INSTALL
+# PHASE I — BUILD / EXPORT
 
 ## PLAN 48 — Project Validator
 
@@ -923,36 +926,63 @@ pack bằng production pipeline, re-extract và chứng minh intended/non-target
 artifact SHA-256. Đây là Product Gate C. Manual test trong Audition chỉ là optional external compatibility QA
 và không block PLAN 50 trong current application acceptance scope.
 
-## PLAN 51 — Audition Install Path
+## PLAN 51 — Export Destination
 
-User chooses/validates Audition folder; optional safe auto-detection. Do not assume drive letter.
+Cho phép user chọn nơi lưu final `.ab`/`.acv` archive. Model strongly typed phải hỗ trợ user-selected output
+directory, output filename, archive-extension validation, canonical absolute path, Unicode/spaces, collision
+detection, explicit overwrite policy và structured errors. Destination là arbitrary writable filesystem
+location, không phải trusted game metadata; không derive GameId/ModId/TemplateId/RegionProfile/engine từ path.
 
-## PLAN 52 — Install + Backup
+Validation phân biệt invalid path/name/extension, unavailable destination, access denied, reparse policy và
+existing-file collision. Không silently overwrite. Nếu lưu last export directory thì dùng application settings,
+không lưu machine-local absolute path vào `.audproj`.
 
-Before replacing game archive:
-- backup existing target;
-- record hash/timestamp/project/mod/template;
-- copy built archive safely;
-- verify destination hash.
+## PLAN 52 — Atomic Archive Export
 
-## PLAN 53 — Restore / Mod Manager
+Xuất final validated build artifact của PLAN 49 tới destination PLAN 51 theo pipeline:
+`Validated Build Artifact → destination validation → temporary export → copy/write → hash verification →
+atomic promote → final archive`.
 
-List installed version, original backup, prior project builds. Restore selected backup.
+Không rebuild archive qua pipeline thứ hai. Failure giữ nguyên existing destination và cleanup/recover temp.
+Overwrite chỉ chạy với explicit policy và phải bảo toàn destination cũ cho tới khi candidate sẵn sàng promote.
+Final file phải tồn tại, non-empty, đúng extension/type contract và byte/hash-identical với build artifact.
+
+## PLAN 53 — Build & Export UI
+
+UI workflow `Validate → Build → Export`: hiển thị project/build status, chọn output filename/destination,
+start, progress, cancellation, success/failure và final output path. ViewModel gọi application services;
+View/code-behind không copy file. Reuse PLAN 38 Background Task Manager để không block UI và propagate
+structured progress/cancellation.
+
+UI không có Find/Detect/Install/Restore/Launch/Login Audition hoặc Game Path. Success có thể hiển thị filename,
+size, SHA-256 và output location; không launch game.
 
 ---
 
 # PHASE J — BATCH
 
-## PLAN 54 — Batch Mapping
+## PLAN 54 — Batch Build & Export
 
-Map images by exact filename, normalized stem, relative path, or manual mapping. Preview Matched/Unmatched/Conflict before apply.
+Hỗ trợ nhiều job độc lập theo flow `Project → Validate → Build → Export → per-job result`. Reuse PLAN 38,
+bounded concurrency và không spawn unlimited pack processes. Destination name deterministic; detect conflict
+trước execution khi có thể và không để hai jobs ghi cùng path ngoài explicit conflict policy.
 
-## PLAN 55 — Batch Processing
+Per-job state là typed equivalent của `Queued/Validating/Building/Exporting/Succeeded/Failed/Cancelled`;
+failure/cancellation một job không corrupt job khác. Batch này là project/archive build-export, không phải game
+install và không thay thế texture batch mapping đã mô tả trong lịch sử product nếu feature đó được lập PLAN lại.
 
-For each mapping:
-image → crop/resize preset → Match Original DDS → encode → validate → replace.
+## PLAN 55 — File-Only Production Gate
 
-Per-item progress and failure isolation.
+Chứng minh end-to-end pipeline:
+`archive/template → Create Project → scan → select/edit/replace texture → Apply → Project Validate → Build →
+pack → verify → Export final .ab/.acv`.
+
+Gate PASS khi project workflow, intended DDS replacement/metadata, validator, production pack, archive
+verification/re-extract phù hợp, expected inventory, intended/non-target integrity, pristine safety, final export,
+standalone artifact size/hash, full regression và security/artifact audits đều PASS.
+
+Gate không yêu cầu Audition installation, game directory, game launch/login/gameplay, visual in-game validation,
+replacement trong game hoặc backup game files.
 
 ## PLAN 56 — Batch Build Summary
 
@@ -1270,7 +1300,7 @@ Signed installer, clean uninstall, preserve user projects unless explicitly dele
 
 ## PLAN 95 — Updater
 
-Signed release channel, staged rollout, rollback strategy, update deferral while project build/install is active.
+Signed release channel, staged rollout, rollback strategy, update deferral while project build/export is active.
 
 ---
 
@@ -1282,11 +1312,11 @@ Use copies of real Audition fixtures. Extract → scan → replace → pack. Ori
 
 ## PLAN 97 — DDS Compatibility Matrix
 
-Build a growing corpus of real DDS samples from each Mod Type. Record width/height/format/mips/alpha/header and in-game validation status.
+Build a growing corpus of real DDS samples from each Mod Type. Record width/height/format/mips/alpha/header and file-pipeline compatibility status. External in-game observations, nếu có, là non-blocking external QA.
 
 ## PLAN 98 — Crash/Recovery Tests
 
-Kill app during extract, edit, encode, pack, install, download. Verify workspace and backups recover safely.
+Kill app during extract, edit, encode, pack, export, download. Verify workspace, export destination và temporary transaction recover safely.
 
 ## PLAN 99 — Performance Tests
 
@@ -1297,7 +1327,7 @@ Measure archive scan, thumbnail generation, 6000×1801 resize/BC3 encode, memory
 Release only when:
 - Gate A/B/C pass on real Audition data;
 - pristine template policy verified;
-- backups/restore tested;
+- atomic export collision/overwrite/rollback tested;
 - no privileged secrets in desktop binary;
 - Auth/RLS/credit race/idempotency tested;
 - installer/update signing active;
@@ -1317,12 +1347,12 @@ Deliverable: actual `015.ab` extract + actual DDS read/encode pipeline.
 ## MILESTONE 2 — One Real Mod End-to-End
 Plans 20–35 + 48–50.
 
-Deliverable: choose one Mod Type → edit one real texture → build → run in Audition.
+Deliverable: choose one Mod Type → edit one real texture → build → verify/export standalone archive.
 
 ## MILESTONE 3 — Usable Desktop Product
 Plans 36–56.
 
-Deliverable: project browser, professional editor UX, build/install/batch.
+Deliverable: project browser, professional editor UX, build/export/batch.
 
 ## MILESTONE 4 — Commercial AI
 Plans 57–66 + core security 67–84.

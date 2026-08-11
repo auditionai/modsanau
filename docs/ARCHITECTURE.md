@@ -24,6 +24,16 @@ ACV Tool 5 chạy pack bằng structured arguments tương đương `acv -ca 015
 - Các tác vụ dài dùng `async/await`, `CancellationToken` và progress reporting.
 - Release đích là Windows x64; archive runner về sau vẫn phải chạy được `acv.exe` 32-bit.
 
+## File-only product boundary
+
+Audition AI Mod Studio là file editor/archive builder. Luồng sản phẩm kết thúc tại final exported `.ab`/`.acv`:
+`project → isolated working copy → edit/apply → validate → build/pack/verify → export → END`.
+
+Ứng dụng không discover/validate game installation, không đọc registry/launcher config để tìm Audition, không
+ghi/backup/restore game archive, không launch/login/automate game và không dùng runtime visual observation làm
+acceptance criterion. Export destination là arbitrary user-selected filesystem location và không phải nguồn
+GameId, ModId, template, region hoặc archive-engine authority.
+
 ## Module
 
 | Project | Trách nhiệm | Dependency trực tiếp tại PLAN 01 |
@@ -65,7 +75,7 @@ AuditionModStudio.App
 - Pristine template bất biến; mọi thay đổi diễn ra trong isolated project working copy.
 - Texture identity là normalized relative directory path cộng exact filename.
 - UI gọi abstraction qua DI; không gọi process, filesystem engine, DDS engine hoặc provider trực tiếp.
-- Build/install dùng validate-before-promote, backup và recovery theo các PLAN tương ứng.
+- Build/export dùng validate-before-promote, atomic promotion và recovery theo các PLAN tương ứng.
 
 ## Application bootstrap
 
@@ -123,6 +133,11 @@ ApplicationSettings
 ```
 
 `Cache`, `Temp` và `Temp\Workspaces` không phải settings có thể chỉnh sửa. Các path nội bộ tiếp tục do `IAppPaths` kiểm soát. Game/tool/project path là external configuration và vẫn phải được validate lại theo trust boundary của operation sử dụng chúng.
+
+`Game.InstallationDirectory` và `Project.DefaultInstallBehavior` là legacy schema-v1 fields từ product direction
+cũ. Sau correction hậu PLAN 50, chúng không được orchestration mới đọc như game-install authority. Việc xóa/migrate
+schema cần một PLAN settings migration riêng; PLAN 51 không tự đổi schema. Nếu lưu last export directory, nó là
+machine-local application setting riêng và không đi vào `.audproj`.
 
 Settings nằm tại `Settings\settings.json`, backup hữu hạn tại `settings.json.bak`. Save được serialize trong process, validate lại, ghi temp file cùng filesystem, flush xuống disk rồi promote bằng replace/move. Một `SemaphoreSlim` serialize các operation trong singleton service. Schema mới hơn bị từ chối; migration cũ chỉ chạy qua `ISettingsSchemaMigration` được đăng ký rõ ràng.
 
@@ -466,10 +481,10 @@ IGameCatalog
        ├─ explicit ArchiveEngineType
        ├─ RegionProfileId → IGameRegionProfileResolver
        ├─ ReuseOrGenerate keydat strategy
-       └─ validated install-relative path + compatibility information
+       └─ legacy install-relative path + compatibility information
 ```
 
-`ModCatalog.Create` kiểm tra dependency, null definition, unknown game, unknown region và duplicate `(GameId, ModId)`, rồi chỉ publish catalog khi toàn bộ input hợp lệ. Danh sách mỗi game sort ordinal theo `ModId`; dictionary và snapshot đều immutable nên concurrent read không cần lock. Empty catalog hợp lệ vì master roadmap PLAN 27 không cung cấp đủ semantic name/category/cover/install/compatibility để định nghĩa một built-in Mod Type mà không suy đoán. Composition root vẫn đăng ký đúng một singleton rỗng đã validate; definition code-owned sẽ được thêm khi có metadata có thẩm quyền.
+`ModCatalog.Create` kiểm tra dependency, null definition, unknown game, unknown region và duplicate `(GameId, ModId)`, rồi chỉ publish catalog khi toàn bộ input hợp lệ. Danh sách mỗi game sort ordinal theo `ModId`; dictionary và snapshot đều immutable nên concurrent read không cần lock. Empty catalog hợp lệ vì master roadmap PLAN 27 không cung cấp đủ semantic name/category/cover/install/compatibility để định nghĩa một built-in Mod Type mà không suy đoán. Composition root vẫn đăng ký đúng một singleton rỗng đã validate; definition code-owned sẽ được thêm khi có metadata có thẩm quyền. Legacy `InstallRelativePath` không được dùng để tìm hoặc ghi game directory; export destination là boundary độc lập từ PLAN 51.
 
 `AuditionArchiveTemplate` được reuse nguyên trạng; engine được map explicit và không infer từ `.ab`/`.acv`. `GameRegionProfile` cùng `IGameRegionProfileResolver` được đặt tại `Core.Archives` để Mods chỉ phụ thuộc Core; implementation `GameRegionProfileCatalog` vẫn thuộc Archives. `ModDefinition` chỉ giữ `RegionProfileId`, không expose ACV raw country selection. Archive engine mới vẫn được resolution tại archive boundary. PLAN 27 không đọc template file, không detect game install, không tạo UI và không nối project lifecycle của PLAN 30.
 

@@ -25,6 +25,17 @@ Token người dùng cần lưu về sau phải đi qua Windows secure storage a
 - Launch tool/native component bằng absolute trusted path; không ghép shell command từ input.
 - ACV Tool 5 về sau phải redirect stdin/stdout/stderr và kiểm tra tool integrity.
 
+## File-only product boundary
+
+- Sản phẩm chỉ mutate isolated project workspace và user-selected export destination; không discover, validate,
+  mutate, backup hoặc restore Audition installation/game directory.
+- Không đọc registry/launcher config để tìm game, không launch/login/automate game và không coi in-game
+  observation là security/release gate.
+- Export path là machine-local untrusted input. Nó không cấp authority cho game/mod/template/region/engine và
+  phải được canonicalize, kiểm tra filename/extension/collision/access/reparse trước mọi write.
+- Existing export chỉ được thay với explicit overwrite policy và transactional promotion; failure phải giữ bytes
+  cũ, cleanup temp và trả structured result.
+
 ## Release boundary
 
 Release cuối cùng phải có signed binary, signed installer và signed/hash-verified update. Signing key nằm trong secure CI/HSM/certificate service, không nằm trong repository hoặc client.
@@ -36,6 +47,8 @@ Các biện pháp RLS, credit concurrency, payment webhook, template encryption,
 - Executable dùng Windows manifest chuẩn với `requestedExecutionLevel="requireAdministrator"` và `uiAccess="false"`.
 - Không có self-relaunch, `cmd.exe`, PowerShell, giả lập hoặc bypass UAC.
 - Toàn ứng dụng hiện chạy elevated theo yêu cầu sản phẩm; điều này làm tăng blast radius. Business/domain contract không phụ thuộc elevation để có thể tách `normal UI + elevated broker` về sau.
+- Product file-only hiện không còn cần ghi game installation, vì vậy `requireAdministrator` là technical debt cần
+  dedicated security/runtime review. Không thay manifest/elevation policy trong PLAN 51.
 - Normal application data chỉ nằm dưới `%LocalAppData%\AuditionModStudio`, không nằm trong installation directory.
 - Log rolling file có timestamp, level, structured properties và exception stack trace.
 - Source code không được ghi password, token, API/payment/encryption/signing secret vào log. Thông báo lỗi cho người dùng không hiển thị stack trace.
@@ -253,7 +266,7 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 
 - Production catalog là code-owned application metadata được validate trước khi đăng ký singleton; không load từ user settings, project JSON, filesystem hoặc remote endpoint.
 - Stable `GameId` bị giới hạn vào machine-friendly lowercase ASCII grammar. `DisplayName` là presentation metadata có Unicode nhưng không được dùng làm identity, filesystem path hoặc security decision.
-- `GameDefinition` của PLAN 26 không chứa executable path, archive filename/source path, tool/template hash, archive engine, region profile, raw country selection, install path hoặc secret. Các trusted mapping đó chỉ được thêm ở PLAN tương ứng với validation riêng.
+- `GameDefinition` của PLAN 26 không chứa executable path, archive filename/source path, tool/template hash, archive engine, region profile, raw country selection, install path hoặc secret. Product direction mới không bổ sung game-install metadata; export destination là machine-local state độc lập.
 - Catalog reject null/empty/duplicate definition bằng structured issue và không phát hành partial catalog. Built-in validation failure làm bootstrap fail-fast thay vì xuất hiện muộn khi người dùng chọn game.
 - Public collection và definition đều immutable; concurrent reads không chia sẻ mutable state. PLAN 26 không ghi filesystem, không chạy process, không gọi network và không tạo trust override từ local configuration.
 
@@ -263,8 +276,8 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - `ModRelativePath` canonicalize separator và reject rooted path, traversal, empty/dot segment, control character cùng ký tự filename bị cấm trên Windows. Đây là metadata validation; PLAN 27 không mở cover, template hoặc install destination trên filesystem.
 - Archive mapping reuse `AuditionArchiveTemplate`; engine là typed explicit mapping, không suy từ extension. Catalog xác minh referenced game và region qua trusted `IGameCatalog`/`IGameRegionProfileResolver`, không nhận allowlist hoặc hash override từ user.
 - `ModDefinition` chỉ chứa `RegionProfileId`; ACV country selection vẫn được resolve bên trong trusted region profile/archive execution boundary. Raw selector, executable path và process argument không được thêm vào Mod Catalog API.
-- Production catalog là immutable application metadata và hiện rỗng có chủ ý vì roadmap chưa định danh một built-in Mod Type đầy đủ. Không load user JSON/settings/network để tự thêm hoặc override mod, engine, region, template hay install mapping.
-- PLAN 27 không chạy process, không đọc/ghi archive, không detect game install, không gọi network và không chứa secret. Template existence/hash verification, project snapshot, install và remote signed catalog vẫn thuộc boundary/PLAN tương ứng.
+- Production catalog là immutable application metadata và hiện rỗng có chủ ý vì roadmap chưa định danh một built-in Mod Type đầy đủ. Không load user JSON/settings/network để tự thêm hoặc override mod, engine, region, template hay legacy install mapping.
+- PLAN 27 không chạy process, không đọc/ghi archive, không detect game install, không gọi network và không chứa secret. Legacy `InstallRelativePath` không được future workflow dùng để mutate game; template existence/hash verification, project snapshot, export và remote signed catalog thuộc boundary/PLAN tương ứng.
 
 ## Texture Manifest boundary từ PLAN 28
 
