@@ -1,0 +1,347 @@
+using System.Collections.Immutable;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using AuditionModStudio.App.Shell;
+using AuditionModStudio.Core.Mods;
+using AuditionModStudio.Core.Projects;
+using AuditionModStudio.Core.Tasks;
+
+namespace AuditionModStudio.App.Workspace;
+
+public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged
+{
+    private readonly IApplicationProjectSession _projectSession;
+    private readonly ISmartModScanService _scanService;
+    private readonly ITextureStateMachine _textureStateMachine;
+    private readonly IBackgroundTaskManager _taskManager;
+    private ImmutableArray<WorkspaceTextureItem> _allTextures = [];
+    private ImmutableArray<WorkspaceFolderItem> _folders = [];
+    private WorkspaceTextureItem? _selectedTexture;
+    private string _searchQuery = string.Empty;
+    private WorkspaceMappingFilter _mappingFilter;
+    private string _statusMessage = "No active project. Create or open a project first.";
+    private Guid? _loadedProjectId;
+    private BackgroundTaskId _activeTaskId;
+    private bool _isLoading;
+    private double _progressPercentage;
+
+    public ProjectWorkspaceViewModel(
+        IApplicationProjectSession projectSession,
+        ISmartModScanService scanService,
+        ITextureStateMachine textureStateMachine,
+        IBackgroundTaskManager taskManager)
+    {
+        _projectSession = projectSession ?? throw new ArgumentNullException(nameof(projectSession));
+        _scanService = scanService ?? throw new ArgumentNullException(nameof(scanService));
+        _textureStateMachine = textureStateMachine ?? throw new ArgumentNullException(nameof(textureStateMachine));
+        _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public ImmutableArray<WorkspaceMappingFilter> MappingFilters { get; } =
+        Enum.GetValues<WorkspaceMappingFilter>().ToImmutableArray();
+
+    public ImmutableArray<WorkspaceFolderItem> Folders => _folders;
+
+    public string ProjectName => _projectSession.Project?.Name ?? "Project Workspace";
+
+    public string SearchQuery
+    {
+        get => _searchQuery;
+        set
+        {
+            var normalized = value ?? string.Empty;
+            if (_searchQuery == normalized || normalized.Length > 256)
+            {
+                return;
+            }
+
+            _searchQuery = normalized;
+            ApplyFilter();
+            OnPropertyChanged();
+        }
+    }
+
+    public WorkspaceMappingFilter MappingFilter
+    {
+        get => _mappingFilter;
+        set
+        {
+            if (_mappingFilter == value || !Enum.IsDefined(value))
+            {
+                return;
+            }
+
+            _mappingFilter = value;
+            ApplyFilter();
+            OnPropertyChanged();
+        }
+    }
+
+    public WorkspaceTextureItem? SelectedTexture
+    {
+        get => _selectedTexture;
+        set
+        {
+            var selected = value is not null && _allTextures.Contains(value) ? value : null;
+            if (Equals(_selectedTexture, selected))
+            {
+                return;
+            }
+
+            _selectedTexture = selected;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedDisplayName));
+            OnPropertyChanged(nameof(SelectedRelativePath));
+            OnPropertyChanged(nameof(SelectedTargetSize));
+            OnPropertyChanged(nameof(SelectedFormat));
+            OnPropertyChanged(nameof(SelectedState));
+            OnPropertyChanged(nameof(SelectedValidation));
+            OnPropertyChanged(nameof(SelectedEditMode));
+            OnPropertyChanged(nameof(PreviewMessage));
+        }
+    }
+
+    public bool IsLoading => _isLoading;
+
+    public bool CanCancel => _isLoading && _activeTaskId.IsValid;
+
+    public double ProgressPercentage => _progressPercentage;
+
+    public string StatusMessage => _statusMessage;
+
+    public string SelectedDisplayName => _selectedTexture?.DisplayName ?? "No texture selected";
+
+    public string SelectedRelativePath => _selectedTexture?.RelativePath ?? "—";
+
+    public string SelectedTargetSize => _selectedTexture?.TargetSize ?? "—";
+
+    public string SelectedFormat => _selectedTexture?.Format ?? "—";
+
+    public string SelectedState => _selectedTexture?.State.ToString() ?? "—";
+
+    public string SelectedValidation => _selectedTexture?.Validation ?? "Not selected";
+
+    public string SelectedEditMode => _selectedTexture?.RecommendedEditMode ?? "Not specified";
+
+    public string PreviewMessage => _selectedTexture is null
+        ? "Select a texture from the folder tree to inspect its preview and edit metadata."
+        : "Preview pixels are loaded only when an approved editor action requests them.";
+
+    public async Task LoadAsync(CancellationToken cancellationToken = default)
+    {
+        var project = _projectSession.Project;
+        var workspace = _projectSession.Workspace;
+        if (project is null || workspace is null)
+        {
+            Reset("No active project. Create or open a project first.");
+            return;
+        }
+
+        if (_loadedProjectId == project.ProjectId)
+        {
+            return;
+        }
+
+        SmartModScanResult? scanResult = null;
+        IProgress<SmartModScanProgress> uiProgress = new Progress<SmartModScanProgress>(UpdateProgress);
+        SetLoading(true, "Project textures are being scanned.", 0);
+
+        var enqueue = await _taskManager.EnqueueAsync(
+            new BackgroundTaskRequest(
+                BackgroundTaskKind.Scan,
+                async (taskProgress, taskCancellationToken) =>
+                {
+                    var progress = new CallbackProgress<SmartModScanProgress>(value =>
+                    {
+                        taskProgress.Report(new BackgroundTaskProgress(
+                            value.CompletedTextures,
+                            Math.Max(value.TotalTextures, 1),
+                            ToStageCode(value.Phase)));
+                        uiProgress.Report(value);
+                    });
+                    scanResult = await _scanService.ScanAsync(
+                        new SmartModScanRequest(project.GameId, project.ModId, workspace),
+                        progress,
+                        taskCancellationToken).ConfigureAwait(false);
+                    return scanResult.Succeeded
+                        ? BackgroundTaskExecutionResult.Success()
+                        : BackgroundTaskExecutionResult.Failure(ToDiagnosticCode(scanResult.FailureReason));
+                }),
+            cancellationToken);
+
+        if (!enqueue.Succeeded)
+        {
+            SetLoading(false, "The texture scan could not be queued.", 0);
+            return;
+        }
+
+        _activeTaskId = enqueue.TaskId;
+        OnPropertyChanged(nameof(CanCancel));
+        var snapshot = await _taskManager.WaitForCompletionAsync(enqueue.TaskId, cancellationToken);
+        _activeTaskId = default;
+
+        if (snapshot?.State == BackgroundTaskState.Succeeded
+            && scanResult?.Succeeded == true
+            && ReferenceEquals(_projectSession.Project, project)
+            && ReferenceEquals(_projectSession.Workspace, workspace))
+        {
+            PublishScan(project, scanResult);
+            return;
+        }
+
+        if (snapshot?.State == BackgroundTaskState.Cancelled || scanResult?.Cancelled == true)
+        {
+            SetLoading(false, "Texture scan was cancelled.", _progressPercentage);
+            return;
+        }
+
+        Reset("Project textures could not be loaded. Review the application log and try again.");
+    }
+
+    public bool CancelLoading() =>
+        _activeTaskId.IsValid && _taskManager.TryCancel(_activeTaskId);
+
+    private void PublishScan(AuditionProject project, SmartModScanResult scanResult)
+    {
+        _loadedProjectId = project.ProjectId;
+        _allTextures = scanResult.Groups
+            .SelectMany(group => group.Textures.Select(texture => CreateItem(project, texture)))
+            .OrderBy(item => item.RelativePath, StringComparer.Ordinal)
+            .ToImmutableArray();
+        _selectedTexture = null;
+        ApplyFilter();
+        SetLoading(false, $"Loaded {_allTextures.Length} texture metadata records.", 100);
+        OnPropertyChanged(nameof(ProjectName));
+        OnPropertyChanged(nameof(SelectedTexture));
+        RaiseSelectedProperties();
+    }
+
+    private WorkspaceTextureItem CreateItem(AuditionProject project, SmartTextureAsset texture)
+    {
+        var relativePath = new ModRelativePath(texture.Asset.RelativePath);
+        var state = _textureStateMachine.Evaluate(
+            project,
+            relativePath,
+            new TextureRuntimeObservation(true, true, false));
+        return new WorkspaceTextureItem(
+            texture.Asset.RelativePath,
+            texture.Asset.DirectoryRelativePath,
+            texture.Asset.FileName,
+            texture.ManifestResolution.DisplayName,
+            $"{texture.Metadata.Width} × {texture.Metadata.Height}",
+            texture.Metadata.Format.ToString(),
+            state.Succeeded ? state.State : TextureState.Invalid,
+            state.Succeeded ? "Valid" : "State unavailable",
+            !texture.ManifestResolution.UsedFallback,
+            texture.ManifestResolution.Slot?.Editable == true,
+            texture.ManifestResolution.Slot?.RecommendedEditMode.Value ?? "Not specified");
+    }
+
+    private void ApplyFilter()
+    {
+        var query = _searchQuery.Trim();
+        var filtered = _allTextures.Where(item =>
+            (_mappingFilter == WorkspaceMappingFilter.All
+             || _mappingFilter == WorkspaceMappingFilter.ManifestMapped && item.IsManifestMapped
+             || _mappingFilter == WorkspaceMappingFilter.Unmapped && !item.IsManifestMapped)
+            && (query.Length == 0
+                || item.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || item.FileName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || item.RelativePath.Contains(query, StringComparison.OrdinalIgnoreCase)));
+
+        _folders = filtered
+            .GroupBy(item => item.DirectoryRelativePath, StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group => new WorkspaceFolderItem(
+                group.Key,
+                group.OrderBy(item => item.FileName, StringComparer.Ordinal).ToImmutableArray()))
+            .ToImmutableArray();
+
+        if (_selectedTexture is not null && !_folders.Any(folder => folder.Textures.Contains(_selectedTexture)))
+        {
+            SelectedTexture = null;
+        }
+
+        OnPropertyChanged(nameof(Folders));
+    }
+
+    private void Reset(string message)
+    {
+        _loadedProjectId = null;
+        _allTextures = [];
+        _folders = [];
+        _selectedTexture = null;
+        SetLoading(false, message, 0);
+        OnPropertyChanged(nameof(ProjectName));
+        OnPropertyChanged(nameof(Folders));
+        OnPropertyChanged(nameof(SelectedTexture));
+        RaiseSelectedProperties();
+    }
+
+    private void UpdateProgress(SmartModScanProgress progress)
+    {
+        _progressPercentage = progress.TotalTextures <= 0
+            ? 0
+            : Math.Clamp((double)progress.CompletedTextures / progress.TotalTextures * 100, 0, 100);
+        _statusMessage = progress.Phase switch
+        {
+            SmartModScanPhase.ScanningAssets => "Scanning project assets.",
+            SmartModScanPhase.ReadingMetadata => "Reading DDS metadata.",
+            SmartModScanPhase.ResolvingManifest => "Resolving texture labels.",
+            SmartModScanPhase.Completed => "Finishing texture inventory.",
+            _ => "Loading project textures."
+        };
+        OnPropertyChanged(nameof(ProgressPercentage));
+        OnPropertyChanged(nameof(StatusMessage));
+    }
+
+    private void SetLoading(bool isLoading, string message, double progress)
+    {
+        _isLoading = isLoading;
+        _statusMessage = message;
+        _progressPercentage = progress;
+        OnPropertyChanged(nameof(IsLoading));
+        OnPropertyChanged(nameof(CanCancel));
+        OnPropertyChanged(nameof(StatusMessage));
+        OnPropertyChanged(nameof(ProgressPercentage));
+    }
+
+    private void RaiseSelectedProperties()
+    {
+        OnPropertyChanged(nameof(SelectedDisplayName));
+        OnPropertyChanged(nameof(SelectedRelativePath));
+        OnPropertyChanged(nameof(SelectedTargetSize));
+        OnPropertyChanged(nameof(SelectedFormat));
+        OnPropertyChanged(nameof(SelectedState));
+        OnPropertyChanged(nameof(SelectedValidation));
+        OnPropertyChanged(nameof(SelectedEditMode));
+        OnPropertyChanged(nameof(PreviewMessage));
+    }
+
+    private static string ToStageCode(SmartModScanPhase phase) => phase switch
+    {
+        SmartModScanPhase.ScanningAssets => "scanning_assets",
+        SmartModScanPhase.ReadingMetadata => "reading_metadata",
+        SmartModScanPhase.ResolvingManifest => "resolving_manifest",
+        SmartModScanPhase.Completed => "completed",
+        _ => "scanning"
+    };
+
+    private static string ToDiagnosticCode(SmartModScanFailureReason reason) => reason switch
+    {
+        SmartModScanFailureReason.Cancelled => "workspace.scan_cancelled",
+        SmartModScanFailureReason.UnknownGame => "workspace.unknown_game",
+        SmartModScanFailureReason.UnknownMod => "workspace.unknown_mod",
+        _ => "workspace.scan_failed"
+    };
+
+    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private sealed class CallbackProgress<T>(Action<T> callback) : IProgress<T>
+    {
+        public void Report(T value) => callback(value);
+    }
+}

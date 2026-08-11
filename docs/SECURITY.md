@@ -371,3 +371,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Long-running create đi qua Background Task Manager rồi existing Project Creation Service. UI không tự extract, scan, acquire template, save `.audproj` hoặc clear recovery flag.
 - Raw exception, process output và internal diagnostic code không hiển thị cho người dùng. Presentation message chỉ mô tả recovery action an toàn; diagnostics tiếp tục thuộc structured logs hiện có.
 - Active project session chỉ giữ domain aggregate cùng managed retained-workspace lease; project name không tham gia path và session dispose không xóa retained project data.
+
+## Project Workspace UI boundary từ PLAN 43
+
+- UI chỉ nhận normalized relative texture identity và display metadata từ Smart Scan. Absolute workspace path, source SHA-256, executable path, process argument, template hash và region selector không được publish trong presentation model.
+- Folder/search/filter không enumerate filesystem; chúng chỉ lọc immutable scan result. Metadata/format/dimensions đến từ existing DDS metadata boundary và state đến từ typed state machine.
+- Workspace activation dùng PLAN 38 để scan, hỗ trợ cancel và safe presentation error. UI không log/hiển thị raw exception, scanner diagnostic hoặc failed absolute path.
+- Preview không decode eager và edit buttons chưa có authority/workflow đều disabled. PLAN 43 không ghi DDS, project, manifest, cache hoặc pristine template.

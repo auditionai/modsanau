@@ -1,5 +1,6 @@
 using AuditionModStudio.App.Shell;
 using AuditionModStudio.App.Home;
+using AuditionModStudio.App.Workspace;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -9,14 +10,20 @@ namespace AuditionModStudio.App;
 public sealed partial class MainPage : Page
 {
     private readonly HomePage _homePage;
+    private readonly ProjectWorkspacePage _workspacePage;
 
-    public MainPage(AppShellViewModel viewModel, HomePage homePage)
+    public MainPage(
+        AppShellViewModel viewModel,
+        HomePage homePage,
+        ProjectWorkspacePage workspacePage)
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         _homePage = homePage ?? throw new ArgumentNullException(nameof(homePage));
+        _workspacePage = workspacePage ?? throw new ArgumentNullException(nameof(workspacePage));
         InitializeComponent();
         PopulateNavigationItems();
         HomeContent.Content = _homePage;
+        WorkspaceContent.Content = _workspacePage;
         UpdateRouteContent();
     }
 
@@ -40,7 +47,7 @@ public sealed partial class MainPage : Page
         ShellNavigation.SelectedItem = ShellNavigation.MenuItems[0];
     }
 
-    private void OnNavigationSelectionChanged(
+    private async void OnNavigationSelectionChanged(
         NavigationView sender,
         NavigationViewSelectionChangedEventArgs args)
     {
@@ -56,6 +63,11 @@ public sealed partial class MainPage : Page
             {
                 _homePage.FocusPrimaryHeading();
             }
+            else if (route == AppRoute.Projects)
+            {
+                _workspacePage.FocusPrimaryHeading();
+                await _workspacePage.ActivateAsync();
+            }
             else
             {
                 ContentHeading.Focus(FocusState.Programmatic);
@@ -66,7 +78,9 @@ public sealed partial class MainPage : Page
     private void UpdateRouteContent()
     {
         var isHome = ViewModel.CurrentRoute == AppRoute.Home;
+        var isWorkspace = ViewModel.CurrentRoute == AppRoute.Projects;
         HomeContent.Visibility = isHome ? Visibility.Visible : Visibility.Collapsed;
-        PlaceholderContent.Visibility = isHome ? Visibility.Collapsed : Visibility.Visible;
+        WorkspaceContent.Visibility = isWorkspace ? Visibility.Visible : Visibility.Collapsed;
+        PlaceholderContent.Visibility = isHome || isWorkspace ? Visibility.Collapsed : Visibility.Visible;
     }
 }

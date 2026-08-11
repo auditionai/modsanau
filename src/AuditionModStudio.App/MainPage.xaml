@@ -94,6 +94,7 @@
 
             <Grid Grid.Row="1">
                 <ContentControl x:Name="HomeContent" />
+                <ContentControl x:Name="WorkspaceContent" />
                 <ScrollViewer x:Name="PlaceholderContent">
                     <Grid Padding="{StaticResource AmsShellContentPadding}">
                     <Border

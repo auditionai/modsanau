@@ -673,3 +673,11 @@ Chi tiết token/component usage nằm trong `docs/DESIGN_SYSTEM.md`. PLAN 40 kh
 - Create chạy như một job được PLAN 38 quản lý; operation gọi duy nhất `IProjectCreationService`, map progress có cấu trúc và không đưa raw diagnostic/exception ra UI. Cancel đi qua task ID typed của manager.
 - `ApplicationProjectSession` là owner cấp ứng dụng cho exact `AuditionProject` cùng retained `IProjectArchiveWorkspace` do workflow trả về. Nó không parse/save project và không tạo source of truth song song; lease được dispose khi host shutdown hoặc khi session được thay thế.
 - Home không có file/archive picker, không đọc `.audproj`, không chạy ACV/DDS/image trực tiếp và không tự chọn template. Project Workspace thuộc PLAN 43.
+
+## Project Workspace UI từ PLAN 43
+
+- Route Projects resolve `ProjectWorkspacePage` qua DI. ViewModel lấy exact project/workspace lease từ application session; không mở `.audproj`, không tự dựng workspace và không dispose lease khi đổi route.
+- Texture inventory được làm mới qua một job `Scan` của PLAN 38 gọi `ISmartModScanService`. Kết quả immutable được map thành presentation model không có absolute path/tool path/trusted hash; texture state luôn đến từ `ITextureStateMachine`.
+- Left pane cung cấp folder tree, search in-memory theo display name/raw filename/relative path và mapping filter `All/ManifestMapped/Unmapped`. Center/right/status chỉ bind selected presentation record; không đọc lại DDS header hoặc filesystem.
+- Preview surface không eager-decode pixels. Editor/replace/reset buttons vẫn disabled cho đến PLAN/workflow được phê duyệt; UI không tạo mutation path giả. Texture Grid/status facets thuộc PLAN 44 và interactive canvas thuộc PLAN 45.
+- Activation idempotent theo ProjectId khi immutable scan đã được publish. No active project, loading, cancelled và safe failure đều là explicit state; raw exception/diagnostic không hiện cho người dùng.
