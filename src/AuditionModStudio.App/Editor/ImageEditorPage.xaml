@@ -140,7 +140,7 @@
                             AutomationProperties.Name="Resize mode"
                             DisplayMemberPath="Label"
                             Header="Mode"
-                            IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                             ItemsSource="{x:Bind ViewModel.Modes}"
                             SelectedItem="{x:Bind ViewModel.SelectedMode, Mode=TwoWay}" />
                         <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.ModeDescription, Mode=OneWay}" />
@@ -148,7 +148,7 @@
                         <Slider
                             x:Name="ZoomSlider"
                             AutomationProperties.Name="Canvas zoom"
-                            IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                             Maximum="8"
                             Minimum="0.1"
                             StepFrequency="0.1"
@@ -170,7 +170,7 @@
                                 AutomationProperties.Name="Pan canvas up"
                                 Click="OnPanClicked"
                                 HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                                 Style="{StaticResource AmsSecondaryButtonStyle}"
                                 Tag="up">↑</Button>
                             <Button
@@ -178,7 +178,7 @@
                                 AutomationProperties.Name="Pan canvas left"
                                 Click="OnPanClicked"
                                 HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                                 Style="{StaticResource AmsSecondaryButtonStyle}"
                                 Tag="left">←</Button>
                             <Button
@@ -187,7 +187,7 @@
                                 AutomationProperties.Name="Pan canvas down"
                                 Click="OnPanClicked"
                                 HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                                 Style="{StaticResource AmsSecondaryButtonStyle}"
                                 Tag="down">↓</Button>
                             <Button
@@ -196,14 +196,14 @@
                                 AutomationProperties.Name="Pan canvas right"
                                 Click="OnPanClicked"
                                 HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                                 Style="{StaticResource AmsSecondaryButtonStyle}"
                                 Tag="right">→</Button>
                         </Grid>
                         <Button
                             AutomationProperties.Name="Reset canvas transform"
                             Click="OnResetClicked"
-                            IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                             Style="{StaticResource AmsSecondaryButtonStyle}">
                             Reset zoom / pan / crop
                         </Button>
@@ -225,12 +225,44 @@
                         <Button
                             AutomationProperties.Name="Update crop frame"
                             Click="OnUpdateCropClicked"
-                            IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                             Style="{StaticResource AmsPrimaryButtonStyle}">
                             Update crop frame
                         </Button>
                         <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.CropSummary, Mode=OneWay}" />
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Apply is intentionally unavailable until PLAN 47 validation and atomic replacement." />
+                        <TextBlock
+                            AutomationProperties.LiveSetting="Polite"
+                            Style="{StaticResource AmsBodyTextStyle}"
+                            Text="{x:Bind ViewModel.ApplyStatus, Mode=OneWay}" />
+                        <ProgressBar
+                            AutomationProperties.Name="Texture Apply progress"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="{x:Bind ViewModel.ApplyProgress, Mode=OneWay}" />
+                        <Grid ColumnSpacing="{StaticResource AmsSpace8}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button
+                                AutomationProperties.HelpText="Validates, encodes and atomically replaces only the selected texture in the project working copy."
+                                AutomationProperties.Name="Apply selected texture"
+                                Click="OnApplyClicked"
+                                HorizontalAlignment="Stretch"
+                                IsEnabled="{x:Bind ViewModel.CanApply, Mode=OneWay}"
+                                Style="{StaticResource AmsPrimaryButtonStyle}">
+                                Apply texture
+                            </Button>
+                            <Button
+                                Grid.Column="1"
+                                AutomationProperties.Name="Cancel texture Apply"
+                                Click="OnCancelApplyClicked"
+                                HorizontalAlignment="Stretch"
+                                IsEnabled="{x:Bind ViewModel.CanCancelApply, Mode=OneWay}"
+                                Style="{StaticResource AmsSecondaryButtonStyle}">
+                                Cancel Apply
+                            </Button>
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Grid>

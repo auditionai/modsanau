@@ -1,7 +1,11 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using AuditionModStudio.App.Shell;
 using AuditionModStudio.App.Workspace;
 using AuditionModStudio.Core.Images;
+using AuditionModStudio.Core.Mods;
+using AuditionModStudio.Core.Projects;
+using AuditionModStudio.Core.Tasks;
 
 namespace AuditionModStudio.App.Editor;
 
@@ -10,6 +14,9 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     private readonly IWorkspaceTextureSelection _selection;
     private readonly IImageTransformService _transformService;
     private readonly IImageResizeService _resizeService;
+    private readonly ITextureApplyService? _applyService;
+    private readonly IApplicationProjectSession? _projectSession;
+    private readonly IBackgroundTaskManager? _taskManager;
     private InternalImage? _sourceImage;
     private InternalImage? _afterImage;
     private InteractiveImageTransformState? _transform;
@@ -22,6 +29,9 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     private bool _isLoading;
     private bool _isAfterPreviewLoading;
     private bool _showCheckerboard = true;
+    private bool _isApplying;
+    private string _applyStatus = "Apply validates and atomically replaces only the selected project texture.";
+    private double _applyProgress;
     private double _compareDivider = 0.5;
     private double _compareZoom = 1;
     private ViewportVector _comparePan;
@@ -31,15 +41,22 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     private long _afterPreviewVersion;
     private CancellationTokenSource? _afterPreviewCancellation;
     private Task _afterPreviewTask = Task.CompletedTask;
+    private BackgroundTaskId _activeApplyTaskId;
 
     public ImageEditorViewModel(
         IWorkspaceTextureSelection selection,
         IImageTransformService transformService,
-        IImageResizeService resizeService)
+        IImageResizeService resizeService,
+        ITextureApplyService? applyService = null,
+        IApplicationProjectSession? projectSession = null,
+        IBackgroundTaskManager? taskManager = null)
     {
         _selection = selection ?? throw new ArgumentNullException(nameof(selection));
         _transformService = transformService ?? throw new ArgumentNullException(nameof(transformService));
         _resizeService = resizeService ?? throw new ArgumentNullException(nameof(resizeService));
+        _applyService = applyService;
+        _projectSession = projectSession;
+        _taskManager = taskManager;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -104,6 +121,22 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
     public bool IsAfterPreviewLoading => _isAfterPreviewLoading;
 
+    public bool IsApplying => _isApplying;
+
+    public bool CanApply => HasImage
+                            && _afterImage is not null
+                            && !_isAfterPreviewLoading
+                            && !_isApplying
+                            && _applyService is not null
+                            && _projectSession is not null
+                            && _taskManager is not null;
+
+    public bool CanCancelApply => _isApplying && _activeApplyTaskId.IsValid;
+
+    public string ApplyStatus => _applyStatus;
+
+    public double ApplyProgress => _applyProgress;
+
     public int CompareRevision => _compareRevision;
 
     public bool IsLoading => _isLoading;
@@ -111,6 +144,8 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     public bool CanCancel => _isLoading;
 
     public bool HasImage => _sourceImage is not null && _transform is not null;
+
+    public bool CanEdit => HasImage && !_isApplying;
 
     public string TextureName => _selection.SelectedTexture?.DisplayName ?? "No texture selected";
 
@@ -200,11 +235,12 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         _compareZoom = 1;
         _comparePan = default;
         _loadedRelativePath = selected.RelativePath;
-        SetLoading(false, "Texture ready. Changes remain a preview until a later Apply workflow.");
+        SetLoading(false, "Texture ready. Review the live preview, then Apply to the project working copy.");
         RaiseSelectionProperties();
         OnPropertyChanged(nameof(SourceImage));
         OnPropertyChanged(nameof(BeforeImage));
         OnPropertyChanged(nameof(HasImage));
+        OnPropertyChanged(nameof(CanEdit));
         OnPropertyChanged(nameof(Zoom));
         OnPropertyChanged(nameof(PanSummary));
         OnPropertyChanged(nameof(CropSummary));
@@ -215,6 +251,114 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
     public bool CancelLoading() => _selection.CancelSelectedImageLoading();
 
+    public bool CancelApply() =>
+        _activeApplyTaskId.IsValid && _taskManager?.TryCancel(_activeApplyTaskId) == true;
+
+    public async Task<bool> ApplyAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanApply
+            || _applyService is null
+            || _projectSession is null
+            || _taskManager is null
+            || _selection.SelectedTexture is not { } selected
+            || _projectSession.Project is not { } project
+            || _projectSession.Workspace is not { } workspace
+            || CreateResizeRequest() is not { } resizeRequest)
+        {
+            return false;
+        }
+
+        ModRelativePath texturePath;
+        try
+        {
+            texturePath = new ModRelativePath(selected.RelativePath);
+        }
+        catch (ArgumentException)
+        {
+            _applyStatus = "The selected texture path is invalid.";
+            OnPropertyChanged(nameof(ApplyStatus));
+            return false;
+        }
+
+        TextureApplyResult? applyResult = null;
+        _isApplying = true;
+        _applyProgress = 0;
+        _applyStatus = "Preparing texture Apply.";
+        RaiseApplyProperties();
+        try
+        {
+            IProgress<TextureApplyProgress> uiProgress = new Progress<TextureApplyProgress>(UpdateApplyProgress);
+            var enqueue = await _taskManager.EnqueueAsync(new(
+                BackgroundTaskKind.Convert,
+                async (taskProgress, taskCancellationToken) =>
+                {
+                    var progress = new CallbackProgress<TextureApplyProgress>(value =>
+                    {
+                        taskProgress.Report(new(
+                            value.CompletedSteps,
+                            value.TotalSteps,
+                            value.Phase.ToString()));
+                        uiProgress.Report(value);
+                    });
+                    applyResult = await _applyService.ApplyAsync(new(
+                        project,
+                        workspace,
+                        texturePath,
+                        resizeRequest), progress, taskCancellationToken).ConfigureAwait(false);
+                    return applyResult.Succeeded
+                        ? BackgroundTaskExecutionResult.Success()
+                        : BackgroundTaskExecutionResult.Failure(
+                            applyResult.DiagnosticCode ?? "texture.apply_failed");
+                }), cancellationToken);
+            if (!enqueue.Succeeded)
+            {
+                _applyStatus = "Texture Apply could not be queued.";
+                OnPropertyChanged(nameof(ApplyStatus));
+                return false;
+            }
+
+            _activeApplyTaskId = enqueue.TaskId;
+            OnPropertyChanged(nameof(CanCancelApply));
+            var snapshot = await _taskManager.WaitForCompletionAsync(enqueue.TaskId, cancellationToken);
+            if (snapshot?.State != BackgroundTaskState.Succeeded
+                || applyResult?.Succeeded != true
+                || applyResult.Project is null
+                || !ReferenceEquals(_projectSession.Project, project)
+                || !ReferenceEquals(_projectSession.Workspace, workspace))
+            {
+                _applyStatus = snapshot?.State == BackgroundTaskState.Cancelled || applyResult?.Cancelled == true
+                    ? "Texture Apply was cancelled; the working texture was rolled back."
+                    : "Texture Apply failed; the working texture was rolled back.";
+                OnPropertyChanged(nameof(ApplyStatus));
+                return false;
+            }
+
+            await _projectSession.ActivateAsync(applyResult.Project, workspace);
+            await _selection.RefreshAfterApplyAsync(texturePath, cancellationToken);
+            ResetEditor("Reloading the applied working-copy texture.");
+            await ActivateAsync(cancellationToken);
+            _applyProgress = 100;
+            _applyStatus = applyResult.CleanupPending
+                ? "Texture applied and project saved. Temporary cleanup remains pending."
+                : "Texture applied atomically. History, Modified state, thumbnail and project are saved.";
+            OnPropertyChanged(nameof(ApplyProgress));
+            OnPropertyChanged(nameof(ApplyStatus));
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _applyStatus = "Texture Apply was cancelled.";
+            OnPropertyChanged(nameof(ApplyStatus));
+            return false;
+        }
+        finally
+        {
+            _activeApplyTaskId = default;
+            _isApplying = false;
+            RaiseApplyProperties();
+        }
+    }
+
     public void Unload()
     {
         Interlocked.Increment(ref _activationVersion);
@@ -223,6 +367,8 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         {
             _selection.CancelSelectedImageLoading();
         }
+
+        CancelApply();
 
         ResetEditor("Editor preview unloaded. Select a texture and reopen the Image Editor to continue.");
     }
@@ -531,6 +677,8 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(BeforeImage));
         OnPropertyChanged(nameof(AfterImage));
         OnPropertyChanged(nameof(HasImage));
+        OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(CanApply));
         OnPropertyChanged(nameof(Zoom));
         OnPropertyChanged(nameof(PanSummary));
         OnPropertyChanged(nameof(CropSummary));
@@ -554,7 +702,9 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(BeforeImage));
         OnPropertyChanged(nameof(AfterImage));
         OnPropertyChanged(nameof(HasImage));
+        OnPropertyChanged(nameof(CanEdit));
         OnPropertyChanged(nameof(AfterPreviewStatus));
+        OnPropertyChanged(nameof(CanApply));
         AdvanceCompareRevision();
         AdvanceTransformRevision();
     }
@@ -577,6 +727,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         _afterPreviewStatus = "Generating live After preview…";
         OnPropertyChanged(nameof(IsAfterPreviewLoading));
         OnPropertyChanged(nameof(AfterPreviewStatus));
+        OnPropertyChanged(nameof(CanApply));
 
         try
         {
@@ -606,6 +757,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             _afterPreviewStatus = "Live After preview ready. Compare remains read-only.";
             OnPropertyChanged(nameof(AfterImage));
             OnPropertyChanged(nameof(AfterPreviewStatus));
+            OnPropertyChanged(nameof(CanApply));
             AdvanceCompareRevision();
         }
         catch (OperationCanceledException)
@@ -625,6 +777,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(AfterImage));
                 OnPropertyChanged(nameof(AfterPreviewStatus));
                 AdvanceCompareRevision();
+                OnPropertyChanged(nameof(CanApply));
             }
         }
         finally
@@ -633,6 +786,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             {
                 _isAfterPreviewLoading = false;
                 OnPropertyChanged(nameof(IsAfterPreviewLoading));
+                OnPropertyChanged(nameof(CanApply));
             }
 
             if (ReferenceEquals(
@@ -658,7 +812,39 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         {
             _isAfterPreviewLoading = false;
             OnPropertyChanged(nameof(IsAfterPreviewLoading));
+            OnPropertyChanged(nameof(CanApply));
         }
+    }
+
+    private void UpdateApplyProgress(TextureApplyProgress progress)
+    {
+        _applyProgress = progress.TotalSteps <= 0
+            ? 0
+            : Math.Clamp((double)progress.CompletedSteps / progress.TotalSteps * 100, 0, 100);
+        _applyStatus = progress.Phase switch
+        {
+            TextureApplyPhase.ValidatingTarget => "Validating the selected DDS target.",
+            TextureApplyPhase.Resizing => "Rendering the current crop and resize state.",
+            TextureApplyPhase.Encoding => "Encoding a temporary Match Original DDS.",
+            TextureApplyPhase.ValidatingOutput => "Validating the temporary DDS output.",
+            TextureApplyPhase.Replacing => "Atomically replacing the extracted working texture.",
+            TextureApplyPhase.UpdatingHistory => "Recording edit history and Modified state.",
+            TextureApplyPhase.RegeneratingThumbnail => "Regenerating the texture thumbnail.",
+            TextureApplyPhase.SavingProject => "Saving the project atomically.",
+            _ => "Applying texture."
+        };
+        OnPropertyChanged(nameof(ApplyProgress));
+        OnPropertyChanged(nameof(ApplyStatus));
+    }
+
+    private void RaiseApplyProperties()
+    {
+        OnPropertyChanged(nameof(IsApplying));
+        OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(CanApply));
+        OnPropertyChanged(nameof(CanCancelApply));
+        OnPropertyChanged(nameof(ApplyStatus));
+        OnPropertyChanged(nameof(ApplyProgress));
     }
 
     private void SetLoading(bool loading, string message)
@@ -707,4 +893,9 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private sealed class CallbackProgress<T>(Action<T> callback) : IProgress<T>
+    {
+        public void Report(T value) => callback(value);
+    }
 }

@@ -352,6 +352,23 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
     public bool CancelSelectedImageLoading() =>
         _activeImageTaskId.IsValid && _taskManager.TryCancel(_activeImageTaskId);
 
+    public async Task RefreshAfterApplyAsync(
+        ModRelativePath textureRelativePath,
+        CancellationToken cancellationToken = default)
+    {
+        if (!textureRelativePath.IsValid)
+        {
+            return;
+        }
+
+        _loadedProjectId = null;
+        await LoadAsync(cancellationToken);
+        SelectedTexture = _allTextures.FirstOrDefault(item => string.Equals(
+            item.RelativePath,
+            textureRelativePath.Value,
+            StringComparison.OrdinalIgnoreCase));
+    }
+
     private void PublishScan(AuditionProject project, SmartModScanResult scanResult)
     {
         _loadedProjectId = project.ProjectId;

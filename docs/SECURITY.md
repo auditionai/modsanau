@@ -105,6 +105,13 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Archive-level diagnostic là bounded structured summary; UI không nhận raw process object hoặc dùng stdout/stderr làm nguồn trạng thái chính.
 - PLAN 08 chỉ dùng fake engine/runner/provisioning/keydat trong test, không chạy `acv.exe` thật và không extract/pack fixture proprietary.
 
+## Apply texture boundary từ PLAN 47
+
+- Apply chỉ nhận normalized `ModRelativePath` và exact retained project workspace; không nhận absolute output path, executable path hoặc command text từ UI.
+- Target/candidate/backup/history assets đều resolve qua `ISecureWorkspace` và nằm trong `Extracted` hoặc `BuildOutput` của cùng workspace. Pristine/global archive không được mở.
+- DDS candidate phải Match Original và qua validation độc lập trước atomic replacement. Project save failure/cancellation rollback target bytes và asset snapshots chưa commit.
+- UI không gọi filesystem, DDS encoder, archive tool hay `acv.exe`; progress/cancel đi qua Background Task Manager. Diagnostic gửi UI là code/message hữu hạn, không chứa path tuyệt đối hoặc raw tool output.
+
 ## Project Archive Workspace boundary từ PLAN 09
 
 - Project workspace luôn được cấp bởi `SecureWorkspaceService` dưới randomized managed `Temp\Workspaces`; `ProjectId` và `DisplayName` không được dùng trực tiếp làm path.

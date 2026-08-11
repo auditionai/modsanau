@@ -58,6 +58,11 @@ public sealed partial class ImageEditorPage : Page
 
     private void OnCancelClicked(object sender, RoutedEventArgs e) => ViewModel.CancelLoading();
 
+    private async void OnApplyClicked(object sender, RoutedEventArgs e) =>
+        await ViewModel.ApplyAsync();
+
+    private void OnCancelApplyClicked(object sender, RoutedEventArgs e) => ViewModel.CancelApply();
+
     private void OnResetClicked(object sender, RoutedEventArgs e)
     {
         if (!ViewModel.ResetTransform())
@@ -105,7 +110,7 @@ public sealed partial class ImageEditorPage : Page
 
     private void OnCanvasPointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (!ViewModel.HasImage)
+        if (!ViewModel.CanEdit)
         {
             return;
         }
@@ -141,7 +146,7 @@ public sealed partial class ImageEditorPage : Page
 
     private void OnCanvasPointerWheelChanged(object sender, PointerRoutedEventArgs e)
     {
-        if (!ViewModel.HasImage)
+        if (!ViewModel.CanEdit)
         {
             return;
         }

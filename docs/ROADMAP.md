@@ -96,7 +96,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 45: route Image Editor tải full texture theo yêu cầu qua Lazy Loading + Background Task Manager; canvas target frame exact DDS dimensions; zoom/pan/crop và typed modes Crop/Fit/Fill/Stretch/Canvas/Padding reuse geometry/resize contracts PLAN 21–22; toàn bộ state vẫn preview-only.
 - PLAN đã hoàn thành kiểm chứng: PLAN 46 — Before/After Compare.
 - Phạm vi PLAN 46: Before là immutable working-copy baseline của editor session; After là live non-destructive resize/crop preview có cancellation và generation guard; side-by-side/slider/toggle dùng chung compare camera; checkerboard chỉ là presentation; bitmap được reuse giữa mode và compare không mutate project/history/DDS/archive.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 47 — Apply Texture UX; chưa được triển khai.
+- PLAN đã hoàn thành kiểm chứng: PLAN 47 — Apply Texture UX.
+- Phạm vi PLAN 47: validate target; render typed crop/resize; temporary Match Original encode + independent validation; atomic extracted-workspace replacement có rollback; durable before/after history assets; Modified/build-dirty state; content-hash thumbnail regeneration; atomic project save; UI progress/cancel qua Background Task Manager.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 48 — Project Validator; chưa được triển khai.
 
 ## Stage Gates
 

@@ -717,3 +717,19 @@ Với fixture 6000×1801 RGBA8, một packed pixel buffer là 43.224.000 byte (x
 Trạng thái ổn định xấu nhất gồm Before + After `InternalImage` và hai `WriteableBitmap`, xấp xỉ
 164,9 MiB, chưa tính buffer native/transient trong lúc resize. Vì vậy compare không lưu frame history,
 không clone baseline và thay/release After presentation resource ngay khi generation mới được publish.
+
+## PLAN 47 — Apply Texture UX
+
+`ITextureApplyService` là orchestration boundary duy nhất cho Apply. UI chỉ gửi immutable project,
+exact retained workspace, normalized texture identity và typed `ImageResizeRequest`; operation chạy qua
+Background Task Manager và hỗ trợ progress/cancel. Pipeline bắt buộc là target DDS metadata/profile
+validation → `IImageResizeService` → `IDdsMatchOriginalService` vào candidate cùng secure workspace →
+`IDdsValidationService` độc lập → atomic replace extracted target → project history/asset snapshots →
+`TextureState.Modified` → content-hash thumbnail regeneration → atomic `.audproj` save.
+
+Before/After history asset là durable DDS snapshot dưới `BuildOutput/EditAssets`, định danh bằng role,
+revision và prefix SHA-256; target filename/path không đổi. Candidate/backup nằm trong randomized
+`BuildOutput/ApplyTransactions`. Save/thumbnail/state failure trước commit phục hồi target từ backup và
+xóa asset snapshots vừa tạo. Global/pristine archive không được resolve hoặc mutate. Sau success, app
+session nhận immutable project mới và workspace inventory được rescan; editor reload working DDS để
+session baseline kế tiếp phản ánh byte thực sau encode, không reuse preview trước nén.

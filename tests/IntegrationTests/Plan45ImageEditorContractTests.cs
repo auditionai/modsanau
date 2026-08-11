@@ -16,7 +16,7 @@ public sealed class Plan45ImageEditorContractTests
         Assert.Contains("Resize mode", text, StringComparison.Ordinal);
         Assert.Contains("Drag to pan", text, StringComparison.Ordinal);
         Assert.Contains("Pan canvas left", text, StringComparison.Ordinal);
-        Assert.Contains("PLAN 47", text, StringComparison.Ordinal);
+        Assert.Contains("Apply selected texture", text, StringComparison.Ordinal);
         Assert.Contains("AdaptiveTrigger MinWindowWidth=\"1000\"", text, StringComparison.Ordinal);
         Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", text);
 

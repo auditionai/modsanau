@@ -154,6 +154,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
         builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();
+        builder.Services.AddSingleton<ITextureApplyService, TextureApplyService>();
         builder.Services.AddSingleton(BackgroundTaskManagerOptions.Default);
         builder.Services.AddSingleton<BackgroundTaskManager>();
         builder.Services.AddSingleton<IBackgroundTaskManager>(services =>
