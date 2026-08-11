@@ -109,6 +109,94 @@
                     Grid.Column="1"
                     Style="{StaticResource AmsGamingPanelStyle}">
                     <StackPanel HorizontalAlignment="Stretch" Spacing="{StaticResource AmsSpace16}">
+                        <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Texture Grid" />
+                        <ScrollViewer
+                            AutomationProperties.Name="Texture filters"
+                            HorizontalScrollBarVisibility="Auto"
+                            HorizontalScrollMode="Enabled"
+                            VerticalScrollMode="Disabled">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                                <ComboBox
+                                    AutomationProperties.Name="Texture status filter"
+                                    Header="Status"
+                                    ItemsSource="{x:Bind ViewModel.StatusFilters}"
+                                    SelectedItem="{x:Bind ViewModel.StatusFilter, Mode=TwoWay}" />
+                                <ComboBox
+                                    AutomationProperties.Name="Texture category filter"
+                                    DisplayMemberPath="Label"
+                                    Header="Category"
+                                    ItemsSource="{x:Bind ViewModel.CategoryFilters, Mode=OneWay}"
+                                    SelectedItem="{x:Bind ViewModel.SelectedCategoryFilter, Mode=TwoWay}" />
+                                <ComboBox
+                                    AutomationProperties.Name="Texture size filter"
+                                    Header="Size"
+                                    ItemsSource="{x:Bind ViewModel.SizeFilters}"
+                                    SelectedItem="{x:Bind ViewModel.SizeFilter, Mode=TwoWay}" />
+                                <ComboBox
+                                    AutomationProperties.Name="Texture alpha filter"
+                                    Header="Alpha"
+                                    ItemsSource="{x:Bind ViewModel.AlphaFilters}"
+                                    SelectedItem="{x:Bind ViewModel.AlphaFilter, Mode=TwoWay}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                        <GridView
+                            x:Name="TextureGrid"
+                            AutomationProperties.Name="Filtered texture cards"
+                            ContainerContentChanging="OnTextureContainerContentChanging"
+                            Height="420"
+                            IsItemClickEnabled="True"
+                            ItemClick="OnTextureGridItemClicked"
+                            ItemsSource="{x:Bind ViewModel.FilteredTextures, Mode=OneWay}"
+                            SelectionMode="Single">
+                            <GridView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border
+                                        Width="220"
+                                        Height="260"
+                                        AutomationProperties.Name="{Binding DisplayLabel}"
+                                        Style="{StaticResource AmsCardStyle}">
+                                        <Grid RowSpacing="{StaticResource AmsSpace8}">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="140" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid Background="{ThemeResource AmsPanelBrush}">
+                                                <FontIcon
+                                                    x:Name="ThumbnailPlaceholder"
+                                                    AutomationProperties.Name="Thumbnail loading placeholder"
+                                                    FontSize="36"
+                                                    Glyph="&#xE91B;" />
+                                                <Image
+                                                    x:Name="ThumbnailImage"
+                                                    AutomationProperties.Name="Texture thumbnail"
+                                                    Stretch="Uniform" />
+                                            </Grid>
+                                            <TextBlock
+                                                Grid.Row="1"
+                                                FontWeight="SemiBold"
+                                                Text="{Binding DisplayName}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Grid.Row="2"
+                                                Style="{StaticResource AmsBodyTextStyle}"
+                                                Text="{Binding FileName}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Grid.Row="3"
+                                                Style="{StaticResource AmsBodyTextStyle}"
+                                                Text="{Binding TargetSize}" />
+                                            <TextBlock
+                                                Grid.Row="4"
+                                                AutomationProperties.Name="Texture status"
+                                                Text="{Binding State}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </GridView.ItemTemplate>
+                        </GridView>
                         <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Preview / Editor" />
                         <Border Style="{StaticResource AmsCardStyle}">
                             <StackPanel

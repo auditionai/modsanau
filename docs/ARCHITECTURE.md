@@ -681,3 +681,11 @@ Chi tiết token/component usage nằm trong `docs/DESIGN_SYSTEM.md`. PLAN 40 kh
 - Left pane cung cấp folder tree, search in-memory theo display name/raw filename/relative path và mapping filter `All/ManifestMapped/Unmapped`. Center/right/status chỉ bind selected presentation record; không đọc lại DDS header hoặc filesystem.
 - Preview surface không eager-decode pixels. Editor/replace/reset buttons vẫn disabled cho đến PLAN/workflow được phê duyệt; UI không tạo mutation path giả. Texture Grid/status facets thuộc PLAN 44 và interactive canvas thuộc PLAN 45.
 - Activation idempotent theo ProjectId khi immutable scan đã được publish. No active project, loading, cancelled và safe failure đều là explicit state; raw exception/diagnostic không hiện cho người dùng.
+
+## Texture Grid + Search từ PLAN 44
+
+- `ProjectWorkspaceViewModel` giữ một immutable metadata snapshot cho tree và grid; mọi search/facet chạy trong một pipeline xác định, không enumerate filesystem hoặc đọc lại DDS.
+- Presentation record chỉ có relative identity và metadata cần hiển thị. Mapping nội bộ từ relative path sang `SmartTextureAsset` giữ source hash ngoài UI contract và chỉ phục vụ request lazy thumbnail.
+- Grid dùng native `GridView`, textual status và card semantics. Thumbnail chỉ được yêu cầu khi container được hiện thực hóa, qua job `Thumbnail` của PLAN 38 gọi `ITextureLazyLoadingService` của PLAN 37 với cạnh tối đa 192 px.
+- Size facet dùng cạnh lớn nhất: Small ≤ 512 px, Medium 513–2048 px, Large > 2048 px. Category đến từ manifest và fallback `uncategorized`; alpha đến từ DDS metadata snapshot.
+- Chuyển RGBA8 straight thumbnail sang BGRA8 premultiplied là projection giới hạn trong UI. Grid không gọi full-texture API, không cache full-resolution pixels và không mutation texture/project/archive.

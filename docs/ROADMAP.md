@@ -90,7 +90,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 42: Home theo thứ tự Game → compatible Mod Type → project name → Create; catalog typed; explicit empty state khi production Mod Catalog chưa có metadata có thẩm quyền; create qua Background Task Manager và existing Project Creation Service; active project session giữ retained workspace lease.
 - PLAN đã hoàn thành kiểm chứng: PLAN 43 — Project Workspace UI.
 - Phạm vi PLAN 43: route Projects với folder tree/search/mapping filter, preview/editor surface, metadata/edit-options pane và status target size/format/state/validation; metadata scan qua Background Task Manager + Smart Scan; state qua Texture State Machine; explicit no-project/loading/error states.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 44 — Texture Grid + Search; chưa được triển khai.
+- PLAN đã hoàn thành kiểm chứng: PLAN 44 — Texture Grid + Search.
+- Phạm vi PLAN 44: card texture có lazy thumbnail, friendly/raw filename, size và textual state; tìm kiếm kết hợp mapping/status/category/size/alpha facets; thumbnail chỉ tải cho card được hiện thực hóa qua Background Task Manager + Lazy Loading Service.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 45 — Crop/Resize Canvas UI; chưa được triển khai.
 
 ## Stage Gates
 

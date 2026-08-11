@@ -378,3 +378,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Folder/search/filter không enumerate filesystem; chúng chỉ lọc immutable scan result. Metadata/format/dimensions đến từ existing DDS metadata boundary và state đến từ typed state machine.
 - Workspace activation dùng PLAN 38 để scan, hỗ trợ cancel và safe presentation error. UI không log/hiển thị raw exception, scanner diagnostic hoặc failed absolute path.
 - Preview không decode eager và edit buttons chưa có authority/workflow đều disabled. PLAN 43 không ghi DDS, project, manifest, cache hoặc pristine template.
+
+## Texture Grid boundary từ PLAN 44
+
+- Search và facets chỉ lọc immutable scan snapshot; chuỗi tìm kiếm bị giới hạn 256 ký tự và không được dùng làm path, query mạng, command argument hoặc cache key tùy ý.
+- Presentation model không công bố absolute path, source SHA-256, executable path hay diagnostic nội bộ. Source asset đầy đủ chỉ tồn tại trong mapping private để gọi đúng lazy-loading boundary.
+- Grid không eager-decode full texture. Chỉ container đang hiện thực hóa mới enqueue typed thumbnail job với kích thước code-owned 192 px; container tái sử dụng phải xác minh lại item identity trước khi publish bitmap.
+- Thumbnail failure/cancellation không làm phát sinh partial image hay mutation. Mọi decode/cache miss tiếp tục đi qua trust, containment, resource limit và hash-pinned DirectXTex policy của PLAN 15/36/37.

@@ -61,13 +61,89 @@ public sealed class ProjectWorkspaceViewModelTests
         Assert.Equal("tn_login.dds", Assert.Single(Assert.Single(viewModel.Folders).Textures).FileName);
     }
 
+    [Fact]
+    public async Task Grid_facets_compose_over_status_category_size_and_alpha_metadata()
+    {
+        var session = new TestProjectSession(CreateProject(), new TestWorkspace());
+        var viewModel = CreateViewModel(
+            session,
+            new TestScanService(CreateScanResult(includeUnmapped: true)),
+            new TestTextureStateMachine(path => path.EndsWith("raw.dds", StringComparison.Ordinal)
+                ? TextureState.Modified
+                : TextureState.Original));
+        await viewModel.LoadAsync();
+
+        viewModel.StatusFilter = TextureStatusFilter.Modified;
+        Assert.Equal("raw.dds", Assert.Single(viewModel.FilteredTextures).FileName);
+
+        viewModel.StatusFilter = TextureStatusFilter.All;
+        viewModel.SelectedCategoryFilter = viewModel.CategoryFilters.Single(option => option.Category == "interface");
+        Assert.Equal("tn_login.dds", Assert.Single(viewModel.FilteredTextures).FileName);
+
+        viewModel.SelectedCategoryFilter = viewModel.CategoryFilters[0];
+        viewModel.SizeFilter = TextureSizeFilter.Small;
+        Assert.Equal("raw.dds", Assert.Single(viewModel.FilteredTextures).FileName);
+
+        viewModel.SizeFilter = TextureSizeFilter.All;
+        viewModel.AlphaFilter = TextureAlphaFilter.NoAlpha;
+        Assert.Equal("raw.dds", Assert.Single(viewModel.FilteredTextures).FileName);
+    }
+
+    [Theory]
+    [InlineData(TextureState.Modified, TextureStatusFilter.Modified)]
+    [InlineData(TextureState.Original, TextureStatusFilter.Original)]
+    [InlineData(TextureState.Invalid, TextureStatusFilter.Invalid)]
+    [InlineData(TextureState.AiGenerated, TextureStatusFilter.AI)]
+    public async Task Status_facets_match_exact_texture_state(
+        TextureState state,
+        TextureStatusFilter filter)
+    {
+        var session = new TestProjectSession(CreateProject(), new TestWorkspace());
+        var viewModel = CreateViewModel(
+            session,
+            new TestScanService(CreateScanResult()),
+            new TestTextureStateMachine(_ => state));
+        await viewModel.LoadAsync();
+
+        viewModel.StatusFilter = filter;
+
+        Assert.Single(viewModel.FilteredTextures);
+    }
+
+    [Fact]
+    public async Task Scan_is_metadata_only_and_explicit_thumbnail_uses_thumbnail_task()
+    {
+        var lazyLoading = new TestLazyLoadingService();
+        var taskManager = new ImmediateBackgroundTaskManager();
+        var session = new TestProjectSession(CreateProject(), new TestWorkspace());
+        var viewModel = CreateViewModel(
+            session,
+            new TestScanService(CreateScanResult()),
+            lazyLoadingService: lazyLoading,
+            taskManager: taskManager);
+
+        await viewModel.LoadAsync();
+        Assert.Equal(0, lazyLoading.CallCount);
+
+        var result = await viewModel.LoadThumbnailAsync(Assert.Single(viewModel.FilteredTextures));
+
+        Assert.Null(result);
+        Assert.Equal(1, lazyLoading.CallCount);
+        Assert.Equal(192, lazyLoading.MaximumDimension);
+        Assert.Contains(BackgroundTaskKind.Thumbnail, taskManager.Kinds);
+    }
+
     private static ProjectWorkspaceViewModel CreateViewModel(
         IApplicationProjectSession session,
-        ISmartModScanService scan) => new(
+        ISmartModScanService scan,
+        ITextureStateMachine? stateMachine = null,
+        ITextureLazyLoadingService? lazyLoadingService = null,
+        ImmediateBackgroundTaskManager? taskManager = null) => new(
             session,
             scan,
-            new TestTextureStateMachine(),
-            new ImmediateBackgroundTaskManager());
+            stateMachine ?? new TestTextureStateMachine(),
+            lazyLoadingService ?? new TestLazyLoadingService(),
+            taskManager ?? new ImmediateBackgroundTaskManager());
 
     private static AuditionProject CreateProject()
     {
@@ -126,7 +202,7 @@ public sealed class ProjectWorkspaceViewModelTests
             var rawAsset = Texture("effects/raw.dds", "effects", "raw.dds", 'B');
             var raw = new SmartTextureAsset(
                 rawAsset,
-                Metadata() with { Width = 256, Height = 256 },
+                Metadata() with { Width = 256, Height = 256, HasAlphaChannel = false },
                 new TextureManifestResolution(new ModRelativePath(rawAsset.RelativePath), "raw.dds", true, null),
                 true,
                 true);
@@ -203,19 +279,44 @@ public sealed class ProjectWorkspaceViewModelTests
         }
     }
 
-    private sealed class TestTextureStateMachine : ITextureStateMachine
+    private sealed class TestTextureStateMachine(
+        Func<string, TextureState>? resolve = null) : ITextureStateMachine
     {
         public TextureStateResult Evaluate(
             AuditionProject project,
             ModRelativePath texturePath,
             TextureRuntimeObservation observation,
             TextureState? previousState = null) =>
-            TextureStateResult.Success(TextureState.Original, previousState);
+            TextureStateResult.Success(resolve?.Invoke(texturePath.Value) ?? TextureState.Original, previousState);
+    }
+
+    private sealed class TestLazyLoadingService : ITextureLazyLoadingService
+    {
+        public int CallCount { get; private set; }
+        public int MaximumDimension { get; private set; }
+
+        public Task<TextureThumbnailLoadResult> LoadThumbnailAsync(
+            TextureThumbnailLoadRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            MaximumDimension = request.MaximumDimension;
+            return Task.FromResult(TextureThumbnailLoadResult.Failure(
+                TextureLazyLoadFailureReason.ThumbnailFailed,
+                "test.thumbnail_unavailable"));
+        }
+
+        public Task<SelectedTextureLoadResult> LoadSelectedTextureAsync(
+            SelectedTextureLoadRequest request,
+            CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException();
     }
 
     private sealed class ImmediateBackgroundTaskManager : IBackgroundTaskManager
     {
         private BackgroundTaskSnapshot? _snapshot;
+
+        public List<BackgroundTaskKind> Kinds { get; } = [];
 
         public event EventHandler<BackgroundTaskNotification>? Notification
         {
@@ -228,6 +329,7 @@ public sealed class ProjectWorkspaceViewModelTests
             CancellationToken cancellationToken = default)
         {
             var id = new BackgroundTaskId(Guid.NewGuid());
+            Kinds.Add(request.Kind);
             var result = await request.Operation(new Progress<BackgroundTaskProgress>(), cancellationToken);
             _snapshot = new BackgroundTaskSnapshot(
                 id,
