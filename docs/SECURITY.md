@@ -385,3 +385,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Presentation model không công bố absolute path, source SHA-256, executable path hay diagnostic nội bộ. Source asset đầy đủ chỉ tồn tại trong mapping private để gọi đúng lazy-loading boundary.
 - Grid không eager-decode full texture. Chỉ container đang hiện thực hóa mới enqueue typed thumbnail job với kích thước code-owned 192 px; container tái sử dụng phải xác minh lại item identity trước khi publish bitmap.
 - Thumbnail failure/cancellation không làm phát sinh partial image hay mutation. Mọi decode/cache miss tiếp tục đi qua trust, containment, resource limit và hash-pinned DirectXTex policy của PLAN 15/36/37.
+
+## Crop/Resize Canvas boundary từ PLAN 45
+
+- Editor source chỉ đến từ selected `SmartTextureAsset` private mapping và managed project workspace. UI không nhận absolute path, source hash, executable path, process argument hoặc trust override.
+- Full texture chỉ được decode theo explicit route activation qua typed `Convert` background job và `LoadSelectedTextureAsync`; metadata được lazy service revalidate trước khi pixels được publish. Cancel đi qua exact task ID, không kill process tùy ý.
+- Zoom/pan/crop/mode là numeric hoặc enum typed. NaN/Infinity/out-of-range crop và transform bị PLAN 22 reject; UI không dùng geometry làm path, command, cache identity hoặc log payload.
+- Full `InternalImage` và WinUI bitmap chỉ sống trong editor route rồi được release khi rời route. Row-bounded channel conversion giảm peak managed allocation; resource limits PLAN 15/20 vẫn áp dụng cho decode.
+- PLAN 45 không execute resize, encode, replace, save, pack hoặc mutate pristine/project data. Preview state không cấp authority cho Apply; validate/atomic replacement thuộc PLAN 47.

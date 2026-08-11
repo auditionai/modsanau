@@ -92,7 +92,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 43: route Projects với folder tree/search/mapping filter, preview/editor surface, metadata/edit-options pane và status target size/format/state/validation; metadata scan qua Background Task Manager + Smart Scan; state qua Texture State Machine; explicit no-project/loading/error states.
 - PLAN đã hoàn thành kiểm chứng: PLAN 44 — Texture Grid + Search.
 - Phạm vi PLAN 44: card texture có lazy thumbnail, friendly/raw filename, size và textual state; tìm kiếm kết hợp mapping/status/category/size/alpha facets; thumbnail chỉ tải cho card được hiện thực hóa qua Background Task Manager + Lazy Loading Service.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 45 — Crop/Resize Canvas UI; chưa được triển khai.
+- PLAN đã hoàn thành kiểm chứng: PLAN 45 — Crop/Resize Canvas UI.
+- Phạm vi PLAN 45: route Image Editor tải full texture theo yêu cầu qua Lazy Loading + Background Task Manager; canvas target frame exact DDS dimensions; zoom/pan/crop và typed modes Crop/Fit/Fill/Stretch/Canvas/Padding reuse geometry/resize contracts PLAN 21–22; toàn bộ state vẫn preview-only.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 46 — Before/After Compare; chưa được triển khai.
 
 ## Stage Gates
 

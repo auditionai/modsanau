@@ -689,3 +689,11 @@ Chi tiết token/component usage nằm trong `docs/DESIGN_SYSTEM.md`. PLAN 40 kh
 - Grid dùng native `GridView`, textual status và card semantics. Thumbnail chỉ được yêu cầu khi container được hiện thực hóa, qua job `Thumbnail` của PLAN 38 gọi `ITextureLazyLoadingService` của PLAN 37 với cạnh tối đa 192 px.
 - Size facet dùng cạnh lớn nhất: Small ≤ 512 px, Medium 513–2048 px, Large > 2048 px. Category đến từ manifest và fallback `uncategorized`; alpha đến từ DDS metadata snapshot.
 - Chuyển RGBA8 straight thumbnail sang BGRA8 premultiplied là projection giới hạn trong UI. Grid không gọi full-texture API, không cache full-resolution pixels và không mutation texture/project/archive.
+
+## Crop/Resize Canvas UI từ PLAN 45
+
+- Route `ImageEditor` resolve `ImageEditorPage`/`ImageEditorViewModel` qua DI. Presentation boundary `IWorkspaceTextureSelection` chia sẻ exact selected texture với workspace mà không công bố absolute path, hash hoặc tool metadata.
+- Khi route editor được mở, `ProjectWorkspaceViewModel` enqueue job `Convert` qua PLAN 38 rồi gọi explicit `ITextureLazyLoadingService.LoadSelectedTextureAsync` của PLAN 37. Editor giữ `InternalImage` trong lifetime route và release cả image/bitmap khi rời route; không có full-resolution service cache mới.
+- `ImageEditorViewModel` dùng `IImageTransformService` PLAN 22 cho immutable zoom/pan/crop state, pixel crop và viewport projection. Sáu lựa chọn UI map explicit tới `ManualCrop`, `Fit`, `Fill`, `Stretch`, `CanvasResize`, `TransparentPadding` của PLAN 21 và tạo typed `ImageResizeRequest` với exact DDS target dimensions.
+- Canvas chỉ là render projection: target frame giữ exact target aspect/dimension label; pointer drag cập nhật pan, wheel/slider cập nhật zoom, crop percentage đi qua normalized crop validation. RGBA8 straight → BGRA8 premultiplied adapter ghi theo từng row để tránh thêm một full-frame conversion buffer.
+- PLAN 45 không gọi `IImageResizeService`, không Apply/encode DDS, không ghi edit history/project/extracted texture/archive và không triển khai compare PLAN 46. Các mode là preview + validated request intent cho workflow sau.

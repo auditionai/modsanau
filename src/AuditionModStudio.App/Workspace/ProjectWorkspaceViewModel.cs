@@ -9,7 +9,7 @@ using AuditionModStudio.Core.Tasks;
 
 namespace AuditionModStudio.App.Workspace;
 
-public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged
+public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspaceTextureSelection
 {
     private readonly IApplicationProjectSession _projectSession;
     private readonly ISmartModScanService _scanService;
@@ -31,6 +31,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged
     private string _statusMessage = "No active project. Create or open a project first.";
     private Guid? _loadedProjectId;
     private BackgroundTaskId _activeTaskId;
+    private BackgroundTaskId _activeImageTaskId;
     private bool _isLoading;
     private double _progressPercentage;
 
@@ -302,6 +303,54 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged
             ? loadResult.Image
             : null;
     }
+
+    public async Task<InternalImage?> LoadSelectedImageAsync(CancellationToken cancellationToken = default)
+    {
+        var selected = _selectedTexture;
+        var workspace = _projectSession.Workspace;
+        if (selected is null
+            || workspace is null
+            || !_sourceTextures.TryGetValue(selected.RelativePath, out var source)
+            || _activeImageTaskId.IsValid)
+        {
+            return null;
+        }
+
+        SelectedTextureLoadResult? loadResult = null;
+        var enqueue = await _taskManager.EnqueueAsync(
+            new BackgroundTaskRequest(
+                BackgroundTaskKind.Convert,
+                async (_, taskCancellationToken) =>
+                {
+                    loadResult = await _lazyLoadingService.LoadSelectedTextureAsync(
+                        new SelectedTextureLoadRequest(workspace, source.Asset, source.Metadata),
+                        taskCancellationToken).ConfigureAwait(false);
+                    return loadResult.Succeeded
+                        ? BackgroundTaskExecutionResult.Success()
+                        : BackgroundTaskExecutionResult.Failure("workspace.selected_texture_failed");
+                }),
+            cancellationToken);
+        if (!enqueue.Succeeded)
+        {
+            return null;
+        }
+
+        _activeImageTaskId = enqueue.TaskId;
+        try
+        {
+            var snapshot = await _taskManager.WaitForCompletionAsync(enqueue.TaskId, cancellationToken);
+            return snapshot?.State == BackgroundTaskState.Succeeded && loadResult?.Succeeded == true
+                ? loadResult.Image
+                : null;
+        }
+        finally
+        {
+            _activeImageTaskId = default;
+        }
+    }
+
+    public bool CancelSelectedImageLoading() =>
+        _activeImageTaskId.IsValid && _taskManager.TryCancel(_activeImageTaskId);
 
     private void PublishScan(AuditionProject project, SmartModScanResult scanResult)
     {

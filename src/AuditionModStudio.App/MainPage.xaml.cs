@@ -1,4 +1,5 @@
 using AuditionModStudio.App.Shell;
+using AuditionModStudio.App.Editor;
 using AuditionModStudio.App.Home;
 using AuditionModStudio.App.Workspace;
 using Microsoft.UI.Xaml;
@@ -11,19 +12,23 @@ public sealed partial class MainPage : Page
 {
     private readonly HomePage _homePage;
     private readonly ProjectWorkspacePage _workspacePage;
+    private readonly ImageEditorPage _imageEditorPage;
 
     public MainPage(
         AppShellViewModel viewModel,
         HomePage homePage,
-        ProjectWorkspacePage workspacePage)
+        ProjectWorkspacePage workspacePage,
+        ImageEditorPage imageEditorPage)
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         _homePage = homePage ?? throw new ArgumentNullException(nameof(homePage));
         _workspacePage = workspacePage ?? throw new ArgumentNullException(nameof(workspacePage));
+        _imageEditorPage = imageEditorPage ?? throw new ArgumentNullException(nameof(imageEditorPage));
         InitializeComponent();
         PopulateNavigationItems();
         HomeContent.Content = _homePage;
         WorkspaceContent.Content = _workspacePage;
+        ImageEditorContent.Content = _imageEditorPage;
         UpdateRouteContent();
     }
 
@@ -58,6 +63,11 @@ public sealed partial class MainPage : Page
 
         if (ViewModel.Navigate(route))
         {
+            if (route != AppRoute.ImageEditor)
+            {
+                _imageEditorPage.Deactivate();
+            }
+
             UpdateRouteContent();
             if (route == AppRoute.Home)
             {
@@ -67,6 +77,11 @@ public sealed partial class MainPage : Page
             {
                 _workspacePage.FocusPrimaryHeading();
                 await _workspacePage.ActivateAsync();
+            }
+            else if (route == AppRoute.ImageEditor)
+            {
+                _imageEditorPage.FocusPrimaryHeading();
+                await _imageEditorPage.ActivateAsync();
             }
             else
             {
@@ -79,8 +94,12 @@ public sealed partial class MainPage : Page
     {
         var isHome = ViewModel.CurrentRoute == AppRoute.Home;
         var isWorkspace = ViewModel.CurrentRoute == AppRoute.Projects;
+        var isImageEditor = ViewModel.CurrentRoute == AppRoute.ImageEditor;
         HomeContent.Visibility = isHome ? Visibility.Visible : Visibility.Collapsed;
         WorkspaceContent.Visibility = isWorkspace ? Visibility.Visible : Visibility.Collapsed;
-        PlaceholderContent.Visibility = isHome || isWorkspace ? Visibility.Collapsed : Visibility.Visible;
+        ImageEditorContent.Visibility = isImageEditor ? Visibility.Visible : Visibility.Collapsed;
+        PlaceholderContent.Visibility = isHome || isWorkspace || isImageEditor
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 }

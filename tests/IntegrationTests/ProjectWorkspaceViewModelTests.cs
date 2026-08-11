@@ -5,6 +5,7 @@ using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Games;
+using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Tasks;
@@ -131,6 +132,38 @@ public sealed class ProjectWorkspaceViewModelTests
         Assert.Equal(1, lazyLoading.CallCount);
         Assert.Equal(192, lazyLoading.MaximumDimension);
         Assert.Contains(BackgroundTaskKind.Thumbnail, taskManager.Kinds);
+    }
+
+    [Fact]
+    public async Task Explicit_selected_image_load_uses_convert_task_and_lazy_service()
+    {
+        var image = new InternalImage(
+            1,
+            1,
+            4,
+            [1, 2, 3, 255],
+            new ImageSourceMetadata(
+                ImageSourceFormat.Png,
+                1,
+                1,
+                ImageSourceOrientation.Normal,
+                true,
+                false));
+        var lazyLoading = new TestLazyLoadingService(image);
+        var taskManager = new ImmediateBackgroundTaskManager();
+        var viewModel = CreateViewModel(
+            new TestProjectSession(CreateProject(), new TestWorkspace()),
+            new TestScanService(CreateScanResult()),
+            lazyLoadingService: lazyLoading,
+            taskManager: taskManager);
+        await viewModel.LoadAsync();
+        viewModel.SelectedTexture = Assert.Single(viewModel.FilteredTextures);
+
+        var loaded = await viewModel.LoadSelectedImageAsync();
+
+        Assert.Same(image, loaded);
+        Assert.Equal(1, lazyLoading.SelectedCallCount);
+        Assert.Contains(BackgroundTaskKind.Convert, taskManager.Kinds);
     }
 
     private static ProjectWorkspaceViewModel CreateViewModel(
@@ -290,10 +323,11 @@ public sealed class ProjectWorkspaceViewModelTests
             TextureStateResult.Success(resolve?.Invoke(texturePath.Value) ?? TextureState.Original, previousState);
     }
 
-    private sealed class TestLazyLoadingService : ITextureLazyLoadingService
+    private sealed class TestLazyLoadingService(InternalImage? selectedImage = null) : ITextureLazyLoadingService
     {
         public int CallCount { get; private set; }
         public int MaximumDimension { get; private set; }
+        public int SelectedCallCount { get; private set; }
 
         public Task<TextureThumbnailLoadResult> LoadThumbnailAsync(
             TextureThumbnailLoadRequest request,
@@ -308,8 +342,15 @@ public sealed class ProjectWorkspaceViewModelTests
 
         public Task<SelectedTextureLoadResult> LoadSelectedTextureAsync(
             SelectedTextureLoadRequest request,
-            CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
+            CancellationToken cancellationToken = default)
+        {
+            SelectedCallCount++;
+            return Task.FromResult(selectedImage is null
+                ? SelectedTextureLoadResult.Failure(
+                    TextureLazyLoadFailureReason.PreviewFailed,
+                    "test.preview_unavailable")
+                : SelectedTextureLoadResult.Success(selectedImage));
+        }
     }
 
     private sealed class ImmediateBackgroundTaskManager : IBackgroundTaskManager

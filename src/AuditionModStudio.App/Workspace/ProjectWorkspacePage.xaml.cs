@@ -1,10 +1,9 @@
 using System.ComponentModel;
-using System.Runtime.InteropServices.WindowsRuntime;
+using AuditionModStudio.App.Imaging;
 using AuditionModStudio.Core.Images;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace AuditionModStudio.App.Workspace;
 
@@ -84,7 +83,7 @@ public sealed partial class ProjectWorkspacePage : Page
                 return;
             }
 
-            imageControl.Source = CreateBitmap(thumbnail);
+            imageControl.Source = InternalImageBitmapAdapter.CreateBitmap(thumbnail);
             if (placeholder is not null)
             {
                 placeholder.Visibility = Visibility.Collapsed;
@@ -101,29 +100,6 @@ public sealed partial class ProjectWorkspacePage : Page
                 exception.GetType().Name);
         }
     }
-
-    private static WriteableBitmap CreateBitmap(InternalImage source)
-    {
-        var bitmap = new WriteableBitmap(source.Width, source.Height);
-        var rgba = source.Pixels.AsSpan();
-        var bgraPremultiplied = new byte[rgba.Length];
-        for (var index = 0; index < rgba.Length; index += 4)
-        {
-            var alpha = rgba[index + 3];
-            bgraPremultiplied[index] = Premultiply(rgba[index + 2], alpha);
-            bgraPremultiplied[index + 1] = Premultiply(rgba[index + 1], alpha);
-            bgraPremultiplied[index + 2] = Premultiply(rgba[index], alpha);
-            bgraPremultiplied[index + 3] = alpha;
-        }
-
-        using var stream = bitmap.PixelBuffer.AsStream();
-        stream.Write(bgraPremultiplied, 0, bgraPremultiplied.Length);
-        bitmap.Invalidate();
-        return bitmap;
-    }
-
-    private static byte Premultiply(byte channel, byte alpha) =>
-        (byte)((channel * alpha + 127) / 255);
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {

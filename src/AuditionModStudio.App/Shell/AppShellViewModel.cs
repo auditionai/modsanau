@@ -11,7 +11,7 @@ public sealed class AppShellViewModel : INotifyPropertyChanged
         new(AppRoute.Home, "Home", "\uE80F", "Home", "Choose a game and mod to begin a project."),
         new(AppRoute.Projects, "Projects", "\uE8B7", "Projects", "Open and manage Audition mod projects."),
         new(AppRoute.AiStudio, "AI Studio", "\uE945", "AI Studio", "AI creation tools will be available in a later plan."),
-        new(AppRoute.ImageEditor, "Image Editor", "\uE91B", "Image Editor", "Image editing tools will be available in a later plan."),
+        new(AppRoute.ImageEditor, "Image Editor", "\uE91B", "Image Editor", "Crop and resize a selected project texture against its exact DDS target."),
         new(AppRoute.ModLibrary, "Mod Library", "\uE8F1", "Mod Library", "Browse supported mod definitions and templates."),
         new(AppRoute.Batch, "Batch", "\uE8FD", "Batch", "Batch workflows will be available in a later plan."),
         new(AppRoute.Cloud, "Cloud", "\uE753", "Cloud", "Cloud services are not connected in this build."),

@@ -23,6 +23,7 @@ using AuditionModStudio.Projects;
 using AuditionModStudio.Dds;
 using AuditionModStudio.App.Shell;
 using AuditionModStudio.App.Home;
+using AuditionModStudio.App.Editor;
 using AuditionModStudio.App.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -166,7 +167,11 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<HomeViewModel>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddSingleton<ProjectWorkspaceViewModel>();
+        builder.Services.AddSingleton<IWorkspaceTextureSelection>(services =>
+            services.GetRequiredService<ProjectWorkspaceViewModel>());
         builder.Services.AddTransient<ProjectWorkspacePage>();
+        builder.Services.AddSingleton<ImageEditorViewModel>();
+        builder.Services.AddTransient<ImageEditorPage>();
         builder.Services.AddSingleton<AppShellViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddSingleton<MainWindow>();
