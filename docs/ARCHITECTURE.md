@@ -310,3 +310,20 @@ Strict profile giữ exact format, dimensions, effective mip count, header và r
 BC1 profile luôn giữ BC1 và binary-alpha capability; replacement có semi-transparent alpha bị từ chối, không nâng thành BC3. BC7, cubemap, array và volume được reject có cấu trúc vì encoder hiện chưa hỗ trợ. Match Original không có compatibility mode đổi format.
 
 Match Original nghĩa structural metadata fidelity, không phải byte-identical hash hoặc exact file size. PLAN 17 không resize, replace extracted target, pack archive hoặc install mod.
+
+## DDS Validation từ PLAN 18
+
+`IDdsValidationService` là gate độc lập giữa DDS đã encode và mọi replacement workflow tương lai. Request chỉ mang một `ISecureWorkspace` cùng relative path của target/candidate; service mở lại cả hai file qua `IDdsMetadataReader`, không tin metadata được trả về từ encoder và không mutate file nào.
+
+```text
+Target DDS (read-only) + encoded candidate (read-only)
+  → path/reparse-point validation
+  → IDdsMetadataReader cho từng file
+  → supported-profile gate
+  → exact structural metadata comparison
+  → PASS | structured failure + field report
+```
+
+Comparison bắt buộc gồm format, dimensions, effective mip count, header type, meaningful DX10 color space và resource shape. Legacy `Unknown` color space không bị suy diễn thành sRGB. Hash/file size không được so như compatibility contract vì BC compression/serialization có thể khác nhau.
+
+`DdsMatchOriginalService` reuse validator này sau `IDdsEncoder`; output chỉ được trả thành công khi validation PASS. PLAN 18 vẫn không replace extracted target, không rollback/archive-pack và không mở rộng support sang BC7, volume, array hoặc cubemap. Workflow Apply/replace tương lai phải coi `DdsValidationResult.Succeeded` là precondition bắt buộc.

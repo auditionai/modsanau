@@ -38,7 +38,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 16: immutable internal RGBA8 input; explicit target format/dimensions/mips/header/color/alpha settings; controlled DirectXTex BC1/BC3/RGBA8/BGRA8 encode; legacy/DX10 handling; validate-before-atomic-promote; preview roundtrip và real target-profile coverage.
 - PLAN đã hoàn thành: PLAN 17 — Match Original DDS.
 - Phạm vi PLAN 17: centralized metadata→strict profile; exact format/header/dimensions/effective-mips/color/resource semantics; BC1 alpha compatibility; `IDdsEncoder` orchestration; structured match report; 52/52 real profile audit và real representative matched encode without target/archive mutation.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 18 — DDS Validation; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 18 — DDS Validation.
+- Phạm vi PLAN 18: independent `IDdsValidationService`; reopen target/candidate; exact structural metadata report; structured unsupported/missing/invalid/mismatch/cancelled failures; Match Original post-encode gate reuse; read-only workspace safety và không replacement.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 19 — Real DDS Roundtrip Gate; không tự động bắt đầu.
 
 ## Stage Gates
 

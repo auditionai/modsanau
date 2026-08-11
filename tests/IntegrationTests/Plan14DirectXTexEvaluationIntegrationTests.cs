@@ -196,7 +196,8 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             harness,
             pathSecurity,
             new DdsEncoderOptions(texconvPath!, TimeSpan.FromMinutes(3), DdsPreviewResourcePolicy.Default));
-        var matchService = new DdsMatchOriginalService(metadataReader, encoder);
+        var validationService = new DdsValidationService(metadataReader, pathSecurity);
+        var matchService = new DdsMatchOriginalService(metadataReader, encoder, validationService);
         var profileAudit = realMetadata
             .Select(item => (item.Path, Result: matchService.DeriveProfile(item.Metadata)))
             .ToArray();

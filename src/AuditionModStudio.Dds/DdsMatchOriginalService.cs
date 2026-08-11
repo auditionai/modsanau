@@ -4,7 +4,8 @@ namespace AuditionModStudio.Dds;
 
 public sealed class DdsMatchOriginalService(
     IDdsMetadataReader metadataReader,
-    IDdsEncoder encoder) : IDdsMatchOriginalService
+    IDdsEncoder encoder,
+    IDdsValidationService validationService) : IDdsMatchOriginalService
 {
     public DdsMatchOriginalProfileResult DeriveProfile(DdsMetadata metadata)
     {
@@ -155,52 +156,31 @@ public sealed class DdsMatchOriginalService(
             return MapEncodeFailure(encoded, profile);
         }
 
-        var outputPath = request.Workspace.ResolveRelativePath(encoded.OutputRelativePath!);
-        var outputRead = await metadataReader.ReadAsync(outputPath, cancellationToken).ConfigureAwait(false);
-        if (!outputRead.IsSuccess || outputRead.Metadata is null)
+        var validation = await validationService.ValidateAsync(new(
+            request.Workspace,
+            request.TargetRelativePath,
+            encoded.OutputRelativePath!), cancellationToken).ConfigureAwait(false);
+        if (!validation.Succeeded)
         {
             return DdsMatchOriginalResult.Failure(
-                outputRead.FailureReason == DdsMetadataFailureReason.Cancelled
+                validation.FailureReason == DdsValidationFailureReason.Cancelled
                     ? DdsMatchOriginalFailureReason.Cancelled
                     : DdsMatchOriginalFailureReason.PostValidationFailed,
-                outputRead.FailureReason == DdsMetadataFailureReason.Cancelled
+                validation.FailureReason == DdsValidationFailureReason.Cancelled
                     ? "DDS_MATCH_CANCELLED"
-                    : "DDS_MATCH_OUTPUT_METADATA_INVALID",
-                profile);
-        }
-
-        var report = CreateReport(profile, outputRead.Metadata);
-        if (!report.OverallMatch)
-        {
-            return DdsMatchOriginalResult.Failure(
-                DdsMatchOriginalFailureReason.PostValidationFailed,
-                "DDS_MATCH_OUTPUT_PROFILE_MISMATCH",
+                    : validation.FailureReason == DdsValidationFailureReason.MetadataMismatch
+                        ? "DDS_MATCH_OUTPUT_PROFILE_MISMATCH"
+                        : "DDS_MATCH_OUTPUT_METADATA_INVALID",
                 profile,
-                outputRead.Metadata,
-                report);
+                validation.CandidateMetadata,
+                validation.MatchReport);
         }
 
         return DdsMatchOriginalResult.Success(
             profile,
-            outputRead.Metadata,
-            report,
+            validation.CandidateMetadata!,
+            validation.MatchReport!,
             encoded.OutputRelativePath!);
-    }
-
-    private static DdsMetadataMatchReport CreateReport(
-        DdsMatchOriginalProfile profile,
-        DdsMetadata output)
-    {
-        var settings = profile.TargetSettings;
-        return new(
-            output.Format == settings.Format,
-            output.Width == settings.Width && output.Height == settings.Height,
-            output.EffectiveMipLevelCount == settings.MipLevelCount,
-            output.HeaderType == settings.HeaderType,
-            !profile.ColorSpaceIsMeaningful || output.ColorSpace == profile.OriginalColorSpace,
-            output.ResourceDimension == profile.ResourceDimension
-                && output.IsCubemap == profile.IsCubemap
-                && output.ArraySize == profile.ArraySize);
     }
 
     private static bool HasSemiTransparentAlpha(DdsRgbaImage image)

@@ -149,7 +149,12 @@ public sealed class DdsMatchOriginalServiceTests : IDisposable
         Directory.CreateDirectory(paths.ExtractedDirectory);
         Directory.CreateDirectory(paths.BuildOutputDirectory);
         var workspace = new TestWorkspace(paths);
-        var service = new DdsMatchOriginalService(new DdsMetadataReader(), new StubEncoder(encode));
+        var metadataReader = new DdsMetadataReader();
+        var pathSecurity = new PathSecurity();
+        var service = new DdsMatchOriginalService(
+            metadataReader,
+            new StubEncoder(encode),
+            new DdsValidationService(metadataReader, pathSecurity));
         return new(workspace, service);
     }
 

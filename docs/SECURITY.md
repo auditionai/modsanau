@@ -181,3 +181,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Replacement RGBA phải đúng dimensions target; không cấp phát resize buffer hoặc stretch âm thầm. BC1 semi-alpha bị reject trước encoder.
 - Output tiếp tục đi qua encoder isolation, resource limits, pinned tool, atomic promotion và metadata post-validation. Match report dùng strongly typed booleans; raw process diagnostics và proprietary path không đi vào UI contract.
 - Structural match không chứng minh byte identity, gameplay compatibility hoặc archive safety. Replace/rollback/archive validation vẫn thuộc PLAN sau; local Administrator/TOCTOU/supply-chain risks đã ghi nhận vẫn còn.
+
+## DDS validation boundary từ PLAN 18
+
+- Validator chỉ nhận relative path trong `ISecureWorkspace`; target và candidate được canonicalize, kiểm tra reparse point và mở read-only qua `IDdsMetadataReader`.
+- Validation không tin metadata do encoder trả về. Candidate được reopen từ filesystem, sau đó so format, dimensions, effective mip count, header, meaningful DX10 color space và resource shape với target.
+- BC7, volume, array và cubemap tiếp tục bị reject có cấu trúc. Không có fallback format/header/mip và không suy diễn legacy `Unknown` thành sRGB.
+- Validator không copy, move, delete hoặc overwrite target/candidate. Replacement extracted DDS chưa tồn tại trong PLAN 18; caller tương lai chỉ được replace sau `Succeeded=true`.
+- Metadata-only validation dùng header buffer hữu hạn, không decode payload hoặc cấp phát theo dimensions không tin cậy. Nó không chứng minh pixel fidelity, byte identity, game compatibility hay archive safety; các gate đó thuộc PLAN sau.

@@ -133,7 +133,11 @@ public sealed class Plan15DdsPreviewPixelIntegrationTests : IDisposable
         Assert.All(concurrent, result => Assert.True(result.Succeeded, result.DiagnosticCode));
         Assert.Equal(sharedPixels, sharedImage.Pixels);
 
-        var matcher = new DdsMatchOriginalService(new DdsMetadataReader(), encoder);
+        var matchMetadataReader = new DdsMetadataReader();
+        var matcher = new DdsMatchOriginalService(
+            matchMetadataReader,
+            encoder,
+            new DdsValidationService(matchMetadataReader, new PathSecurity()));
         var targetHashes = await Task.WhenAll(concurrent.Select(result =>
             ComputeHashAsync(workspace.ResolveRelativePath(result.OutputRelativePath!))));
         var matched = await Task.WhenAll(

@@ -106,3 +106,10 @@ Các con số format/dimension này chỉ là observation của archive mẫu hi
 - `EffectiveMipLevelCount` là giá trị encode; declared zero/effective one không được biến thành full chain. Declared value vẫn nằm trong profile để audit.
 - Legacy color space `Unknown` không được chuyển thành synthetic sRGB. DX10 color space chỉ match khi metadata xác định Linear hoặc sRGB và encoder thực sự hỗ trợ combination.
 - Match không yêu cầu output SHA-256 hoặc file size giống target vì BC compression/serialization có thể khác; strict report so structural metadata và resource semantics.
+
+## Finding DDS Validation từ PLAN 18
+
+- `IDdsValidationService` reopen cả target và candidate qua `IDdsMetadataReader`; metadata do encoder trả về không được dùng thay cho filesystem post-validation.
+- PASS yêu cầu exact format, dimensions, effective mip count, header, meaningful DX10 color space và 2D/single-array/non-cubemap resource shape.
+- Legacy `Unknown` color space không bị chuyển thành synthetic sRGB. BC7, volume, array và cubemap vẫn unsupported và không bị downgrade.
+- Validator read-only và không replace extracted target. `DdsMatchOriginalService` chỉ trả success sau gate này; real roundtrip riêng của `tn_coby_logo.dds` vẫn thuộc PLAN 19.
