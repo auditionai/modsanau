@@ -14,6 +14,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <StackPanel Spacing="{StaticResource AmsSpace8}">
@@ -307,6 +308,169 @@
                         <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Validation" />
                         <TextBlock Text="{x:Bind ViewModel.SelectedValidation, Mode=OneWay}" />
                     </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="3" Style="{StaticResource AmsGamingPanelStyle}">
+                <Grid RowSpacing="{StaticResource AmsSpace16}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Spacing="{StaticResource AmsSpace8}">
+                        <TextBlock
+                            AutomationProperties.HeadingLevel="Level2"
+                            Style="{StaticResource AmsSectionTitleStyle}"
+                            Text="Build &amp; Export" />
+                        <TextBlock
+                            Style="{StaticResource AmsBodyTextStyle}"
+                            Text="Validate the active project, build its archive, then atomically export the verified file."
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            AutomationProperties.Name="Active project build status"
+                            Text="{x:Bind BuildExportViewModel.ProjectStatus, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <Grid
+                        Grid.Row="1"
+                        ColumnSpacing="{StaticResource AmsSpace12}"
+                        RowSpacing="{StaticResource AmsSpace12}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup>
+                                <VisualState x:Name="StackedExportFormState">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="0" />
+                                    </VisualState.StateTriggers>
+                                    <VisualState.Setters>
+                                        <Setter Target="ExportNameColumn.Width" Value="0" />
+                                        <Setter Target="ExportNameField.(Grid.Column)" Value="0" />
+                                        <Setter Target="ExportNameField.(Grid.Row)" Value="1" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="WideExportFormState">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="760" />
+                                    </VisualState.StateTriggers>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition x:Name="ExportNameColumn" Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Grid ColumnSpacing="{StaticResource AmsSpace8}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox
+                                AutomationProperties.HelpText="Absolute folder where the final archive will be saved"
+                                Header="Export folder"
+                                IsReadOnly="True"
+                                PlaceholderText="Choose an existing folder"
+                                Text="{x:Bind BuildExportViewModel.OutputDirectory, Mode=OneWay}" />
+                            <Button
+                                Grid.Column="1"
+                                MinHeight="44"
+                                VerticalAlignment="Bottom"
+                                AutomationProperties.Name="Choose export folder"
+                                Click="OnChooseExportFolderClicked"
+                                IsEnabled="{x:Bind BuildExportViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
+                                Style="{StaticResource AmsSecondaryButtonStyle}">
+                                Choose folder
+                            </Button>
+                        </Grid>
+
+                        <TextBox
+                            x:Name="ExportNameField"
+                            Grid.Column="1"
+                            AutomationProperties.HelpText="One archive filename with the same extension as the project archive"
+                            Header="Archive filename"
+                            IsEnabled="{x:Bind BuildExportViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
+                            MaxLength="255"
+                            PlaceholderText="015.ab"
+                            Text="{x:Bind BuildExportViewModel.OutputFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </Grid>
+
+                    <Grid
+                        Grid.Row="2"
+                        ColumnSpacing="{StaticResource AmsSpace12}"
+                        RowSpacing="{StaticResource AmsSpace8}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <CheckBox
+                            Grid.ColumnSpan="3"
+                            AutomationProperties.HelpText="Explicitly permits atomic replacement if the destination archive already exists"
+                            Content="Replace an existing archive at this exact destination"
+                            IsEnabled="{x:Bind BuildExportViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
+                            IsChecked="{x:Bind BuildExportViewModel.ReplaceExisting, Mode=TwoWay}" />
+                        <Button
+                            Grid.Row="1"
+                            MinHeight="44"
+                            AutomationProperties.Name="Validate build and export archive"
+                            Click="OnBuildExportClicked"
+                            IsEnabled="{x:Bind BuildExportViewModel.CanStart, Mode=OneWay}"
+                            Style="{StaticResource AmsPrimaryButtonStyle}">
+                            Build &amp; Export
+                        </Button>
+                        <Button
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            MinHeight="44"
+                            AutomationProperties.Name="Cancel build and export"
+                            Click="OnCancelBuildExportClicked"
+                            IsEnabled="{x:Bind BuildExportViewModel.CanCancel, Mode=OneWay}"
+                            Style="{StaticResource AmsSecondaryButtonStyle}">
+                            Cancel
+                        </Button>
+                        <StackPanel Grid.Row="1" Grid.Column="2" Spacing="{StaticResource AmsSpace8}">
+                            <TextBlock
+                                AutomationProperties.LiveSetting="Polite"
+                                FontWeight="SemiBold"
+                                Text="{x:Bind BuildExportViewModel.StageLabel, Mode=OneWay}" />
+                            <TextBlock
+                                AutomationProperties.LiveSetting="Polite"
+                                Style="{StaticResource AmsBodyTextStyle}"
+                                Text="{x:Bind BuildExportViewModel.StatusMessage, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+                            <ProgressBar
+                                AutomationProperties.Name="Build and export progress"
+                                Maximum="100"
+                                Value="{x:Bind BuildExportViewModel.ProgressPercentage, Mode=OneWay}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="3" Style="{StaticResource AmsCardStyle}">
+                        <Grid ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace8}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Output" />
+                            <TextBlock Grid.Column="1" Text="{x:Bind BuildExportViewModel.FinalOutputPath, Mode=OneWay}" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="1" Style="{StaticResource AmsBodyTextStyle}" Text="Size" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind BuildExportViewModel.FinalSize, Mode=OneWay}" />
+                            <TextBlock Grid.Row="2" Style="{StaticResource AmsBodyTextStyle}" Text="SHA-256" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind BuildExportViewModel.FinalSha256, Mode=OneWay}" TextWrapping="Wrap" />
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
         </Grid>

@@ -111,7 +111,11 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 52: consume exact validated PLAN 49 build artifact; source re-hash; destination revalidation;
   durable temp copy; size/SHA-256 verification; atomic promotion; explicit overwrite backup/rollback và typed
   rollback failure. Không rebuild, project mutation hoặc game filesystem interaction.
-- PLAN kế tiếp: PLAN 53 — Build & Export UI.
+- PLAN đã hoàn thành kiểm chứng: PLAN 53 — Build & Export UI.
+- Phạm vi PLAN 53: workflow file-only trong Project Workspace cho chọn folder/tên archive, explicit replace,
+  Validate → Build → Export qua application services và một Background Task Manager job; progress/cancel,
+  structured safe status, final path/size/SHA-256. Không copy trong code-behind, không game path/install/launch.
+- PLAN kế tiếp: PLAN 54 — Batch Build & Export.
 
 ## Stage Gates
 

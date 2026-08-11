@@ -181,6 +181,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<HomeViewModel>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddSingleton<ProjectWorkspaceViewModel>();
+        builder.Services.AddSingleton<BuildExportViewModel>();
         builder.Services.AddSingleton<IWorkspaceTextureSelection>(services =>
             services.GetRequiredService<ProjectWorkspaceViewModel>());
         builder.Services.AddTransient<ProjectWorkspacePage>();

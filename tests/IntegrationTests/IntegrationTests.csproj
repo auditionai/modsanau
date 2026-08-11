@@ -40,6 +40,7 @@
     <Compile Include="..\..\src\AuditionModStudio.App\Workspace\WorkspacePresentationModels.cs" Link="Workspace\WorkspacePresentationModels.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\Workspace\IWorkspaceTextureSelection.cs" Link="Workspace\IWorkspaceTextureSelection.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\Workspace\ProjectWorkspaceViewModel.cs" Link="Workspace\ProjectWorkspaceViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Workspace\BuildExportViewModel.cs" Link="Workspace\BuildExportViewModel.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\Editor\ImageEditorPresentationModels.cs" Link="Editor\ImageEditorPresentationModels.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\Editor\ImageEditorViewModel.cs" Link="Editor\ImageEditorViewModel.cs" />
   </ItemGroup>

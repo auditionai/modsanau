@@ -4,6 +4,7 @@ using AuditionModStudio.Core.Images;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.Storage.Pickers;
 
 namespace AuditionModStudio.App.Workspace;
 
@@ -13,9 +14,11 @@ public sealed partial class ProjectWorkspacePage : Page
 
     public ProjectWorkspacePage(
         ProjectWorkspaceViewModel viewModel,
+        BuildExportViewModel buildExportViewModel,
         ILogger<ProjectWorkspacePage> logger)
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+        BuildExportViewModel = buildExportViewModel ?? throw new ArgumentNullException(nameof(buildExportViewModel));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         InitializeComponent();
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -24,8 +27,13 @@ public sealed partial class ProjectWorkspacePage : Page
 
     public ProjectWorkspaceViewModel ViewModel { get; }
 
-    public async Task ActivateAsync(CancellationToken cancellationToken = default) =>
+    public BuildExportViewModel BuildExportViewModel { get; }
+
+    public async Task ActivateAsync(CancellationToken cancellationToken = default)
+    {
+        BuildExportViewModel.RefreshProject();
         await ViewModel.LoadAsync(cancellationToken);
+    }
 
     public bool FocusPrimaryHeading() => WorkspaceHeading.Focus(FocusState.Programmatic);
 
@@ -36,6 +44,41 @@ public sealed partial class ProjectWorkspacePage : Page
 
     private void OnCancelLoadingClicked(object sender, RoutedEventArgs e) =>
         ViewModel.CancelLoading();
+
+    private async void OnChooseExportFolderClicked(object sender, RoutedEventArgs e)
+    {
+        if (Application.Current is not App { ActiveWindow: { } window })
+        {
+            return;
+        }
+
+        try
+        {
+            var picker = new FolderPicker();
+            picker.FileTypeFilter.Add("*");
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
+            var folder = await picker.PickSingleFolderAsync();
+            if (folder is not null)
+            {
+                BuildExportViewModel.OutputDirectory = folder.Path;
+            }
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException
+                                          or InvalidOperationException
+                                          or System.Runtime.InteropServices.COMException)
+        {
+            _logger.LogWarning(
+                "The export folder picker failed with exception type {ExceptionType}",
+                exception.GetType().Name);
+            BuildExportViewModel.ReportFolderSelectionUnavailable();
+        }
+    }
+
+    private async void OnBuildExportClicked(object sender, RoutedEventArgs e) =>
+        await BuildExportViewModel.StartAsync();
+
+    private void OnCancelBuildExportClicked(object sender, RoutedEventArgs e) =>
+        BuildExportViewModel.Cancel();
 
     private void OnTextureGridItemClicked(object sender, ItemClickEventArgs e) =>
         ViewModel.SelectedTexture = e.ClickedItem as WorkspaceTextureItem;

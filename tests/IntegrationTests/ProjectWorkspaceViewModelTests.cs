@@ -288,6 +288,11 @@ public sealed class ProjectWorkspaceViewModelTests
 
         public ValueTask ActivateAsync(AuditionProject nextProject, IProjectArchiveWorkspace nextWorkspace) =>
             throw new NotSupportedException();
+
+        public ValueTask<bool> TryUpdateProjectAsync(
+            AuditionProject expectedProject,
+            IProjectArchiveWorkspace expectedWorkspace,
+            AuditionProject updatedProject) => ValueTask.FromResult(false);
     }
 
     private sealed class TestWorkspace : IProjectArchiveWorkspace

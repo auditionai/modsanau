@@ -215,5 +215,10 @@ public sealed class HomeViewModelTests
 
         public ValueTask ActivateAsync(AuditionProject project, IProjectArchiveWorkspace workspace) =>
             ValueTask.CompletedTask;
+
+        public ValueTask<bool> TryUpdateProjectAsync(
+            AuditionProject expectedProject,
+            IProjectArchiveWorkspace expectedWorkspace,
+            AuditionProject updatedProject) => ValueTask.FromResult(false);
     }
 }

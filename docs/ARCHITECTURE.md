@@ -829,3 +829,20 @@ Save current project
 - Critical final verification/commit không bị cancellation cắt ngang sau promotion; cancellation trước promotion
   cleanup candidate. Singleton service serialize transaction để tránh local destination races; PLAN 54 quản lý
   bounded batch orchestration.
+
+## Build & Export UI từ PLAN 53
+
+- `BuildExportViewModel` compose exact active `AuditionProject`/retained workspace từ application session với
+  `IProjectBuildService`, `IArchiveExportDestinationValidator`, `IArchiveExportService` và
+  `IBackgroundTaskManager`. UI không gọi archive tool, không pack/copy file và không dựng pipeline thứ hai.
+- Mỗi lần chạy snapshot output directory, filename và explicit overwrite policy; destination preflight nằm trong
+  typed `Build` background job trước expensive build. PLAN 49 vẫn thực hiện project validation/build và PLAN 52
+  vẫn sở hữu export transaction, revalidation, hash verification, atomic promotion và rollback.
+- Progress build/export được map thành stage code giới hạn và thông điệp presentation; cancellation chỉ nhắm exact
+  manager-owned task ID. Sau success, session compare-and-swap aggregate build mới khi exact project/workspace vẫn
+  active, không ghi đè session mới; UI hiển thị final path, size, SHA-256.
+- Code-behind chỉ sở hữu WinUI folder-picker/window interop và chuyển path người dùng chọn vào ViewModel; không có
+  filesystem mutation hay business decision. Workflow nằm trong Project Workspace, dùng semantic resources,
+  explicit labels/help text, target nút tối thiểu 44 px và trạng thái không chỉ dựa vào màu.
+- PLAN 53 không persist machine-local export path, không thêm game path/detection/install/restore/launch/login hoặc
+  runtime observation. Export final archive là điểm kết thúc product pipeline.

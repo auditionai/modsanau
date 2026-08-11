@@ -476,3 +476,20 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Explicit overwrite dùng backup transaction. Failure trước promote không chạm final; failure sau promote rollback
   destination cũ. Rollback failure không bị nuốt và recovery backup được giữ để operator xử lý.
 - Service không log full source/destination path hoặc hashes, không persistence machine path và không chạm game.
+
+## Build & Export UI boundary từ PLAN 53
+
+- Folder picker chỉ là presentation boundary; path trả về vẫn là untrusted machine-local input và phải qua PLAN 51.
+  ViewModel snapshot directory/filename/overwrite intent trước khi enqueue để UI mutation không đổi transaction.
+- Destination preflight chạy trong Background Task Manager trước build; PLAN 52 vẫn revalidate ngay trước mutation,
+  vì preflight không loại bỏ TOCTOU. Existing destination chỉ được replace khi checkbox explicit đã được snapshot.
+- ViewModel chỉ compose exact active project/workspace với PLAN 49/52 services; không nhận arbitrary source archive,
+  không gọi process/copy API, không suy ra game/template/region/engine từ destination và không persist path vào
+  `.audproj` hoặc settings.
+- Presentation không hiển thị raw exception, archive-tool output hay internal diagnostic code. Final full path và
+  SHA-256 chỉ xuất hiện sau success theo yêu cầu user-visible deliverable; chúng không được log và hash không phải
+  chữ ký/provenance proof.
+- Cancellation chỉ truyền qua exact Background Task ID và service token. UI không kill process tùy ý, không tạo
+  game filesystem authority và không thêm install/restore/launch/login/runtime validation.
+- Cập nhật build state dùng compare-and-swap dưới session gate với exact project/workspace reference; job cũ không
+  thể ghi đè project mới vừa được activate. Folder-picker exception chỉ log exception type và trả safe UI message.

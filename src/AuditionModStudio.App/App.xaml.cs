@@ -17,6 +17,8 @@ public partial class App : Application
     private int _shutdownState;
     private Window? _window;
 
+    internal Window? ActiveWindow => _window;
+
     public App()
     {
         InitializeComponent();
