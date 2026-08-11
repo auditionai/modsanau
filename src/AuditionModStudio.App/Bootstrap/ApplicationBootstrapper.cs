@@ -103,6 +103,19 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
 
             return result.Catalog!;
         });
+        builder.Services.AddSingleton<ITextureManifestCatalog>(services =>
+        {
+            var result = TextureManifestCatalog.Create(
+                [],
+                services.GetRequiredService<IModCatalog>());
+            if (!result.Succeeded)
+            {
+                var diagnostics = string.Join(",", result.Issues.Select(issue => issue.DiagnosticCode));
+                throw new InvalidOperationException($"Built-in texture manifest catalog validation failed: {diagnostics}");
+            }
+
+            return result.Catalog!;
+        });
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

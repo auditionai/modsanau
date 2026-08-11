@@ -60,6 +60,7 @@ public readonly record struct ModRelativePath
                 || string.IsNullOrWhiteSpace(segment)
                 || segment.EndsWith(' ')
                 || segment.EndsWith('.')
+                || IsWindowsDeviceName(segment)
                 || segment.Any(character => char.IsControl(character)
                     || ForbiddenCharacters.Contains(character)))
             {
@@ -69,5 +70,22 @@ public readonly record struct ModRelativePath
 
         normalized = candidate;
         return true;
+    }
+
+    private static bool IsWindowsDeviceName(string segment)
+    {
+        var baseName = segment.Split('.')[0];
+        if (baseName.Equals("CON", StringComparison.OrdinalIgnoreCase)
+            || baseName.Equals("PRN", StringComparison.OrdinalIgnoreCase)
+            || baseName.Equals("AUX", StringComparison.OrdinalIgnoreCase)
+            || baseName.Equals("NUL", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return baseName.Length == 4
+            && (baseName.StartsWith("COM", StringComparison.OrdinalIgnoreCase)
+                || baseName.StartsWith("LPT", StringComparison.OrdinalIgnoreCase))
+            && baseName[3] is >= '1' and <= '9';
     }
 }

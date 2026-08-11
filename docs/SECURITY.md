@@ -258,3 +258,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - `ModDefinition` chỉ chứa `RegionProfileId`; ACV country selection vẫn được resolve bên trong trusted region profile/archive execution boundary. Raw selector, executable path và process argument không được thêm vào Mod Catalog API.
 - Production catalog là immutable application metadata và hiện rỗng có chủ ý vì roadmap chưa định danh một built-in Mod Type đầy đủ. Không load user JSON/settings/network để tự thêm hoặc override mod, engine, region, template hay install mapping.
 - PLAN 27 không chạy process, không đọc/ghi archive, không detect game install, không gọi network và không chứa secret. Template existence/hash verification, project snapshot, install và remote signed catalog vẫn thuộc boundary/PLAN tương ứng.
+
+## Texture Manifest boundary từ PLAN 28
+
+- Manifest là code-owned application metadata và gắn explicit với `(GameId, ModId)` đã tồn tại trong trusted Mod Catalog; không load hoặc override từ user settings, project JSON, filesystem hay network.
+- Texture path reuse `ModRelativePath`: separator được normalize, còn rooted path, UNC, traversal, ADS, control character và Windows-forbidden segment bị reject. Duplicate/case-colliding paths bị reject atomically theo Windows filesystem semantics.
+- Semantic `TextureSlotId`, category và recommended edit mode dùng bounded lowercase ASCII grammar. Display name, description và tags là presentation metadata có giới hạn; chúng không được dùng làm filesystem identity hoặc trust decision.
+- Manifest không mở filesystem, parse DDS, chạy process hay chứa tool path/secret. DDS metadata thật vẫn phải đi qua `IDdsMetadataReader`; fallback chỉ trả raw filename/path và không đoán format, dimensions, category hoặc edit semantics.
+- Production catalog rỗng có chủ ý cho đến khi có authoritative product metadata. PLAN 28 không tạo trust path cho external unsigned manifests và không triển khai smart scan, replacement hoặc archive execution.
