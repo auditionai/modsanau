@@ -53,13 +53,13 @@ public readonly record struct TemplateVersion
         && value.All(character => char.IsAsciiLetterOrDigit(character) || character is '.' or '_' or '-');
 }
 
-public readonly record struct TemplateSha256
+public readonly record struct Sha256Digest
 {
-    public TemplateSha256(string value)
+    public Sha256Digest(string value)
     {
         if (value is null || value.Length != 64 || value.Any(character => !char.IsAsciiHexDigit(character)))
         {
-            throw new ArgumentException("Template SHA-256 must contain exactly 64 hexadecimal characters.", nameof(value));
+            throw new ArgumentException("SHA-256 digests must contain exactly 64 hexadecimal characters.", nameof(value));
         }
 
         Value = value.ToUpperInvariant();
@@ -68,6 +68,16 @@ public readonly record struct TemplateSha256
     public string Value { get; }
     public bool IsValid => Value is not null && Value.Length == 64 && Value.All(char.IsAsciiHexDigit);
     public override string ToString() => Value ?? string.Empty;
+}
+
+public readonly record struct TemplateSha256
+{
+    public TemplateSha256(string value) => Digest = new(value);
+
+    public Sha256Digest Digest { get; }
+    public string Value => Digest.Value;
+    public bool IsValid => Digest.IsValid;
+    public override string ToString() => Digest.ToString();
 }
 
 public readonly record struct CompatibleGameBuild

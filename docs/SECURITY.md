@@ -283,3 +283,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Project mới phải snapshot exact bốn thành phần identity. Resolver chỉ báo trung tính `CurrentVersionDiffers` vì version không có ordering; nó không suy ra upgrade/downgrade, mutate project, rebind sang current, ghi manifest hay tự chạy migration. Legacy snapshot thiếu version/build vẫn đọc được để diagnostics nhưng bị coi là invalid, không được default sang current.
 - Compatible game build được so sánh exact ordinal. Hash mismatch, build mismatch, missing template và missing version là các trạng thái riêng; caller không được tiếp tục như exact match.
 - PLAN 30 không chạy process, không download template/tool, không mở archive, không ghi pristine template, không gọi network và không chứa secret. Upgrade/downgrade/migration execution, UI consent và signed remote distribution thuộc PLAN sau khi được phê duyệt.
+
+## Project Model `.audproj` boundary từ PLAN 31
+
+- `.audproj` được xem là local data không tin cậy. Aggregate chỉ nhận typed identity, immutable collection, content hash và normalized relative reference; không chứa executable path, raw process argument, token, provider secret hoặc backend entitlement authority.
+- `ProjectId` và `ProjectAssetId` là machine identity; project name chỉ là Unicode display metadata và tuyệt đối không tham gia workspace/file path. Texture/asset duplicate path được xét theo Windows `OrdinalIgnoreCase` và reject atomically.
+- Template linkage là exact `TemplateIdentity` PLAN 30. Model không default version/hash/build, không rebind sang current catalog và không dùng filename làm template/version identity.
+- Edit/history chỉ lưu revision cùng before/after asset references; dangling reference, duplicate revision và revision ngoài current snapshot bị reject. Không serialize `InternalImage` runtime object hoặc mutable edit-history session.
+- PLAN 31 chưa có filesystem serializer, load/recovery, process, network hoặc workspace mutation. Những trust boundary đó chỉ được mở ở workflow PLAN tương ứng.

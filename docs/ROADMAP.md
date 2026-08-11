@@ -64,7 +64,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 29: reuse recursive archive scanner; validate Game/Mod identity; enrich observed DDS bằng real `IDdsMetadataReader`; generate bounded thumbnails qua preview + in-memory import + resize; exact manifest mapping; raw unknown fallback; missing-slot reporting; deterministic folder grouping; cancellation/progress và atomic structured failure. Real `015.ab` gate xác minh 101 files/52 DDS/46 PNG/3 RGM mà không sửa source.
 - PLAN đã hoàn thành: PLAN 30 — Template Versioning.
 - Phạm vi PLAN 30: canonical typed identity `templateId + version + SHA256 + compatible game build`; immutable multi-version catalog với exact lookup và explicit current marker; atomic conflict validation; exact project snapshot; structured exact/current-differs/missing/hash/build/legacy-invalid resolution; tuyệt đối không silent migration. Production catalog rỗng vì chưa có authoritative template metadata.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 31 — Project Model `.audproj`; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 31 — Project Model `.audproj`.
+- Phạm vi PLAN 31: immutable schema-v1 aggregate lưu project/game/mod/exact-template identity, logical workspace references, edited textures, image/AI assets, edit/history references, build state và timestamps; atomic graph validation, deterministic ordering và generic content SHA-256. Chưa triển khai filesystem persistence/workflow/recovery.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 32 — Create Project Workflow; không tự động bắt đầu.
 
 ## Stage Gates
 

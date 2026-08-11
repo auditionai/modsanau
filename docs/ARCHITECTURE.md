@@ -521,3 +521,21 @@ Project ArchiveTemplateReference
 `AuditionArchiveTemplate` vẫn giữ filename, source-relative path, engine, region và extract-folder mapping của archive boundary, đồng thời expose typed identity PLAN 30. `ArchiveTemplateReference` trong project lưu exact identity; project creation mới từ chối template thiếu version/hash/build. Manifest schema 1 đọc được field build bị thiếu từ dữ liệu legacy nhưng không tự điền current/default: identity đó được xem là invalid cho resolution và không bao giờ silently migrate.
 
 `TemplateVersionCatalog` immutable, construction atomic và đăng ký singleton. Catalog production hiện rỗng có chủ ý vì chưa có authoritative built-in template metadata. Version và SHA-256 là hai trục riêng: cùng version khác hash là conflict/mismatch, không phải version mới. Compatible game build dùng exact ordinal equality. Vì version không có ordering, `CurrentVersionDiffers` cố ý không kết luận upgrade hay downgrade; migration execution, project model `.audproj`, UI prompt, network/download và external manifest không thuộc PLAN 30.
+
+## Project Model `.audproj` từ PLAN 31
+
+`AuditionProject` là immutable aggregate và là schema domain duy nhất cho file `.audproj`. Model lưu `ProjectId`/name, typed `(GameId, ModId)`, exact `TemplateIdentity`, logical workspace reference, edited texture records, image/AI asset references, durable edit/history references, build snapshot, timestamps và schema version. Collection được copy sang `ImmutableArray`, sort deterministic và chỉ publish khi toàn graph hợp lệ.
+
+```text
+AuditionProject schema v1
+  ├─ project/game/mod + exact template identity
+  ├─ workspace ID + relative working archive/extracted root
+  ├─ edited texture identities → current image asset references
+  ├─ image assets + AI assets (relative path + content SHA-256)
+  ├─ edit state/history (revision + before/after asset references)
+  └─ build state + timestamps
+```
+
+`Sha256Digest` centralize generic content-hash validation; `TemplateSha256` tiếp tục là typed template-specific wrapper. Relative references reuse `ModRelativePath` canonical semantics và không chứa absolute path. `ProjectAssetId` là stable machine ID, không phải filename/display name. Validation reject unsupported schema, default identity, malformed workspace reference, Windows path collision, duplicate asset ID/path, dangling texture/history asset reference, invalid revision graph, inconsistent build artifact và timestamp đảo ngược.
+
+PLAN 31 chỉ định nghĩa aggregate/validation; chưa ghi hoặc load filesystem, chưa tạo workspace, extract/scan/save workflow, recovery, Texture State Machine hay reset. Runtime `IProjectArchiveWorkspace`, thumbnail pixels và process/tool path không được serialize vào model.
