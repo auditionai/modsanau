@@ -16,6 +16,24 @@ public sealed class ImageImportServiceTests : IDisposable
     public ImageImportServiceTests() => Directory.CreateDirectory(_root);
 
     [Fact]
+    public async Task Immutable_memory_png_imports_without_filesystem_bridge()
+    {
+        var path = WriteEncoded("memory.png", SKEncodedImageFormat.Png, 2, 2,
+            [new SKColor(10, 20, 30, 255)]);
+        var bytes = await File.ReadAllBytesAsync(path);
+        var request = new ImageImportMemoryRequest(bytes);
+        bytes[0] = 0;
+        File.Delete(path);
+
+        var result = await CreateService().ImportMemoryAsync(request);
+
+        Assert.True(result.Succeeded, result.DiagnosticCode);
+        Assert.Equal(2, result.Image!.Width);
+        Assert.Equal(2, result.Image.Height);
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
     public async Task Png_normalizes_exact_rgba_alpha_stride_and_owned_buffer()
     {
         var path = WriteEncoded("RGBA màu.png", SKEncodedImageFormat.Png, 2, 2, new[]

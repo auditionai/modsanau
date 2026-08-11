@@ -266,3 +266,12 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Semantic `TextureSlotId`, category và recommended edit mode dùng bounded lowercase ASCII grammar. Display name, description và tags là presentation metadata có giới hạn; chúng không được dùng làm filesystem identity hoặc trust decision.
 - Manifest không mở filesystem, parse DDS, chạy process hay chứa tool path/secret. DDS metadata thật vẫn phải đi qua `IDdsMetadataReader`; fallback chỉ trả raw filename/path và không đoán format, dimensions, category hoặc edit semantics.
 - Production catalog rỗng có chủ ý cho đến khi có authoritative product metadata. PLAN 28 không tạo trust path cho external unsigned manifests và không triển khai smart scan, replacement hoặc archive execution.
+
+## Smart Mod Scan boundary từ PLAN 29
+
+- Request chỉ nhận typed Game/Mod identity và existing managed `IProjectArchiveWorkspace`; không nhận arbitrary root, executable path, archive argument hoặc trusted hash override. Game/Mod phải tồn tại trước khi scanner chạy.
+- Recursive traversal, normalization, hashing, reparse rejection và Windows collision detection vẫn thuộc `IArchiveAssetScanner`; Smart Scan không có filesystem enumerator thứ hai. Mỗi DDS path được resolve lại trong extracted root qua `IPathSecurity` trước metadata/preview.
+- Real DDS metadata luôn đến từ `IDdsMetadataReader`. Manifest không override dimensions/format/mips/header; raw assets không được đoán category, tags, edit mode hoặc semantic ID. Mapping chỉ dùng exact normalized path với `OrdinalIgnoreCase`.
+- Thumbnail generation reuse controlled `IDdsPreviewService`, immutable encoded-memory import và bounded resize. Không có user-controlled process/tool path; full decoded image chỉ sống trong một iteration rồi được thay bằng thumbnail tối đa 256 mặc định/1024 hard-cap. PLAN 15 có thể tạo isolated temporary preview output và bắt buộc cleanup; extracted tree, working archive và manifest không bị sửa.
+- Service stateless, xử lý texture tuần tự, propagate cancellation và chỉ publish complete immutable result. Fatal scanner/metadata/thumbnail/mapping failure không trả partial observed catalog. Unknown mapping và missing non-required slot là structured data, không phải exception.
+- PLAN 29 không network, secret, persistent label write, UI, DDS replacement, archive repack hoặc template migration. `CanBeLabeled` chỉ biểu diễn capability cho admin workflow tương lai, không cấp quyền hoặc thay đổi trusted manifest.

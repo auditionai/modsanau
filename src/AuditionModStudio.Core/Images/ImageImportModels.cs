@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace AuditionModStudio.Core.Images;
 
 public enum ImageSourceFormat
@@ -43,6 +45,17 @@ public enum ImageImportFailureReason
 }
 
 public sealed record ImageImportRequest(string SourcePath);
+
+public sealed record ImageImportMemoryRequest
+{
+    public ImageImportMemoryRequest(IEnumerable<byte> encodedBytes)
+    {
+        ArgumentNullException.ThrowIfNull(encodedBytes);
+        EncodedBytes = ImmutableArray.CreateRange(encodedBytes);
+    }
+
+    public ImmutableArray<byte> EncodedBytes { get; }
+}
 
 public sealed record ImageImportResult(
     bool Succeeded,

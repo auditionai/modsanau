@@ -33,89 +33,11 @@ public sealed class ImageImportService(ImageImportResourcePolicy resourcePolicy)
                 FileShare.Read,
                 bufferSize: 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan);
-            var signature = new byte[12];
-            var signatureLength = await source.ReadAsync(signature, cancellationToken).ConfigureAwait(false);
-            var sourceFormat = DetectFormat(signature.AsSpan(0, signatureLength));
-            if (sourceFormat is null)
-            {
-                return ImageImportResult.Failure(
-                    ImageImportFailureReason.UnsupportedFormat,
-                    "IMAGE_IMPORT_UNSUPPORTED_FORMAT");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            source.Position = 0;
-            using var managed = new SKManagedStream(source, disposeManagedStream: false);
-            using var codec = SKCodec.Create(managed);
-            if (codec is null || MapEncodedFormat(codec.EncodedFormat) != sourceFormat)
-            {
-                return ImageImportResult.Failure(
-                    ImageImportFailureReason.InvalidImage,
-                    "IMAGE_IMPORT_INVALID_IMAGE");
-            }
-
-            var sourceInfo = codec.Info;
-            var resourceFailure = ValidateDimensions(sourceInfo.Width, sourceInfo.Height);
-            if (resourceFailure is not null)
-            {
-                return resourceFailure;
-            }
-
-            var orientation = MapOrientation(codec.EncodedOrigin);
-            cancellationToken.ThrowIfCancellationRequested();
-            using var colorSpace = SKColorSpace.CreateSrgb();
-            var decodeInfo = new SKImageInfo(
-                sourceInfo.Width,
-                sourceInfo.Height,
-                SKColorType.Rgba8888,
-                SKAlphaType.Unpremul,
-                colorSpace);
-            using var bitmap = new SKBitmap(decodeInfo);
-            var decodeResult = codec.GetPixels(decodeInfo, bitmap.GetPixels());
-            if (decodeResult != SKCodecResult.Success)
-            {
-                return ImageImportResult.Failure(
-                    decodeResult == SKCodecResult.IncompleteInput
-                        ? ImageImportFailureReason.InvalidImage
-                        : ImageImportFailureReason.DecodeFailed,
-                    decodeResult == SKCodecResult.IncompleteInput
-                        ? "IMAGE_IMPORT_TRUNCATED_IMAGE"
-                        : "IMAGE_IMPORT_DECODE_FAILED");
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            var packedPixels = CopyPackedRgba(bitmap);
-            var normalized = NormalizeOrientation(
-                packedPixels,
-                sourceInfo.Width,
-                sourceInfo.Height,
-                orientation);
-            resourceFailure = ValidateDimensions(normalized.Width, normalized.Height);
-            if (resourceFailure is not null)
-            {
-                return resourceFailure;
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            var metadata = new ImageSourceMetadata(
-                sourceFormat.Value,
-                sourceInfo.Width,
-                sourceInfo.Height,
-                orientation,
-                OrientationNormalized: true,
-                HasIccProfile: sourceInfo.ColorSpace is not null);
-            return ImageImportResult.Success(new InternalImage(
-                normalized.Width,
-                normalized.Height,
-                checked(normalized.Width * 4),
-                normalized.Pixels,
-                metadata));
+            return Decode(source, cancellationToken);
         }
         catch (OperationCanceledException)
         {
-            return ImageImportResult.Failure(
-                ImageImportFailureReason.Cancelled,
-                "IMAGE_IMPORT_CANCELLED");
+            return Cancelled();
         }
         catch (UnauthorizedAccessException)
         {
@@ -125,11 +47,138 @@ public sealed class ImageImportService(ImageImportResourcePolicy resourcePolicy)
         }
         catch (Exception exception) when (exception is ArgumentException or IOException or OverflowException)
         {
-            return ImageImportResult.Failure(
-                ImageImportFailureReason.DecodeFailed,
-                "IMAGE_IMPORT_DECODE_FAILED");
+            return DecodeFailed();
         }
     }
+
+    public Task<ImageImportResult> ImportMemoryAsync(
+        ImageImportMemoryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromResult(Cancelled());
+        }
+
+        if (request.EncodedBytes.IsEmpty)
+        {
+            return Task.FromResult(ImageImportResult.Failure(
+                ImageImportFailureReason.InvalidImage,
+                "IMAGE_IMPORT_EMPTY_SOURCE"));
+        }
+
+        if (request.EncodedBytes.Length > resourcePolicy.MaximumSourceBytes)
+        {
+            return Task.FromResult(ImageImportResult.Failure(
+                ImageImportFailureReason.ResourceLimitExceeded,
+                "IMAGE_IMPORT_SOURCE_TOO_LARGE"));
+        }
+
+        try
+        {
+            var bytes = request.EncodedBytes.ToArray();
+            using var source = new MemoryStream(bytes, writable: false);
+            return Task.FromResult(Decode(source, cancellationToken));
+        }
+        catch (OperationCanceledException)
+        {
+            return Task.FromResult(Cancelled());
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or OverflowException)
+        {
+            return Task.FromResult(DecodeFailed());
+        }
+    }
+
+    private ImageImportResult Decode(Stream source, CancellationToken cancellationToken)
+    {
+        var signature = new byte[12];
+        var signatureLength = source.Read(signature, 0, signature.Length);
+        var sourceFormat = DetectFormat(signature.AsSpan(0, signatureLength));
+        if (sourceFormat is null)
+        {
+            return ImageImportResult.Failure(
+                ImageImportFailureReason.UnsupportedFormat,
+                "IMAGE_IMPORT_UNSUPPORTED_FORMAT");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        source.Position = 0;
+        using var managed = new SKManagedStream(source, disposeManagedStream: false);
+        using var codec = SKCodec.Create(managed);
+        if (codec is null || MapEncodedFormat(codec.EncodedFormat) != sourceFormat)
+        {
+            return ImageImportResult.Failure(
+                ImageImportFailureReason.InvalidImage,
+                "IMAGE_IMPORT_INVALID_IMAGE");
+        }
+
+        var sourceInfo = codec.Info;
+        var resourceFailure = ValidateDimensions(sourceInfo.Width, sourceInfo.Height);
+        if (resourceFailure is not null)
+        {
+            return resourceFailure;
+        }
+
+        var orientation = MapOrientation(codec.EncodedOrigin);
+        cancellationToken.ThrowIfCancellationRequested();
+        using var colorSpace = SKColorSpace.CreateSrgb();
+        var decodeInfo = new SKImageInfo(
+            sourceInfo.Width,
+            sourceInfo.Height,
+            SKColorType.Rgba8888,
+            SKAlphaType.Unpremul,
+            colorSpace);
+        using var bitmap = new SKBitmap(decodeInfo);
+        var decodeResult = codec.GetPixels(decodeInfo, bitmap.GetPixels());
+        if (decodeResult != SKCodecResult.Success)
+        {
+            return ImageImportResult.Failure(
+                decodeResult == SKCodecResult.IncompleteInput
+                    ? ImageImportFailureReason.InvalidImage
+                    : ImageImportFailureReason.DecodeFailed,
+                decodeResult == SKCodecResult.IncompleteInput
+                    ? "IMAGE_IMPORT_TRUNCATED_IMAGE"
+                    : "IMAGE_IMPORT_DECODE_FAILED");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var packedPixels = CopyPackedRgba(bitmap);
+        var normalized = NormalizeOrientation(
+            packedPixels,
+            sourceInfo.Width,
+            sourceInfo.Height,
+            orientation);
+        resourceFailure = ValidateDimensions(normalized.Width, normalized.Height);
+        if (resourceFailure is not null)
+        {
+            return resourceFailure;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var metadata = new ImageSourceMetadata(
+            sourceFormat.Value,
+            sourceInfo.Width,
+            sourceInfo.Height,
+            orientation,
+            OrientationNormalized: true,
+            HasIccProfile: sourceInfo.ColorSpace is not null);
+        return ImageImportResult.Success(new InternalImage(
+            normalized.Width,
+            normalized.Height,
+            checked(normalized.Width * 4),
+            normalized.Pixels,
+            metadata));
+    }
+
+    private static ImageImportResult Cancelled() => ImageImportResult.Failure(
+        ImageImportFailureReason.Cancelled,
+        "IMAGE_IMPORT_CANCELLED");
+
+    private static ImageImportResult DecodeFailed() => ImageImportResult.Failure(
+        ImageImportFailureReason.DecodeFailed,
+        "IMAGE_IMPORT_DECODE_FAILED");
 
     private (string? Path, ImageImportResult? Failure) ValidatePath(string sourcePath)
     {

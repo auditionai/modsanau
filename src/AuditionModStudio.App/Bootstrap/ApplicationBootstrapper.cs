@@ -116,6 +116,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
 
             return result.Catalog!;
         });
+        builder.Services.AddSingleton<ISmartModScanService, SmartModScanService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

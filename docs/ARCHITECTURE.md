@@ -480,3 +480,23 @@ Quan hệ domain được mở rộng theo chuỗi `Game → ModDefinition → T
 Slot chỉ chứa metadata được roadmap yêu cầu: display name, typed category, description, immutable tags, preview/editable flags và typed recommended edit mode. Manifest không chứa DDS format, dimensions, mip count hoặc header; `IDdsMetadataReader` tiếp tục là source of truth cho file thật. Không có required/optional semantics hoặc manifest version trong PLAN này.
 
 `TextureManifestCatalog` là immutable code-owned metadata. Lookup thiếu manifest hoặc mapping trả fallback gồm normalized relative path và raw filename, không scan filesystem và không đoán semantic metadata. Production catalog hiện rỗng có chủ ý vì chưa có authoritative texture mapping. PLAN 28 không triển khai smart scan PLAN 29, thumbnail generation, editor state, DDS conversion, replacement hoặc archive execution.
+
+## Smart Mod Scan từ PLAN 29
+
+`ISmartModScanService` nhận typed `(GameId, ModId)` và một `IProjectArchiveWorkspace` đã extract. `SmartModScanService` không enumerate filesystem lần hai mà gọi `IArchiveAssetScanner`, giữ nguyên full observed catalog, lọc `TextureAsset` cho texture pipeline, rồi xử lý tuần tự theo relative path để giới hạn peak memory.
+
+```text
+ModDefinition + optional TextureManifest + extracted project workspace
+  → IArchiveAssetScanner
+  → each observed TextureAsset
+       → IDdsMetadataReader (runtime source of truth)
+       → IDdsPreviewService → immutable PNG memory
+       → IImageImportService.ImportMemoryAsync → IImageResizeService
+       → bounded InternalImage thumbnail
+       → exact ITextureManifestCatalog resolution
+  → deterministic folder groups + missing slots + raw/unknown assets
+```
+
+Exact manifest mapping dùng normalized full relative path với Windows `OrdinalIgnoreCase`; không filename-only, fuzzy, similarity hay category inference. DDS ngoài manifest vẫn xuất hiện với raw filename/path, `UnknownSemantics=true` và `CanBeLabeled=true`. Slot khai báo nhưng không observed nằm trong informational `MissingManifestSlots`, không làm scan fail vì PLAN 28 không có required/optional semantics. Output chỉ được publish khi scanner, metadata và thumbnail cho mọi DDS đều thành công; cancellation/failure không trả partial catalog.
+
+Thumbnail tối đa 256 mặc định, hard-cap 1024. Decode reuse controlled preview boundary; PNG được chuyển thẳng qua immutable memory import và resize, không tạo bridge file riêng. Preview implementation có thể dùng isolated temporary `BuildOutput` operation theo PLAN 15 và cleanup trong `finally`; Smart Scan không sửa extracted files, archive hoặc manifest. Production manifest rỗng được hỗ trợ: toàn bộ DDS trở thành raw unknown assets. Admin labeling persistence/UI, editor, replacement/repack và Template Versioning PLAN 30 không thuộc PLAN 29.
