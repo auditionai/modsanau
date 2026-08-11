@@ -22,6 +22,7 @@ using AuditionModStudio.Mods;
 using AuditionModStudio.Projects;
 using AuditionModStudio.Dds;
 using AuditionModStudio.App.Shell;
+using AuditionModStudio.App.Home;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -158,6 +159,11 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddHostedService(services =>
             services.GetRequiredService<BackgroundTaskManager>());
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
+        builder.Services.AddSingleton<ApplicationProjectSession>();
+        builder.Services.AddSingleton<IApplicationProjectSession>(services =>
+            services.GetRequiredService<ApplicationProjectSession>());
+        builder.Services.AddSingleton<HomeViewModel>();
+        builder.Services.AddTransient<HomePage>();
         builder.Services.AddSingleton<AppShellViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddSingleton<MainWindow>();

@@ -92,8 +92,10 @@
                 </Grid>
             </Border>
 
-            <ScrollViewer Grid.Row="1">
-                <Grid Padding="{StaticResource AmsShellContentPadding}">
+            <Grid Grid.Row="1">
+                <ContentControl x:Name="HomeContent" />
+                <ScrollViewer x:Name="PlaceholderContent">
+                    <Grid Padding="{StaticResource AmsShellContentPadding}">
                     <Border
                         MaxWidth="960"
                         HorizontalAlignment="Stretch"
@@ -110,8 +112,9 @@
                                 Text="{x:Bind ViewModel.CurrentDescription, Mode=OneWay}" />
                         </StackPanel>
                     </Border>
-                </Grid>
-            </ScrollViewer>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
         </Grid>
     </NavigationView>
 </Page>

@@ -363,3 +363,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Top bar không coi credits, connection, notification hoặc account text là authority. Trạng thái thương mại về sau vẫn phải đến từ trusted backend và client chỉ hiển thị.
 - Shell/ViewModel không nhận executable path, raw archive argument, country selector, trusted template hash hoặc secret; không gọi filesystem/process/network.
 - Navigation không làm thay đổi project/workspace lifecycle. Đóng cửa sổ vẫn đi qua graceful host shutdown hiện có và không xóa retained project workspace.
+
+## Home creation boundary từ PLAN 42
+
+- Normal-user flow chỉ nhận typed Game/Mod selection và project display name. Không có filesystem archive selection, executable path, raw ACV argument, country selector, template hash override hoặc local entitlement override.
+- Compatible Mod Type đến duy nhất từ code-owned `IModCatalog`; khi catalog production rỗng, UI fail-closed bằng empty state và disable Create.
+- Long-running create đi qua Background Task Manager rồi existing Project Creation Service. UI không tự extract, scan, acquire template, save `.audproj` hoặc clear recovery flag.
+- Raw exception, process output và internal diagnostic code không hiển thị cho người dùng. Presentation message chỉ mô tả recovery action an toàn; diagnostics tiếp tục thuộc structured logs hiện có.
+- Active project session chỉ giữ domain aggregate cùng managed retained-workspace lease; project name không tham gia path và session dispose không xóa retained project data.

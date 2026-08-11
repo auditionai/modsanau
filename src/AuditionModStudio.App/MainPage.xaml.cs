@@ -1,4 +1,5 @@
 using AuditionModStudio.App.Shell;
+using AuditionModStudio.App.Home;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -7,11 +8,16 @@ namespace AuditionModStudio.App;
 
 public sealed partial class MainPage : Page
 {
-    public MainPage(AppShellViewModel viewModel)
+    private readonly HomePage _homePage;
+
+    public MainPage(AppShellViewModel viewModel, HomePage homePage)
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
+        _homePage = homePage ?? throw new ArgumentNullException(nameof(homePage));
         InitializeComponent();
         PopulateNavigationItems();
+        HomeContent.Content = _homePage;
+        UpdateRouteContent();
     }
 
     public AppShellViewModel ViewModel { get; }
@@ -45,7 +51,22 @@ public sealed partial class MainPage : Page
 
         if (ViewModel.Navigate(route))
         {
-            ContentHeading.Focus(FocusState.Programmatic);
+            UpdateRouteContent();
+            if (route == AppRoute.Home)
+            {
+                _homePage.FocusPrimaryHeading();
+            }
+            else
+            {
+                ContentHeading.Focus(FocusState.Programmatic);
+            }
         }
+    }
+
+    private void UpdateRouteContent()
+    {
+        var isHome = ViewModel.CurrentRoute == AppRoute.Home;
+        HomeContent.Visibility = isHome ? Visibility.Visible : Visibility.Collapsed;
+        PlaceholderContent.Visibility = isHome ? Visibility.Collapsed : Visibility.Visible;
     }
 }

@@ -34,6 +34,9 @@
     <Compile Include="..\..\src\AuditionModStudio.App\Shell\AppRoute.cs" Link="AppShell\AppRoute.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\Shell\AppShellViewModel.cs" Link="AppShell\AppShellViewModel.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\Shell\ShellNavigationItem.cs" Link="AppShell\ShellNavigationItem.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Shell\ApplicationProjectSession.cs" Link="Home\ApplicationProjectSession.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Home\HomeOptions.cs" Link="Home\HomeOptions.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Home\HomeViewModel.cs" Link="Home\HomeViewModel.cs" />
   </ItemGroup>
 
 </Project>

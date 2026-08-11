@@ -665,3 +665,11 @@ Chi tiết token/component usage nằm trong `docs/DESIGN_SYSTEM.md`. PLAN 40 kh
 - `NavigationView` cung cấp sidebar thích ứng và native keyboard/selection semantics. Content PLAN 41 chỉ là placeholder; các page Home, Project Workspace, Texture Grid và Crop/Resize được mở ở PLAN tương ứng.
 - Top bar chỉ hiển thị trạng thái trung tính khi auth/cloud chưa tồn tại. Credits và connection trong client không phải authority; shell không chứa token, secret, executable path, process argument hoặc trusted hash.
 - Shell không tạo background queue, không poll process và không tự cleanup/recover workspace. Khi PLAN sau cần trạng thái task/recovery, orchestration phải reuse contract PLAN 38/39.
+
+## Home: Game → Mod First từ PLAN 42
+
+- `HomeViewModel` chỉ nhận `IGameCatalog`, `IModCatalog`, `IProjectCreationService`, `IBackgroundTaskManager` và application project session qua DI. UI option chỉ chứa typed Game/Mod ID cùng display metadata cần thiết; không expose archive template, hash, executable path hoặc region selector.
+- Chọn Game luôn xóa Mod selection cũ rồi query `IModCatalog.GetMods(GameId)`. Create chỉ được bật khi selected Mod thuộc snapshot tương thích hiện tại và project name hợp lệ. Production Mod Catalog rỗng tiếp tục là empty state an toàn, không được thay bằng fake built-in mapping.
+- Create chạy như một job được PLAN 38 quản lý; operation gọi duy nhất `IProjectCreationService`, map progress có cấu trúc và không đưa raw diagnostic/exception ra UI. Cancel đi qua task ID typed của manager.
+- `ApplicationProjectSession` là owner cấp ứng dụng cho exact `AuditionProject` cùng retained `IProjectArchiveWorkspace` do workflow trả về. Nó không parse/save project và không tạo source of truth song song; lease được dispose khi host shutdown hoặc khi session được thay thế.
+- Home không có file/archive picker, không đọc `.audproj`, không chạy ACV/DDS/image trực tiếp và không tự chọn template. Project Workspace thuộc PLAN 43.

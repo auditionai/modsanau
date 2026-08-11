@@ -86,7 +86,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 40: WinUI three-layer design tokens; dark/light/high-contrast semantic contract; shared acrylic panel, rounded/gradient cards, depth hover/pressed buttons, badge và typography styles; keyboard focus/accessibility/performance rules.
 - PLAN đã hoàn thành kiểm chứng: PLAN 41 — App Shell.
 - Phạm vi PLAN 41: shell WinUI thích ứng với 8 route strongly typed; top bar account/credits/notifications/connection; ViewModel presentation state; keyboard focus sau navigation; reuse design system Default/Light/HighContrast. Nội dung feature vẫn là placeholder theo đúng ranh giới PLAN.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 42 — Home: Game → Mod First; chưa được triển khai.
+- PLAN đã hoàn thành kiểm chứng: PLAN 42 — Home: Game → Mod First.
+- Phạm vi PLAN 42: Home theo thứ tự Game → compatible Mod Type → project name → Create; catalog typed; explicit empty state khi production Mod Catalog chưa có metadata có thẩm quyền; create qua Background Task Manager và existing Project Creation Service; active project session giữ retained workspace lease.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 43 — Project Workspace UI; chưa được triển khai.
 
 ## Stage Gates
 
