@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using AuditionModStudio.Archives;
@@ -140,6 +141,56 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             decoded.Add(result);
         }
 
+        var previewService = new DdsPreviewService(
+            metadataReader,
+            harness,
+            pathSecurity,
+            new DdsPreviewServiceOptions(
+                texconvPath!,
+                TimeSpan.FromMinutes(2),
+                DdsPreviewResourcePolicy.Default));
+        var previewStopwatch = Stopwatch.StartNew();
+        var previewedFormats = new HashSet<DdsFormat>();
+        long largestPreviewPixels = 0;
+        DdsMetadata? largestPreviewMetadata = null;
+        foreach (var item in realMetadata)
+        {
+            var relativeInput = Path.GetRelativePath(
+                workspace.ArchiveWorkspace.SecureWorkspace.Paths.RootDirectory,
+                item.Path);
+            var preview = await previewService.CreateAsync(new(
+                workspace.ArchiveWorkspace.SecureWorkspace,
+                relativeInput));
+            Assert.True(preview.Succeeded, preview.DiagnosticCode);
+            Assert.NotNull(preview.Image);
+            Assert.Equal(item.Metadata.Width, preview.Image.Width);
+            Assert.Equal(item.Metadata.Height, preview.Image.Height);
+            Assert.Equal(DdsPreviewImage.PngMediaType, preview.Image.MediaType);
+            Assert.True(preview.Image.EncodedPng.Length >= 24);
+            Assert.True(preview.Image.EncodedPng.AsSpan(0, 8).SequenceEqual(
+                new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }));
+            previewedFormats.Add(item.Metadata.Format);
+            var pixels = (long)item.Metadata.Width * item.Metadata.Height;
+            if (pixels > largestPreviewPixels)
+            {
+                largestPreviewPixels = pixels;
+                largestPreviewMetadata = item.Metadata;
+            }
+        }
+
+        previewStopwatch.Stop();
+        Assert.Equal(52, realMetadata.Count);
+        Assert.Contains(DdsFormat.BC1, previewedFormats);
+        Assert.Contains(DdsFormat.BC3, previewedFormats);
+        Assert.Contains(DdsFormat.Rgba8, previewedFormats);
+        Assert.Contains(DdsFormat.Bgra8, previewedFormats);
+        Assert.Contains(realMetadata, item => item.Metadata.Width == 6000 && item.Metadata.Height == 1801);
+        Assert.Contains(realMetadata, item => item.Metadata.Width == 4000 && item.Metadata.Height == 4000);
+        Assert.DoesNotContain(
+            Directory.EnumerateFileSystemEntries(
+                workspace.ArchiveWorkspace.SecureWorkspace.Paths.BuildOutputDirectory),
+            path => Path.GetFileName(path).StartsWith("DdsPreview-", StringComparison.Ordinal));
+
         var unusualPngRelative = @"Working\evaluation-input-137x512.png";
         var unusualPngPath = workspace.ArchiveWorkspace.SecureWorkspace.ResolveRelativePath(unusualPngRelative);
         await WriteSolidRgbaPngAsync(unusualPngPath, 137, 512);
@@ -211,6 +262,13 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             decoded.Count,
             string.Join(", ", representatives.Select(item => item.Metadata.Format).Distinct().Order()));
         output.WriteLine("Encode BC3 legacy: 137x512 mips=4; 6000x1801 mips=1; decode-back=6000x1801");
+        output.WriteLine(
+            "PLAN 15 production preview: 52/52; elapsed={0:F2}s; largest={1}x{2} ({3:N0} pixels); formats=[{4}]",
+            previewStopwatch.Elapsed.TotalSeconds,
+            largestPreviewMetadata!.Width,
+            largestPreviewMetadata.Height,
+            largestPreviewPixels,
+            string.Join(", ", previewedFormats.Order()));
     }
 
     private static string? GetApprovedTexconvPath() =>

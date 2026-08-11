@@ -157,3 +157,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Input/output bị confine trong `ISecureWorkspace`; output chỉ được tạo dưới `BuildOutput`. Existing output không bị overwrite âm thầm.
 - Process có timeout/cancellation, kill process tree và diagnostic capture hữu hạn. Malformed/preflight failure không launch native tool.
 - Hash pinning chưa loại bỏ hoàn toàn TOCTOU/DLL-load risk và không thay thế Authenticode/supply-chain review. Harness không được expose thành production UX.
+
+## DDS preview boundary từ PLAN 15
+
+- Preview request chỉ nhận secure workspace và relative DDS path; không nhận executable/DLL path từ user hoặc project. Composition root cung cấp absolute packaged-tool location, còn descriptor PLAN 14 tiếp tục pin filename/version/SHA-256 và copy-verify trước launch.
+- `IDdsMetadataReader` luôn chạy trước native decode. Chỉ known 2D, non-cubemap, single-array resources được chấp nhận; input bytes, dimensions, pixel count và encoded PNG bytes dùng `DdsPreviewResourcePolicy` tập trung. Header độc hại bị reject trước native allocation.
+- Mỗi operation ghi vào `BuildOutput/DdsPreview-<random-id>`, không ghi PNG cạnh DDS source và không dùng global filename. PNG được kiểm tra IHDR/dimensions trước khi trở thành immutable memory DTO; temp operation directory được cleanup trong `finally`.
+- Cancellation khác failure; external process có finite configurable timeout và kill process tree. Preview result chỉ trả stable diagnostic code, không chuyển raw stdout/stderr hoặc proprietary filename cho UI.
+- Preview full-resolution giữ PNG bytes trong RAM; giới hạn hiện tại giảm rủi ro allocation nhưng chưa phải streaming/thumbnail cache. SHA pinning vẫn không loại bỏ hoàn toàn local Administrator, TOCTOU, DLL search-order hoặc release supply-chain risk.

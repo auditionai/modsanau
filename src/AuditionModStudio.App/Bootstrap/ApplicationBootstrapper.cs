@@ -69,6 +69,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IDdsMetadataReader, DdsMetadataReader>();
         builder.Services.AddSingleton(DirectXTexEvaluationToolCatalog.May2026X64);
         builder.Services.AddSingleton<IDirectXTexEvaluationHarness, DirectXTexEvaluationHarness>();
+        builder.Services.AddSingleton(DdsPreviewServiceOptions.CreateProduction(AppContext.BaseDirectory));
+        builder.Services.AddSingleton<IDdsPreviewService, DdsPreviewService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

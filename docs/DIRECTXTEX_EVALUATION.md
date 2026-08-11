@@ -70,7 +70,7 @@ Các con số format/dimension này chỉ là observation của archive mẫu hi
 ## Quyết định kiến trúc
 
 - Giữ `DirectXTexEvaluationHarness` và `texconv` làm oracle/prototype có kiểm soát cho compatibility tests.
-- PLAN 15 nên triển khai `IDdsPreviewService` sau abstraction, ưu tiên narrow DirectXTex native wrapper để trả pixel trong bộ nhớ và tránh process/temp PNG trong UX production. Harness hiện tại không được expose trực tiếp cho UI.
+- PLAN 15 đã triển khai `IDdsPreviewService` sau abstraction bằng controlled `texconv`, reuse nguyên trust boundary PLAN 14. Preview request không expose harness/tool path; service trả immutable PNG bytes trong memory và cleanup temp output. Narrow native wrapper chưa cần thiết cho acceptance hiện tại và không được tự mở rộng sang P/Invoke/C++.
 - PLAN 16 mới quyết định/triển khai production `IDdsEncoder`; không tái sử dụng một global DXT5 default. `DdsTargetSettings` phải xuất phát từ metadata target ở PLAN 17.
 
 ## Bảo mật và giới hạn
@@ -82,3 +82,10 @@ Các con số format/dimension này chỉ là observation của archive mẫu hi
 - Process có timeout, cancellation, process-tree termination, bounded stdout/stderr và structured failure.
 - Evaluation chưa chứng minh mọi DDS format, cubemap, array, volume, color profile hay malformed payload trên thế giới.
 - Pin SHA-256 là integrity policy cho prototype, không thay thế Authenticode verification, dependency provenance/SBOM và release packaging review của PLAN sau.
+
+## Finding production preview từ PLAN 15
+
+- `texconv -ft png` giữ base dimensions, alpha và channel order trên synthetic RGBA8/BGRA8/BC1/BC3; red RGBA/BGRA không bị swap thành blue, BC3 alpha không bị flatten.
+- Production service xử lý 52/52 real DDS của disposable extract, gồm BC1, BC3, RGBA8 và BGRA8; 6000×1801 và 4000×4000 giữ nguyên dimensions. Đây vẫn chỉ là coverage của archive mẫu hiện tại.
+- Full-resolution PNG là UI-safe transport chứ không phải color-management engine. Service không tự gamma-convert; legacy unknown color space vẫn `Unknown`, DXGI sRGB metadata vẫn nằm trong source metadata. PNG writer behavior của DirectXTex/WIC không được dùng để suy đoán legacy sRGB.
+- Output directory per request loại collision khi hai DDS khác folder có cùng basename. Tool provisioning chấp nhận race an toàn khi một request đồng thời đã đặt đúng pinned binary trước.

@@ -288,8 +288,25 @@ public sealed class DirectXTexEvaluationHarness(
             var temporaryPath = pathSecurity.ResolvePathWithinRoot(
                 toolDirectory,
                 $"{Guid.NewGuid():N}.tmp");
-            await CopyFileAsync(sourcePath, temporaryPath, cancellationToken).ConfigureAwait(false);
-            File.Move(temporaryPath, destinationPath);
+            try
+            {
+                await CopyFileAsync(sourcePath, temporaryPath, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    File.Move(temporaryPath, destinationPath);
+                }
+                catch (IOException) when (File.Exists(destinationPath))
+                {
+                    // A concurrent operation provisioned the same pinned binary first.
+                }
+            }
+            finally
+            {
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
+                }
+            }
         }
 
         if (!await HashMatchesAsync(destinationPath, approvedTool.Sha256, cancellationToken).ConfigureAwait(false))

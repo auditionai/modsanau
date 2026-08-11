@@ -250,3 +250,23 @@ ISecureWorkspace input
 ```
 
 UI không tham chiếu harness. Kết quả, command/API và quyết định native-wrapper cho PLAN sau được ghi tại `docs/DIRECTXTEX_EVALUATION.md`.
+
+## DDS Preview Service từ PLAN 15
+
+`Core` định nghĩa `IDdsPreviewService`, request/result/failure và `DdsPreviewImage` bất biến. Representation là PNG encoded trong memory (`image/png`) kèm width/height; không chứa `BitmapImage`, XAML object, WinUI control, raw stride hoặc layout channel cần caller suy đoán.
+
+Pipeline production preview:
+
+```text
+DDS trong ISecureWorkspace
+  → IDdsMetadataReader preflight
+  → DdsPreviewResourcePolicy
+  → controlled DirectXTex decode mip 0
+  → PNG IHDR/dimension/byte-length validation
+  → immutable DdsPreviewImage
+  → caller/UI adapter/cache consumer tương lai
+```
+
+`DdsPreviewService` dùng `DirectXTexEvaluationHarness` như process boundary đã được pin của PLAN 14, nhưng không expose harness hoặc tool path trong preview request. Đường dẫn tool production là cấu hình DI code-owned dưới application base directory; mỗi request dùng output directory GUID riêng dưới `BuildOutput`, đọc kết quả vào memory rồi cleanup trong `finally`. Service stateless, chạy bất đồng bộ, hỗ trợ cancellation/finite timeout và không sửa source.
+
+PLAN 15 chỉ decode full-resolution base mip; không resize/downscale âm thầm. Preview Service không phải production encoder, image editor hay disk thumbnail cache. Encoder vẫn thuộc PLAN 16; UI adapter/cache thuộc PLAN phù hợp sau.
