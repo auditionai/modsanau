@@ -1,3 +1,5 @@
+using AuditionModStudio.Core.Archives;
+
 namespace AuditionModStudio.Archives;
 
 public sealed class GameRegionProfileCatalog : IGameRegionProfileResolver

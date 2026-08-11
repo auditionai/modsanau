@@ -1,3 +1,4 @@
+using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Workspaces;
 
 namespace AuditionModStudio.Archives;

@@ -1,4 +1,4 @@
-namespace AuditionModStudio.Archives;
+namespace AuditionModStudio.Core.Archives;
 
 public interface IGameRegionProfileResolver
 {

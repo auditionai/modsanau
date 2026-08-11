@@ -56,7 +56,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 25: `InternalImage` in/out cho view/invert/threshold; immutable tightly-packed `AlphaChannelData` cho extract/replace; grayscale opaque view; exact `A >= threshold`; byte-exact RGB và hidden-RGB preservation; structured validation, cancellation, concurrency, resource policy, history và DDS interoperability.
 - PLAN đã hoàn thành: PLAN 26 — Game Catalog.
 - Phạm vi PLAN 26: strongly typed stable `GameId`; immutable `GameDefinition`; code-owned deterministic `IGameCatalog`; built-in Audition entry; structured duplicate/null/empty validation; Try lookup; singleton DI và không chứa archive filename/path/engine/region metadata của PLAN 27.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 27 — Mod Definition; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 27 — Mod Definition.
+- Phạm vi PLAN 27: strongly typed `ModId`; immutable `ModDefinition`; explicit `GameId`; semantic display/category/cover/description; reuse versioned `AuditionArchiveTemplate`; explicit engine/region/keydat/install/compatibility mapping; deterministic game-scoped `IModCatalog`; atomic structured validation và singleton DI. Không tạo built-in Mod Type vì roadmap chưa cung cấp đủ semantic metadata có thẩm quyền.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 28 — Texture Manifest; không tự động bắt đầu.
 
 ## Stage Gates
 

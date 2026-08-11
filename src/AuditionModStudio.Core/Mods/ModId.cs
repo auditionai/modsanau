@@ -1,15 +1,17 @@
-namespace AuditionModStudio.Core.Games;
+using AuditionModStudio.Core.Games;
 
-public readonly record struct GameId
+namespace AuditionModStudio.Core.Mods;
+
+public readonly record struct ModId
 {
     public const int MaximumLength = StableCatalogId.MaximumLength;
 
-    public GameId(string value)
+    public ModId(string value)
     {
         if (!StableCatalogId.IsValid(value))
         {
             throw new ArgumentException(
-                "Game IDs must use 1-64 lowercase ASCII letters, digits, underscores, or hyphens and start with a letter or digit.",
+                "Mod IDs must use 1-64 lowercase ASCII letters, digits, underscores, or hyphens and start with a letter or digit.",
                 nameof(value));
         }
 
@@ -20,18 +22,17 @@ public readonly record struct GameId
 
     public bool IsValid => StableCatalogId.IsValid(Value);
 
-    public static bool TryCreate(string? value, out GameId gameId)
+    public static bool TryCreate(string? value, out ModId modId)
     {
         if (!StableCatalogId.IsValid(value))
         {
-            gameId = default;
+            modId = default;
             return false;
         }
 
-        gameId = new GameId(value!);
+        modId = new ModId(value!);
         return true;
     }
 
     public override string ToString() => Value ?? string.Empty;
-
 }

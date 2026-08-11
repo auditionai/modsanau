@@ -249,3 +249,12 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - `GameDefinition` của PLAN 26 không chứa executable path, archive filename/source path, tool/template hash, archive engine, region profile, raw country selection, install path hoặc secret. Các trusted mapping đó chỉ được thêm ở PLAN tương ứng với validation riêng.
 - Catalog reject null/empty/duplicate definition bằng structured issue và không phát hành partial catalog. Built-in validation failure làm bootstrap fail-fast thay vì xuất hiện muộn khi người dùng chọn game.
 - Public collection và definition đều immutable; concurrent reads không chia sẻ mutable state. PLAN 26 không ghi filesystem, không chạy process, không gọi network và không tạo trust override từ local configuration.
+
+## Mod definition boundary từ PLAN 27
+
+- `ModId` dùng stable lowercase ASCII grammar và luôn đi cùng explicit `GameId`; display name không tham gia identity, path hoặc trust decision. Lookup cross-game là expected miss; duplicate `(GameId, ModId)` bị reject atomically.
+- `ModRelativePath` canonicalize separator và reject rooted path, traversal, empty/dot segment, control character cùng ký tự filename bị cấm trên Windows. Đây là metadata validation; PLAN 27 không mở cover, template hoặc install destination trên filesystem.
+- Archive mapping reuse `AuditionArchiveTemplate`; engine là typed explicit mapping, không suy từ extension. Catalog xác minh referenced game và region qua trusted `IGameCatalog`/`IGameRegionProfileResolver`, không nhận allowlist hoặc hash override từ user.
+- `ModDefinition` chỉ chứa `RegionProfileId`; ACV country selection vẫn được resolve bên trong trusted region profile/archive execution boundary. Raw selector, executable path và process argument không được thêm vào Mod Catalog API.
+- Production catalog là immutable application metadata và hiện rỗng có chủ ý vì roadmap chưa định danh một built-in Mod Type đầy đủ. Không load user JSON/settings/network để tự thêm hoặc override mod, engine, region, template hay install mapping.
+- PLAN 27 không chạy process, không đọc/ghi archive, không detect game install, không gọi network và không chứa secret. Template existence/hash verification, project snapshot, install và remote signed catalog vẫn thuộc boundary/PLAN tương ứng.

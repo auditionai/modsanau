@@ -451,3 +451,24 @@ Code-owned built-in definitions
 `GameId` chỉ nhận 1–64 lowercase ASCII letter/digit/underscore/hyphen, bắt đầu bằng letter/digit; display name hỗ trợ Unicode/khoảng trắng nhưng không tham gia identity. `GetGames` trả immutable snapshot đã sort; `TryGetGame` coi unknown/default ID là expected miss, không ném `KeyNotFoundException`. Provider không đọc file/settings/network và không expose mutable dictionary/list nên concurrent reads không cần lock.
 
 PLAN 26 cố ý không đặt archive filename, source path, template/version/hash, engine, region, country selection hoặc install path trong `GameDefinition`. Các relationship `Game → Mod Type → Archive Template → Engine/Region` thuộc `ModDefinition` của PLAN 27; cách tách này ngăn screen dùng Game Catalog để hard-code `015.ab` trước khi mapping semantic được định nghĩa đúng PLAN.
+
+## Mod Definition từ PLAN 27
+
+`Core` định nghĩa immutable `ModDefinition`, stable `ModId`, `ModCategory`, validated `ModRelativePath`, `ModKeydatStrategy` và read-only `IModCatalog`. `AuditionModStudio.Mods` cung cấp `ModCatalog`; identity của mod là cặp `(GameId, ModId)`, không phải display name, archive filename hoặc convention prefix. `GameId` và `ModId` dùng chung lowercase ASCII validation policy 1–64 ký tự.
+
+```text
+IGameCatalog
+  → GameDefinition
+  → ModCatalog.GetMods(GameId) / TryGetMod(GameId, ModId)
+  → ModDefinition
+       ├─ semantic display/category/cover/description
+       ├─ AuditionArchiveTemplate id + version + filename + extract folder
+       ├─ explicit ArchiveEngineType
+       ├─ RegionProfileId → IGameRegionProfileResolver
+       ├─ ReuseOrGenerate keydat strategy
+       └─ validated install-relative path + compatibility information
+```
+
+`ModCatalog.Create` kiểm tra dependency, null definition, unknown game, unknown region và duplicate `(GameId, ModId)`, rồi chỉ publish catalog khi toàn bộ input hợp lệ. Danh sách mỗi game sort ordinal theo `ModId`; dictionary và snapshot đều immutable nên concurrent read không cần lock. Empty catalog hợp lệ vì master roadmap PLAN 27 không cung cấp đủ semantic name/category/cover/install/compatibility để định nghĩa một built-in Mod Type mà không suy đoán. Composition root vẫn đăng ký đúng một singleton rỗng đã validate; definition code-owned sẽ được thêm khi có metadata có thẩm quyền.
+
+`AuditionArchiveTemplate` được reuse nguyên trạng; engine được map explicit và không infer từ `.ab`/`.acv`. `GameRegionProfile` cùng `IGameRegionProfileResolver` được đặt tại `Core.Archives` để Mods chỉ phụ thuộc Core; implementation `GameRegionProfileCatalog` vẫn thuộc Archives. `ModDefinition` chỉ giữ `RegionProfileId`, không expose ACV raw country selection. Archive engine mới vẫn được resolution tại archive boundary. PLAN 27 không đọc template file, không detect game install, không tạo UI và không nối project lifecycle của PLAN 30.

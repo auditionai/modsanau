@@ -1,5 +1,6 @@
 using Archives.FakeTool;
 using AuditionModStudio.Archives;
+using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Workspaces;
 using AuditionModStudio.Infrastructure.Paths;
 using System.Security.Cryptography;

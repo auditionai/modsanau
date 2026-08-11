@@ -4,6 +4,7 @@ using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Games;
+using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Core.Paths;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Startup;
@@ -86,7 +87,22 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IImageAdjustmentService, ImageAdjustmentService>();
         builder.Services.AddSingleton<IAlphaChannelService, AlphaChannelService>();
         builder.Services.AddSingleton<IEditHistoryService, EditHistoryService>();
-        builder.Services.AddSingleton<IGameCatalog>(GameCatalog.CreateBuiltIn());
+        var gameCatalog = GameCatalog.CreateBuiltIn();
+        builder.Services.AddSingleton(gameCatalog);
+        builder.Services.AddSingleton<IModCatalog>(services =>
+        {
+            var result = ModCatalog.Create(
+                [],
+                gameCatalog,
+                services.GetRequiredService<IGameRegionProfileResolver>());
+            if (!result.Succeeded)
+            {
+                var diagnostics = string.Join(",", result.Issues.Select(issue => issue.DiagnosticCode));
+                throw new InvalidOperationException($"Built-in mod catalog validation failed: {diagnostics}");
+            }
+
+            return result.Catalog!;
+        });
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 
