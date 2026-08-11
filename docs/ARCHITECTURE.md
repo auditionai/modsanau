@@ -636,3 +636,16 @@ typed request → bounded Channel
 Manager là singleton hosted service. Queue có backpressure fail-fast, worker concurrency có hard cap, cancellation source riêng từng job được link với application shutdown. Cancel queued job publish terminal state ngay và operation không chạy; cancel running job truyền token cho operation. Exception ngoài dự kiến được cô lập thành safe diagnostic code nên worker tiếp tục xử lý job sau.
 
 Snapshot/notification là immutable; invalid progress không thay thế last valid progress; completed history được giữ in-memory có giới hạn và evict oldest completion. PLAN 38 không persist task/delegate/result payload, không tự động chuyển toàn bộ workflow cũ vào queue, không triển khai download/AI backend, UI notification, session file hoặc crash recovery PLAN 39.
+
+## Temp Cleanup & Crash Recovery từ PLAN 39
+
+Mỗi secure workspace giữ exclusive `.workspace.lock`, đồng thời file này là versioned session marker chứa random session ID, process ID, creation timestamp và retained state. Session ID/PID/timestamp hỗ trợ diagnostics; bằng chứng workspace còn active duy nhất là khả năng giữ exclusive file handle, không phải PID lookup hay tuổi timestamp.
+
+`SecureWorkspaceService` đồng thời triển khai `IWorkspaceCrashRecoveryService` và chạy discovery khi host start. Discovery chỉ enumerate direct lowercase-hex child dưới managed `Temp/Workspaces`, kiểm tra containment/reparse/tree/marker rồi atomic-publish immutable inventory:
+
+- `ActiveOrInaccessible`: lock đang được giữ hoặc không đủ bằng chứng an toàn; không action.
+- `StaleRecoverable`: lock đã nhả, marker hợp lệ và đủ `Working/Extracted/BuildOutput`; cho recover hoặc explicit cleanup.
+- `StaleCleanupOnly`: marker hợp lệ nhưng workspace chưa hoàn tất; chỉ explicit cleanup.
+- `Unsafe`: marker/path/tree không hợp lệ; không recover/cleanup tự động.
+
+Startup không xóa candidate. `RecoverAsync` re-inspect rồi reuse exact `TryOpenExistingAsync`; `CleanupAsync` chỉ nhận workspace ID, resolve lại direct managed root, acquire lock, kiểm tra marker/reparse lần nữa và giữ lock trong lúc xóa. Thành công loại candidate khỏi offer. `.audproj`, pristine template, archive, project root và workspace khác không bị sửa. PLAN 39 không có UI prompt, content repair, project migration hay Design System.

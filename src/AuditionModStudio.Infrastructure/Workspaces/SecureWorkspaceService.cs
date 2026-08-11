@@ -1,13 +1,18 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using AuditionModStudio.Core.Paths;
 using AuditionModStudio.Core.Workspaces;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AuditionModStudio.Infrastructure.Workspaces;
 
 public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWorkspaceRecoveryService,
-    ISecureWorkspaceRetentionService, ISecureWorkspaceRemovalService, IAsyncDisposable
+    ISecureWorkspaceRetentionService, ISecureWorkspaceRemovalService, IWorkspaceCrashRecoveryService,
+    IHostedService, IAsyncDisposable
 {
     private const string LockFileName = ".workspace.lock";
     private const int MaximumCreationAttempts = 10;
@@ -15,13 +20,37 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
     private readonly ConcurrentDictionary<string, byte> _retainedWorkspaces = new();
     private readonly IAppPaths _appPaths;
     private readonly IPathSecurity _pathSecurity;
+    private readonly ILogger<SecureWorkspaceService> _logger;
+    private ImmutableArray<WorkspaceRecoveryCandidate> _detectedCandidates = [];
     private int _disposeState;
 
-    public SecureWorkspaceService(IAppPaths appPaths, IPathSecurity pathSecurity)
+    public SecureWorkspaceService(
+        IAppPaths appPaths,
+        IPathSecurity pathSecurity,
+        ILogger<SecureWorkspaceService>? logger = null)
     {
         _appPaths = appPaths ?? throw new ArgumentNullException(nameof(appPaths));
         _pathSecurity = pathSecurity ?? throw new ArgumentNullException(nameof(pathSecurity));
+        _logger = logger ?? NullLogger<SecureWorkspaceService>.Instance;
     }
+
+    public ImmutableArray<WorkspaceRecoveryCandidate> DetectedCandidates => _detectedCandidates;
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        var result = await DetectAsync(cancellationToken).ConfigureAwait(false);
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Workspace crash-recovery discovery failed with {DiagnosticCode}",
+                result.DiagnosticCode);
+            return;
+        }
+
+        _logger.LogInformation("Workspace crash-recovery discovery found {CandidateCount} candidates",
+            result.Candidates.Length);
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public ValueTask<ISecureWorkspace> CreateAsync(CancellationToken cancellationToken = default)
     {
@@ -152,7 +181,8 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
                 paths,
                 lockStream,
                 _pathSecurity,
-                CleanupOwnedAsync);
+                CleanupOwnedAsync,
+                retained);
             if (_activeWorkspaces.TryAdd(workspaceId, lease))
             {
                 if (retained)
@@ -268,6 +298,150 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
         return Task.FromResult(cleanedCount);
     }
 
+    public Task<WorkspaceRecoveryScanResult> DetectAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposeState != 0, this);
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            EnsureWorkspaceRoot();
+            var candidates = Directory.EnumerateDirectories(
+                    _appPaths.WorkspacesDirectory, "*", SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFileName)
+                .Where(id => id is not null && IsWorkspaceId(id))
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .Select(id => InspectRecoveryCandidate(id!, cancellationToken))
+                .ToImmutableArray();
+            ImmutableInterlocked.InterlockedExchange(ref _detectedCandidates, candidates);
+            return Task.FromResult(WorkspaceRecoveryScanResult.Success(candidates));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromResult(WorkspaceRecoveryScanResult.Failure(
+                "WORKSPACE_RECOVERY_SCAN_CANCELLED", cancelled: true));
+        }
+        catch (Exception exception) when (exception is IOException
+                                          or UnauthorizedAccessException
+                                          or InvalidOperationException
+                                          or ArgumentException)
+        {
+            return Task.FromResult(WorkspaceRecoveryScanResult.Failure("WORKSPACE_RECOVERY_SCAN_FAILED"));
+        }
+    }
+
+    public async ValueTask<WorkspaceRecoveryActionResult> RecoverAsync(
+        string workspaceId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsWorkspaceId(workspaceId))
+        {
+            return WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.InvalidWorkspaceId, "WORKSPACE_RECOVERY_ID_INVALID");
+        }
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var candidate = InspectRecoveryCandidate(workspaceId, cancellationToken);
+            if (candidate.State != WorkspaceRecoveryState.StaleRecoverable)
+            {
+                return CandidateActionFailure(candidate, recovery: true);
+            }
+
+            var workspace = await TryOpenExistingAsync(workspaceId, cancellationToken).ConfigureAwait(false);
+            if (workspace is null)
+            {
+                return WorkspaceRecoveryActionResult.Failure(
+                    WorkspaceRecoveryActionFailureReason.RecoveryFailed, "WORKSPACE_RECOVERY_OPEN_FAILED");
+            }
+
+            RemoveDetectedCandidate(workspaceId);
+            return WorkspaceRecoveryActionResult.Success(workspace);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.Cancelled, "WORKSPACE_RECOVERY_CANCELLED");
+        }
+    }
+
+    public Task<WorkspaceRecoveryActionResult> CleanupAsync(
+        string workspaceId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsWorkspaceId(workspaceId))
+        {
+            return Task.FromResult(WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.InvalidWorkspaceId, "WORKSPACE_CLEANUP_ID_INVALID"));
+        }
+
+        if (_activeWorkspaces.ContainsKey(workspaceId))
+        {
+            return Task.FromResult(WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.ActiveOrInaccessible, "WORKSPACE_CLEANUP_ACTIVE"));
+        }
+
+        var lockAcquired = false;
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            EnsureWorkspaceRoot();
+            var root = _pathSecurity.ResolvePathWithinRoot(_appPaths.WorkspacesDirectory, workspaceId);
+            if (!Directory.Exists(root))
+            {
+                return Task.FromResult(WorkspaceRecoveryActionResult.Failure(
+                    WorkspaceRecoveryActionFailureReason.NotFound, "WORKSPACE_CLEANUP_NOT_FOUND"));
+            }
+
+            _pathSecurity.EnsureNoReparsePoints(_appPaths.WorkspacesDirectory, root);
+            EnsureTreeHasNoReparsePoints(root);
+            var lockPath = _pathSecurity.ResolvePathWithinRoot(root, LockFileName);
+            if (!File.Exists(lockPath))
+            {
+                return Task.FromResult(WorkspaceRecoveryActionResult.Failure(
+                    WorkspaceRecoveryActionFailureReason.UnsafeWorkspace, "WORKSPACE_CLEANUP_MARKER_MISSING"));
+            }
+
+            using (var stream = new FileStream(
+                       lockPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Delete,
+                       bufferSize: 4096, FileOptions.None))
+            {
+                lockAcquired = true;
+                if (!TryReadLockMetadata(stream, out _))
+                {
+                    return Task.FromResult(WorkspaceRecoveryActionResult.Failure(
+                        WorkspaceRecoveryActionFailureReason.UnsafeWorkspace, "WORKSPACE_CLEANUP_MARKER_INVALID"));
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                DeleteWorkspaceIfSafe(root, requireLockMarker: true);
+            }
+
+            RemoveDetectedCandidate(workspaceId);
+            return Task.FromResult(WorkspaceRecoveryActionResult.Success());
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return Task.FromResult(WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.Cancelled, "WORKSPACE_CLEANUP_CANCELLED"));
+        }
+        catch (IOException)
+        {
+            return Task.FromResult(WorkspaceRecoveryActionResult.Failure(
+                lockAcquired ? WorkspaceRecoveryActionFailureReason.CleanupFailed
+                    : WorkspaceRecoveryActionFailureReason.ActiveOrInaccessible,
+                lockAcquired ? "WORKSPACE_CLEANUP_FAILED" : "WORKSPACE_CLEANUP_LOCKED"));
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException
+                                          or InvalidDataException
+                                          or InvalidOperationException
+                                          or ArgumentException)
+        {
+            return Task.FromResult(WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.CleanupFailed, "WORKSPACE_CLEANUP_FAILED"));
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposeState, 1) != 0)
@@ -281,15 +455,188 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
         }
     }
 
+    private WorkspaceRecoveryCandidate InspectRecoveryCandidate(
+        string workspaceId,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_activeWorkspaces.ContainsKey(workspaceId))
+        {
+            return Candidate(workspaceId, WorkspaceRecoveryState.ActiveOrInaccessible,
+                "WORKSPACE_RECOVERY_ACTIVE");
+        }
+
+        var root = _pathSecurity.ResolvePathWithinRoot(_appPaths.WorkspacesDirectory, workspaceId);
+        if (!Directory.Exists(root))
+        {
+            return Candidate(workspaceId, WorkspaceRecoveryState.Unsafe,
+                "WORKSPACE_RECOVERY_NOT_FOUND");
+        }
+
+        try
+        {
+            _pathSecurity.EnsureNoReparsePoints(_appPaths.WorkspacesDirectory, root);
+            EnsureTreeHasNoReparsePoints(root);
+            var lockPath = _pathSecurity.ResolvePathWithinRoot(root, LockFileName);
+            if (!File.Exists(lockPath))
+            {
+                return Candidate(workspaceId, WorkspaceRecoveryState.Unsafe,
+                    "WORKSPACE_RECOVERY_MARKER_MISSING");
+            }
+
+            using var stream = new FileStream(
+                lockPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read,
+                bufferSize: 4096, FileOptions.None);
+            if (!TryReadLockMetadata(stream, out var metadata))
+            {
+                return Candidate(workspaceId, WorkspaceRecoveryState.Unsafe,
+                    "WORKSPACE_RECOVERY_MARKER_INVALID");
+            }
+
+            var complete = Directory.Exists(Path.Combine(root, "Working"))
+                           && Directory.Exists(Path.Combine(root, "Extracted"))
+                           && Directory.Exists(Path.Combine(root, "BuildOutput"));
+            return new(
+                workspaceId,
+                complete ? WorkspaceRecoveryState.StaleRecoverable : WorkspaceRecoveryState.StaleCleanupOnly,
+                metadata.Retained,
+                metadata.ProcessId,
+                metadata.CreatedAtUtc,
+                complete,
+                true,
+                complete ? "WORKSPACE_RECOVERY_STALE_RECOVERABLE" : "WORKSPACE_RECOVERY_STALE_INCOMPLETE");
+        }
+        catch (IOException)
+        {
+            return Candidate(workspaceId, WorkspaceRecoveryState.ActiveOrInaccessible,
+                "WORKSPACE_RECOVERY_ACTIVE_OR_INACCESSIBLE");
+        }
+        catch (Exception exception) when (exception is UnauthorizedAccessException
+                                          or InvalidDataException
+                                          or InvalidOperationException
+                                          or ArgumentException)
+        {
+            return Candidate(workspaceId, WorkspaceRecoveryState.Unsafe,
+                "WORKSPACE_RECOVERY_UNSAFE");
+        }
+    }
+
+    private static WorkspaceRecoveryCandidate Candidate(
+        string workspaceId,
+        WorkspaceRecoveryState state,
+        string diagnosticCode) => new(
+        workspaceId, state, false, null, null, false, false, diagnosticCode);
+
+    private static WorkspaceRecoveryActionResult CandidateActionFailure(
+        WorkspaceRecoveryCandidate candidate,
+        bool recovery)
+    {
+        if (candidate.DiagnosticCode == "WORKSPACE_RECOVERY_NOT_FOUND")
+        {
+            return WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.NotFound, "WORKSPACE_RECOVERY_NOT_FOUND");
+        }
+
+        return candidate.State switch
+        {
+            WorkspaceRecoveryState.ActiveOrInaccessible => WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.ActiveOrInaccessible, "WORKSPACE_RECOVERY_ACTIVE_OR_INACCESSIBLE"),
+            WorkspaceRecoveryState.Unsafe => WorkspaceRecoveryActionResult.Failure(
+                WorkspaceRecoveryActionFailureReason.UnsafeWorkspace, "WORKSPACE_RECOVERY_UNSAFE"),
+            _ => WorkspaceRecoveryActionResult.Failure(
+                recovery ? WorkspaceRecoveryActionFailureReason.NotRecoverable
+                    : WorkspaceRecoveryActionFailureReason.CleanupFailed,
+                recovery ? "WORKSPACE_RECOVERY_NOT_RECOVERABLE" : "WORKSPACE_CLEANUP_FAILED"),
+        };
+    }
+
+    private void RemoveDetectedCandidate(string workspaceId)
+    {
+        ImmutableInterlocked.Update(ref _detectedCandidates,
+            candidates => candidates.Where(candidate => candidate.WorkspaceId != workspaceId).ToImmutableArray());
+    }
+
+    private static bool TryReadLockMetadata(FileStream stream, out WorkspaceLockMetadata metadata)
+    {
+        metadata = default;
+        stream.Position = 0;
+        using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        var allowedKeys = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "version", "sessionId", "processId", "createdUtc", "retained",
+        };
+        foreach (var line in reader.ReadToEnd().Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+        {
+            var separator = line.IndexOf('=');
+            if (separator <= 0 || separator == line.Length - 1
+                || !allowedKeys.Contains(line[..separator])
+                || !values.TryAdd(line[..separator], line[(separator + 1)..]))
+            {
+                return false;
+            }
+        }
+
+        if (!values.TryGetValue("version", out var version)
+            || !string.Equals(version, "1", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        int? processId = null;
+        if (values.TryGetValue("processId", out var processText))
+        {
+            if (!int.TryParse(processText, out var parsedProcessId) || parsedProcessId <= 0)
+            {
+                return false;
+            }
+            processId = parsedProcessId;
+        }
+
+        DateTimeOffset? createdAtUtc = null;
+        if (values.TryGetValue("createdUtc", out var createdText))
+        {
+            if (!DateTimeOffset.TryParseExact(
+                    createdText, "O", System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var parsedCreated))
+            {
+                return false;
+            }
+            createdAtUtc = parsedCreated;
+        }
+
+        if (values.TryGetValue("sessionId", out var sessionId) && !IsWorkspaceId(sessionId))
+        {
+            return false;
+        }
+
+        if (values.TryGetValue("retained", out var retained) && retained != "1")
+        {
+            return false;
+        }
+
+        metadata = new(
+            retained == "1",
+            processId,
+            createdAtUtc);
+        return true;
+    }
+
     private static void WriteLockMetadata(FileStream stream)
     {
         using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
         writer.WriteLine("version=1");
+        writer.WriteLine($"sessionId={RandomNumberGenerator.GetHexString(32).ToLowerInvariant()}");
         writer.WriteLine($"processId={Environment.ProcessId}");
         writer.WriteLine($"createdUtc={DateTimeOffset.UtcNow:O}");
         writer.Flush();
         stream.Flush(flushToDisk: true);
     }
+
+    private readonly record struct WorkspaceLockMetadata(
+        bool Retained,
+        int? ProcessId,
+        DateTimeOffset? CreatedAtUtc);
 
     private void EnsureWorkspaceRoot()
     {
@@ -399,9 +746,9 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
         }
     }
 
-    private static bool IsWorkspaceId(string value)
+    private static bool IsWorkspaceId(string? value)
     {
-        return value.Length == 32
+        return value is not null && value.Length == 32
             && value.All(static character => character is >= '0' and <= '9' or >= 'a' and <= 'f');
     }
 }
@@ -411,19 +758,22 @@ internal sealed class SecureWorkspaceLease : ISecureWorkspace
     private readonly Func<SecureWorkspaceLease, ValueTask> _cleanup;
     private readonly IPathSecurity _pathSecurity;
     private FileStream? _lockStream;
+    private int _retained;
 
     public SecureWorkspaceLease(
         string id,
         SecureWorkspacePaths paths,
         FileStream lockStream,
         IPathSecurity pathSecurity,
-        Func<SecureWorkspaceLease, ValueTask> cleanup)
+        Func<SecureWorkspaceLease, ValueTask> cleanup,
+        bool retained = false)
     {
         Id = id;
         Paths = paths;
         _lockStream = lockStream;
         _pathSecurity = pathSecurity;
         _cleanup = cleanup;
+        _retained = retained ? 1 : 0;
     }
 
     public string Id { get; }
@@ -443,11 +793,17 @@ internal sealed class SecureWorkspaceLease : ISecureWorkspace
         var stream = _lockStream ?? throw new ObjectDisposedException(nameof(SecureWorkspaceLease));
         lock (stream)
         {
+            if (_retained != 0)
+            {
+                return;
+            }
+
             stream.Position = stream.Length;
             using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
             writer.WriteLine("retained=1");
             writer.Flush();
             stream.Flush(flushToDisk: true);
+            _retained = 1;
         }
     }
 

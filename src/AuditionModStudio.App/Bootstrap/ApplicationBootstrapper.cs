@@ -65,6 +65,10 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
             services.GetRequiredService<SecureWorkspaceService>());
         builder.Services.AddSingleton<ISecureWorkspaceRemovalService>(services =>
             services.GetRequiredService<SecureWorkspaceService>());
+        builder.Services.AddSingleton<IWorkspaceCrashRecoveryService>(services =>
+            services.GetRequiredService<SecureWorkspaceService>());
+        builder.Services.AddHostedService(services =>
+            services.GetRequiredService<SecureWorkspaceService>());
         builder.Services.AddSingleton<ISettingsValidator, SettingsValidator>();
         builder.Services.AddSingleton<IAtomicSettingsWriter, AtomicSettingsWriter>();
         builder.Services.AddSingleton<ISettingsService, SettingsService>();

@@ -341,3 +341,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Capacity, worker concurrency và completed-history đều bị giới hạn. Queue full/shutdown/cancel là structured result; một exception hoặc notification subscriber lỗi không được làm chết worker hay biến job khác thành success/failure giả.
 - Progress stage/diagnostic code bị giới hạn chiều dài và grammar machine-readable trước khi publish; exception message không được đưa vào snapshot hoặc log. Log lỗi chỉ chứa task ID, typed kind và exception type.
 - Application shutdown ngừng nhận job mới, complete channel và cancel token liên kết; queued/running job đi đến terminal cancellation. PLAN 38 chỉ giữ state in-memory, vì vậy không tuyên bố crash durability; stale session detection/cleanup thuộc PLAN 39.
+
+## Temp Cleanup & Crash Recovery boundary từ PLAN 39
+
+- Discovery/action chỉ áp dụng direct child có ID lowercase-hex 32 ký tự dưới managed `Temp/Workspaces`. Raw path, project name, archive filename, PID hoặc timestamp không bao giờ được dùng làm delete target.
+- Exclusive lock là authority để phân biệt active/stale; PID/session/timestamp chỉ là diagnostic metadata nên PID reuse hoặc clock skew không thể cấp quyền cleanup. Startup chỉ detect/offer, tuyệt đối không auto-delete retained hay incomplete workspace.
+- Mỗi recovery/cleanup revalidate containment, marker version/grammar, full tree reparse points và lock ngay tại thời điểm action. Lock race hoặc access ambiguity trả `ActiveOrInaccessible`; invalid/missing marker trả `Unsafe` và giữ nguyên dữ liệu.
+- Explicit cleanup giữ exclusive delete-sharing handle trong lúc xóa đúng workspace root. Nó không traverse ra ngoài, không nhận arbitrary path và không chạm Projects, SecureTemplateCache, fixture, pristine archive hoặc workspace active khác.
+- Marker không chứa secret; process ID/session ID không phải authentication token. Recovery vẫn phải đi qua project/template validation PLAN 33 khi orchestration mở project; workspace recovery riêng không nâng trust cho `.audproj` hay archive bytes.
