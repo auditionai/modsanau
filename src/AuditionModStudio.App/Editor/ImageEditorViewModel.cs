@@ -9,21 +9,37 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 {
     private readonly IWorkspaceTextureSelection _selection;
     private readonly IImageTransformService _transformService;
+    private readonly IImageResizeService _resizeService;
     private InternalImage? _sourceImage;
+    private InternalImage? _afterImage;
     private InteractiveImageTransformState? _transform;
     private EditorResizeModeOption _selectedMode = ImageEditorModes.Supported[0];
+    private ImageCompareModeOption _selectedCompareMode = ImageCompareModes.Supported[0];
+    private ImageCompareToggleState _compareToggleState = ImageCompareToggleState.After;
     private string _loadedRelativePath = string.Empty;
     private string _statusMessage = "Select a project texture before opening the Image Editor.";
+    private string _afterPreviewStatus = "Live preview is unavailable until a texture is loaded.";
     private bool _isLoading;
+    private bool _isAfterPreviewLoading;
+    private bool _showCheckerboard = true;
+    private double _compareDivider = 0.5;
+    private double _compareZoom = 1;
+    private ViewportVector _comparePan;
     private int _transformRevision;
+    private int _compareRevision;
     private long _activationVersion;
+    private long _afterPreviewVersion;
+    private CancellationTokenSource? _afterPreviewCancellation;
+    private Task _afterPreviewTask = Task.CompletedTask;
 
     public ImageEditorViewModel(
         IWorkspaceTextureSelection selection,
-        IImageTransformService transformService)
+        IImageTransformService transformService,
+        IImageResizeService resizeService)
     {
         _selection = selection ?? throw new ArgumentNullException(nameof(selection));
         _transformService = transformService ?? throw new ArgumentNullException(nameof(transformService));
+        _resizeService = resizeService ?? throw new ArgumentNullException(nameof(resizeService));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -44,10 +60,51 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(ModeDescription));
             AdvanceTransformRevision();
+            StartAfterPreviewRefresh();
         }
     }
 
+    public InternalImage? BeforeImage => _sourceImage;
+
     public InternalImage? SourceImage => _sourceImage;
+
+    public InternalImage? AfterImage => _afterImage;
+
+    public IReadOnlyList<ImageCompareModeOption> CompareModes => ImageCompareModes.Supported;
+
+    public ImageCompareModeOption SelectedCompareMode
+    {
+        get => _selectedCompareMode;
+        set
+        {
+            if (value is null || !ImageCompareModes.Supported.Contains(value) || value == _selectedCompareMode)
+            {
+                return;
+            }
+
+            _selectedCompareMode = value;
+            OnPropertyChanged();
+            AdvanceCompareRevision();
+        }
+    }
+
+    public ImageCompareToggleState CompareToggleState => _compareToggleState;
+
+    public bool ShowCheckerboard => _showCheckerboard;
+
+    public double CompareDivider => _compareDivider;
+
+    public double CompareZoom => _compareZoom;
+
+    public ViewportVector ComparePan => _comparePan;
+
+    public string ComparePanSummary => $"X {_comparePan.X:0.#}, Y {_comparePan.Y:0.#}";
+
+    public string AfterPreviewStatus => _afterPreviewStatus;
+
+    public bool IsAfterPreviewLoading => _isAfterPreviewLoading;
+
+    public int CompareRevision => _compareRevision;
 
     public bool IsLoading => _isLoading;
 
@@ -117,6 +174,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             return;
         }
 
+        PrepareForSelectionLoad();
         SetLoading(true, "Loading the selected texture through the verified preview pipeline.");
         var image = await _selection.LoadSelectedImageAsync(cancellationToken);
         if (activationVersion != Volatile.Read(ref _activationVersion))
@@ -139,15 +197,20 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
         _sourceImage = image;
         _transform = create.Value;
+        _compareZoom = 1;
+        _comparePan = default;
         _loadedRelativePath = selected.RelativePath;
         SetLoading(false, "Texture ready. Changes remain a preview until a later Apply workflow.");
         RaiseSelectionProperties();
         OnPropertyChanged(nameof(SourceImage));
+        OnPropertyChanged(nameof(BeforeImage));
         OnPropertyChanged(nameof(HasImage));
         OnPropertyChanged(nameof(Zoom));
         OnPropertyChanged(nameof(PanSummary));
         OnPropertyChanged(nameof(CropSummary));
         AdvanceTransformRevision();
+        AdvanceCompareRevision();
+        await RefreshAfterPreviewAsync();
     }
 
     public bool CancelLoading() => _selection.CancelSelectedImageLoading();
@@ -155,6 +218,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     public void Unload()
     {
         Interlocked.Increment(ref _activationVersion);
+        CancelAfterPreview();
         if (_isLoading)
         {
             _selection.CancelSelectedImageLoading();
@@ -205,6 +269,137 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
         return PublishTransform(_transformService.Reset(_transform));
     }
+
+    public bool SetCompareDivider(double divider)
+    {
+        if (!double.IsFinite(divider))
+        {
+            return false;
+        }
+
+        var normalized = Math.Clamp(divider, 0, 1);
+        if (_compareDivider == normalized)
+        {
+            return true;
+        }
+
+        _compareDivider = normalized;
+        OnPropertyChanged(nameof(CompareDivider));
+        AdvanceCompareRevision();
+        return true;
+    }
+
+    public bool SetCompareToggleState(ImageCompareToggleState state)
+    {
+        if (!Enum.IsDefined(state))
+        {
+            return false;
+        }
+
+        if (_compareToggleState == state)
+        {
+            return true;
+        }
+
+        _compareToggleState = state;
+        OnPropertyChanged(nameof(CompareToggleState));
+        AdvanceCompareRevision();
+        return true;
+    }
+
+    public void SetCheckerboard(bool visible)
+    {
+        if (_showCheckerboard == visible)
+        {
+            return;
+        }
+
+        _showCheckerboard = visible;
+        OnPropertyChanged(nameof(ShowCheckerboard));
+        AdvanceCompareRevision();
+    }
+
+    public bool SetCompareZoom(double zoom)
+    {
+        if (!double.IsFinite(zoom) || zoom < 0.1 || zoom > 8)
+        {
+            return false;
+        }
+
+        _compareZoom = zoom;
+        OnPropertyChanged(nameof(CompareZoom));
+        AdvanceCompareRevision();
+        return true;
+    }
+
+    public bool PanCompareBy(double horizontal, double vertical)
+    {
+        if (!double.IsFinite(horizontal) || !double.IsFinite(vertical))
+        {
+            return false;
+        }
+
+        _comparePan = new ViewportVector(_comparePan.X + horizontal, _comparePan.Y + vertical);
+        OnPropertyChanged(nameof(ComparePan));
+        OnPropertyChanged(nameof(ComparePanSummary));
+        AdvanceCompareRevision();
+        return true;
+    }
+
+    public void ResetCompareCamera()
+    {
+        _compareZoom = 1;
+        _comparePan = default;
+        OnPropertyChanged(nameof(CompareZoom));
+        OnPropertyChanged(nameof(ComparePan));
+        OnPropertyChanged(nameof(ComparePanSummary));
+        AdvanceCompareRevision();
+    }
+
+    public EditorCanvasRectangle? GetCompareProjection(
+        InternalImage image,
+        double viewportWidth,
+        double viewportHeight)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        if (!double.IsFinite(viewportWidth)
+            || !double.IsFinite(viewportHeight)
+            || viewportWidth <= 0
+            || viewportHeight <= 0)
+        {
+            return null;
+        }
+
+        var created = _transformService.Create(image);
+        if (!created.Succeeded || created.Value is null)
+        {
+            return null;
+        }
+
+        var camera = _transformService.SetViewportTransform(
+            created.Value,
+            _compareZoom,
+            _comparePan);
+        if (!camera.Succeeded || camera.Value is null)
+        {
+            return null;
+        }
+
+        var viewport = new ViewportSize(viewportWidth, viewportHeight);
+        var topLeft = _transformService.MapImageToViewport(
+            camera.Value,
+            viewport,
+            new ImagePixelPoint(0, 0));
+        var bottomRight = _transformService.MapImageToViewport(
+            camera.Value,
+            viewport,
+            new ImagePixelPoint(image.Width, image.Height));
+        return topLeft.Succeeded && bottomRight.Succeeded
+            ? ToRectangle(topLeft.Value!, bottomRight.Value!)
+            : null;
+    }
+
+    public Task WaitForAfterPreviewAsync() => _afterPreviewTask;
 
     public ImageResizeRequest? CreateResizeRequest()
     {
@@ -316,22 +511,154 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(PanSummary));
         OnPropertyChanged(nameof(CropSummary));
         AdvanceTransformRevision();
+        StartAfterPreviewRefresh();
         return true;
     }
 
     private void ResetEditor(string message)
     {
+        CancelAfterPreview();
         _sourceImage = null;
+        _afterImage = null;
         _transform = null;
+        _compareZoom = 1;
+        _comparePan = default;
         _loadedRelativePath = string.Empty;
+        _afterPreviewStatus = "Live preview is unavailable until a texture is loaded.";
         SetLoading(false, message);
         RaiseSelectionProperties();
         OnPropertyChanged(nameof(SourceImage));
+        OnPropertyChanged(nameof(BeforeImage));
+        OnPropertyChanged(nameof(AfterImage));
         OnPropertyChanged(nameof(HasImage));
         OnPropertyChanged(nameof(Zoom));
         OnPropertyChanged(nameof(PanSummary));
         OnPropertyChanged(nameof(CropSummary));
+        OnPropertyChanged(nameof(CompareZoom));
+        OnPropertyChanged(nameof(ComparePan));
+        OnPropertyChanged(nameof(ComparePanSummary));
+        OnPropertyChanged(nameof(AfterPreviewStatus));
+        AdvanceCompareRevision();
         AdvanceTransformRevision();
+    }
+
+    private void PrepareForSelectionLoad()
+    {
+        CancelAfterPreview();
+        _sourceImage = null;
+        _afterImage = null;
+        _transform = null;
+        _loadedRelativePath = string.Empty;
+        _afterPreviewStatus = "Waiting for the selected texture baseline.";
+        OnPropertyChanged(nameof(SourceImage));
+        OnPropertyChanged(nameof(BeforeImage));
+        OnPropertyChanged(nameof(AfterImage));
+        OnPropertyChanged(nameof(HasImage));
+        OnPropertyChanged(nameof(AfterPreviewStatus));
+        AdvanceCompareRevision();
+        AdvanceTransformRevision();
+    }
+
+    private void StartAfterPreviewRefresh() => _afterPreviewTask = RefreshAfterPreviewAsync();
+
+    private async Task RefreshAfterPreviewAsync()
+    {
+        var request = CreateResizeRequest();
+        if (request is null)
+        {
+            return;
+        }
+
+        CancelAfterPreview();
+        var version = Interlocked.Increment(ref _afterPreviewVersion);
+        var cancellation = new CancellationTokenSource();
+        _afterPreviewCancellation = cancellation;
+        _isAfterPreviewLoading = true;
+        _afterPreviewStatus = "Generating live After preview…";
+        OnPropertyChanged(nameof(IsAfterPreviewLoading));
+        OnPropertyChanged(nameof(AfterPreviewStatus));
+
+        try
+        {
+            var result = await Task.Run(
+                () => _resizeService.ResizeAsync(request, cancellation.Token),
+                cancellation.Token);
+            if (version != Volatile.Read(ref _afterPreviewVersion)
+                || cancellation.IsCancellationRequested
+                || !ReferenceEquals(request.Source, _sourceImage))
+            {
+                return;
+            }
+
+            if (!result.Succeeded || result.Image is null)
+            {
+                _afterImage = null;
+                _afterPreviewStatus = result.Cancelled
+                    ? "After preview generation was cancelled."
+                    : $"After preview is unavailable ({result.DiagnosticCode ?? "unknown error"}).";
+                OnPropertyChanged(nameof(AfterImage));
+                OnPropertyChanged(nameof(AfterPreviewStatus));
+                AdvanceCompareRevision();
+                return;
+            }
+
+            _afterImage = result.Image;
+            _afterPreviewStatus = "Live After preview ready. Compare remains read-only.";
+            OnPropertyChanged(nameof(AfterImage));
+            OnPropertyChanged(nameof(AfterPreviewStatus));
+            AdvanceCompareRevision();
+        }
+        catch (OperationCanceledException)
+        {
+            if (version == Volatile.Read(ref _afterPreviewVersion))
+            {
+                _afterPreviewStatus = "After preview generation was cancelled.";
+                OnPropertyChanged(nameof(AfterPreviewStatus));
+            }
+        }
+        catch (Exception exception)
+        {
+            if (version == Volatile.Read(ref _afterPreviewVersion))
+            {
+                _afterImage = null;
+                _afterPreviewStatus = $"After preview failed ({exception.GetType().Name}).";
+                OnPropertyChanged(nameof(AfterImage));
+                OnPropertyChanged(nameof(AfterPreviewStatus));
+                AdvanceCompareRevision();
+            }
+        }
+        finally
+        {
+            if (version == Volatile.Read(ref _afterPreviewVersion))
+            {
+                _isAfterPreviewLoading = false;
+                OnPropertyChanged(nameof(IsAfterPreviewLoading));
+            }
+
+            if (ReferenceEquals(
+                    Interlocked.CompareExchange(ref _afterPreviewCancellation, null, cancellation),
+                    cancellation))
+            {
+                cancellation.Dispose();
+            }
+        }
+    }
+
+    private void CancelAfterPreview()
+    {
+        Interlocked.Increment(ref _afterPreviewVersion);
+        var cancellation = Interlocked.Exchange(ref _afterPreviewCancellation, null);
+        if (cancellation is not null)
+        {
+            cancellation.Cancel();
+            cancellation.Dispose();
+        }
+
+        if (_isAfterPreviewLoading)
+        {
+            _isAfterPreviewLoading = false;
+            OnPropertyChanged(nameof(IsAfterPreviewLoading));
+        }
     }
 
     private void SetLoading(bool loading, string message)
@@ -355,6 +682,12 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     {
         _transformRevision++;
         OnPropertyChanged(nameof(TransformRevision));
+    }
+
+    private void AdvanceCompareRevision()
+    {
+        _compareRevision++;
+        OnPropertyChanged(nameof(CompareRevision));
     }
 
     private static EditorCanvasRectangle ToRectangle(ViewportPoint first, ViewportPoint second) =>

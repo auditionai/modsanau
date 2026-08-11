@@ -12,7 +12,7 @@ public sealed class ImageEditorViewModelTests
     public async Task Missing_selection_is_an_explicit_empty_state()
     {
         var selection = new TestSelection(null, null);
-        var viewModel = new ImageEditorViewModel(selection, new ImageTransformService());
+        var viewModel = CreateViewModel(selection);
 
         await viewModel.ActivateAsync();
 
@@ -26,7 +26,7 @@ public sealed class ImageEditorViewModelTests
     {
         var image = Image(378, 126);
         var selection = new TestSelection(TextureItem(378, 126), image);
-        var viewModel = new ImageEditorViewModel(selection, new ImageTransformService());
+        var viewModel = CreateViewModel(selection);
         await viewModel.ActivateAsync();
 
         Assert.True(viewModel.HasImage);
@@ -56,7 +56,7 @@ public sealed class ImageEditorViewModelTests
     public async Task Zoom_pan_crop_and_reset_use_transform_service_state()
     {
         var selection = new TestSelection(TextureItem(400, 200), Image(400, 200));
-        var viewModel = new ImageEditorViewModel(selection, new ImageTransformService());
+        var viewModel = CreateViewModel(selection);
         await viewModel.ActivateAsync();
 
         Assert.True(viewModel.SetZoom(2));
@@ -75,7 +75,7 @@ public sealed class ImageEditorViewModelTests
     public void Cancel_is_delegated_to_background_selection_source()
     {
         var selection = new TestSelection(TextureItem(1, 1), Image(1, 1)) { CancelResult = true };
-        var viewModel = new ImageEditorViewModel(selection, new ImageTransformService());
+        var viewModel = CreateViewModel(selection);
 
         Assert.True(viewModel.CancelLoading());
         Assert.Equal(1, selection.CancelCount);
@@ -85,7 +85,7 @@ public sealed class ImageEditorViewModelTests
     public async Task Unload_releases_full_image_preview_state()
     {
         var selection = new TestSelection(TextureItem(16, 8), Image(16, 8));
-        var viewModel = new ImageEditorViewModel(selection, new ImageTransformService());
+        var viewModel = CreateViewModel(selection);
         await viewModel.ActivateAsync();
 
         viewModel.Unload();
@@ -98,7 +98,7 @@ public sealed class ImageEditorViewModelTests
     public async Task Completed_load_is_not_published_after_editor_was_unloaded()
     {
         var selection = new DeferredSelection(TextureItem(16, 8));
-        var viewModel = new ImageEditorViewModel(selection, new ImageTransformService());
+        var viewModel = CreateViewModel(selection);
         var activation = viewModel.ActivateAsync();
 
         viewModel.Unload();
@@ -108,6 +108,124 @@ public sealed class ImageEditorViewModelTests
         Assert.False(viewModel.HasImage);
         Assert.Null(viewModel.SourceImage);
     }
+
+    [Fact]
+    public async Task Editor_load_baseline_is_reused_and_live_after_does_not_mutate_it()
+    {
+        var baseline = Image(4, 2, 17);
+        var selection = new TestSelection(TextureItem(2, 2), baseline);
+        var viewModel = CreateViewModel(selection);
+
+        await viewModel.ActivateAsync();
+
+        Assert.Same(baseline, viewModel.BeforeImage);
+        Assert.Same(baseline, viewModel.SourceImage);
+        Assert.NotNull(viewModel.AfterImage);
+        Assert.NotSame(baseline, viewModel.AfterImage);
+        Assert.All(baseline.Pixels, pixel => Assert.Equal(17, pixel));
+        Assert.Equal(1, selection.LoadCount);
+    }
+
+    [Fact]
+    public async Task Compare_modes_divider_toggle_checkerboard_and_camera_are_presentation_only()
+    {
+        var resize = new RecordingResizeService();
+        var selection = new TestSelection(TextureItem(4, 2), Image(4, 2));
+        var viewModel = CreateViewModel(selection, resize);
+        await viewModel.ActivateAsync();
+        var generationCount = resize.CallCount;
+
+        foreach (var mode in viewModel.CompareModes)
+        {
+            viewModel.SelectedCompareMode = mode;
+            Assert.Equal(mode, viewModel.SelectedCompareMode);
+        }
+
+        Assert.True(viewModel.SetCompareDivider(0));
+        Assert.Equal(0, viewModel.CompareDivider);
+        Assert.True(viewModel.SetCompareDivider(0.5));
+        Assert.Equal(0.5, viewModel.CompareDivider);
+        Assert.True(viewModel.SetCompareDivider(1));
+        Assert.Equal(1, viewModel.CompareDivider);
+        Assert.False(viewModel.SetCompareDivider(double.NaN));
+        Assert.Equal(1, viewModel.CompareDivider);
+        Assert.True(viewModel.SetCompareDivider(2));
+        Assert.Equal(1, viewModel.CompareDivider);
+
+        Assert.True(viewModel.SetCompareToggleState(ImageCompareToggleState.Before));
+        Assert.True(viewModel.SetCompareToggleState(ImageCompareToggleState.After));
+        viewModel.SetCheckerboard(false);
+        Assert.False(viewModel.ShowCheckerboard);
+        Assert.True(viewModel.SetCompareZoom(2));
+        Assert.True(viewModel.PanCompareBy(12, -7));
+        Assert.Equal(2, viewModel.CompareZoom);
+        Assert.Equal(new ViewportVector(12, -7), viewModel.ComparePan);
+        Assert.NotNull(viewModel.GetCompareProjection(viewModel.BeforeImage!, 800, 400));
+        Assert.NotNull(viewModel.GetCompareProjection(viewModel.AfterImage!, 800, 400));
+        Assert.Equal(generationCount, resize.CallCount);
+        Assert.Equal(1, selection.LoadCount);
+    }
+
+    [Fact]
+    public async Task Edit_changes_refresh_after_without_replacing_immutable_before()
+    {
+        var baseline = Image(8, 4, 29);
+        var resize = new RecordingResizeService();
+        var viewModel = CreateViewModel(new TestSelection(TextureItem(4, 2), baseline), resize);
+        await viewModel.ActivateAsync();
+        var initialAfter = viewModel.AfterImage;
+
+        Assert.True(viewModel.SetCropPercent(25, 0, 50, 100));
+        await viewModel.WaitForAfterPreviewAsync();
+
+        Assert.Same(baseline, viewModel.BeforeImage);
+        Assert.NotSame(initialAfter, viewModel.AfterImage);
+        Assert.Equal(2, resize.CallCount);
+    }
+
+    [Fact]
+    public async Task Stale_after_preview_cannot_publish_over_latest_edit()
+    {
+        var resize = new DeferredResizeService();
+        var viewModel = CreateViewModel(
+            new TestSelection(TextureItem(4, 2), Image(8, 4)),
+            resize);
+        await viewModel.ActivateAsync();
+
+        viewModel.SelectedMode = viewModel.Modes.Single(option => option.Mode == ImageResizeMode.Fit);
+        await resize.WaitUntilRequestedAsync(ImageResizeMode.Fit);
+        viewModel.SelectedMode = viewModel.Modes.Single(option => option.Mode == ImageResizeMode.Fill);
+        await resize.WaitUntilRequestedAsync(ImageResizeMode.Fill);
+
+        var latest = Image(4, 2, 71);
+        resize.Complete(ImageResizeMode.Fill, latest);
+        await viewModel.WaitForAfterPreviewAsync();
+        resize.Complete(ImageResizeMode.Fit, Image(4, 2, 39));
+        await resize.WaitForAllCompletionsAsync();
+
+        Assert.Same(latest, viewModel.AfterImage);
+    }
+
+    [Fact]
+    public async Task Unload_releases_before_and_after_compare_resources()
+    {
+        var viewModel = CreateViewModel(
+            new TestSelection(TextureItem(4, 2), Image(4, 2)));
+        await viewModel.ActivateAsync();
+
+        viewModel.Unload();
+
+        Assert.Null(viewModel.BeforeImage);
+        Assert.Null(viewModel.AfterImage);
+        Assert.False(viewModel.HasImage);
+    }
+
+    private static ImageEditorViewModel CreateViewModel(
+        IWorkspaceTextureSelection selection,
+        IImageResizeService? resizeService = null) => new(
+        selection,
+        new ImageTransformService(),
+        resizeService ?? new ImageResizeService(ImageImportResourcePolicy.Default));
 
     private static WorkspaceTextureItem TextureItem(int width, int height) => new(
         "interface/texture.dds",
@@ -126,11 +244,11 @@ public sealed class ImageEditorViewModelTests
         true,
         "crop");
 
-    private static InternalImage Image(int width, int height) => new(
+    private static InternalImage Image(int width, int height, byte value = 255) => new(
         width,
         height,
         checked(width * 4),
-        Enumerable.Repeat((byte)255, checked(width * height * 4)).ToArray(),
+        Enumerable.Repeat(value, checked(width * height * 4)).ToArray(),
         new ImageSourceMetadata(
             ImageSourceFormat.Png,
             width,
@@ -174,5 +292,88 @@ public sealed class ImageEditorViewModelTests
         public bool CancelSelectedImageLoading() => true;
 
         public void Complete(InternalImage image) => _completion.TrySetResult(image);
+    }
+
+    private sealed class RecordingResizeService : IImageResizeService
+    {
+        private readonly ImageResizeService _inner = new(ImageImportResourcePolicy.Default);
+
+        public int CallCount { get; private set; }
+
+        public Task<ImageResizeResult> ResizeAsync(
+            ImageResizeRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            return _inner.ResizeAsync(request, cancellationToken);
+        }
+    }
+
+    private sealed class DeferredResizeService : IImageResizeService
+    {
+        private readonly Dictionary<ImageResizeMode, TaskCompletionSource<ImageResizeResult>> _requests = [];
+        private readonly Dictionary<ImageResizeMode, TaskCompletionSource> _started = [];
+        private readonly List<Task> _completions = [];
+
+        public Task<ImageResizeResult> ResizeAsync(
+            ImageResizeRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            if (request.Options.Mode == ImageResizeMode.ManualCrop)
+            {
+                return Task.FromResult(ImageResizeResult.Success(Image(request.TargetWidth, request.TargetHeight, 11)));
+            }
+
+            lock (_requests)
+            {
+                var completion = new TaskCompletionSource<ImageResizeResult>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                _requests[request.Options.Mode] = completion;
+                _completions.Add(completion.Task);
+                if (!_started.TryGetValue(request.Options.Mode, out var started))
+                {
+                    started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _started[request.Options.Mode] = started;
+                }
+
+                started.TrySetResult();
+                return completion.Task;
+            }
+        }
+
+        public Task WaitUntilRequestedAsync(ImageResizeMode mode)
+        {
+            lock (_requests)
+            {
+                if (_requests.ContainsKey(mode))
+                {
+                    return Task.CompletedTask;
+                }
+
+                if (!_started.TryGetValue(mode, out var started))
+                {
+                    started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _started[mode] = started;
+                }
+
+                return started.Task;
+            }
+        }
+
+        public void Complete(ImageResizeMode mode, InternalImage image)
+        {
+            lock (_requests)
+            {
+                _requests[mode].TrySetResult(ImageResizeResult.Success(image));
+            }
+        }
+
+        public Task WaitForAllCompletionsAsync()
+        {
+            lock (_requests)
+            {
+                return Task.WhenAll(_completions);
+            }
+        }
     }
 }

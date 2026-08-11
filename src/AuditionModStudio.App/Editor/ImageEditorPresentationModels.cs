@@ -11,6 +11,31 @@ public sealed record EditorCanvasProjection(
     EditorCanvasRectangle ImageBounds,
     EditorCanvasRectangle CropBounds);
 
+public enum ImageCompareMode
+{
+    SideBySide,
+    Slider,
+    Toggle
+}
+
+public enum ImageCompareToggleState
+{
+    Before,
+    After
+}
+
+public sealed record ImageCompareModeOption(ImageCompareMode Mode, string Label);
+
+public static class ImageCompareModes
+{
+    public static ImmutableArray<ImageCompareModeOption> Supported { get; } =
+    [
+        new(ImageCompareMode.SideBySide, "Side-by-side"),
+        new(ImageCompareMode.Slider, "Slider"),
+        new(ImageCompareMode.Toggle, "Toggle")
+    ];
+}
+
 public static class ImageEditorModes
 {
     public static ImmutableArray<EditorResizeModeOption> Supported { get; } =

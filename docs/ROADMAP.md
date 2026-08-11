@@ -94,7 +94,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 44: card texture có lazy thumbnail, friendly/raw filename, size và textual state; tìm kiếm kết hợp mapping/status/category/size/alpha facets; thumbnail chỉ tải cho card được hiện thực hóa qua Background Task Manager + Lazy Loading Service.
 - PLAN đã hoàn thành kiểm chứng: PLAN 45 — Crop/Resize Canvas UI.
 - Phạm vi PLAN 45: route Image Editor tải full texture theo yêu cầu qua Lazy Loading + Background Task Manager; canvas target frame exact DDS dimensions; zoom/pan/crop và typed modes Crop/Fit/Fill/Stretch/Canvas/Padding reuse geometry/resize contracts PLAN 21–22; toàn bộ state vẫn preview-only.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 46 — Before/After Compare; chưa được triển khai.
+- PLAN đã hoàn thành kiểm chứng: PLAN 46 — Before/After Compare.
+- Phạm vi PLAN 46: Before là immutable working-copy baseline của editor session; After là live non-destructive resize/crop preview có cancellation và generation guard; side-by-side/slider/toggle dùng chung compare camera; checkerboard chỉ là presentation; bitmap được reuse giữa mode và compare không mutate project/history/DDS/archive.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 47 — Apply Texture UX; chưa được triển khai.
 
 ## Stage Gates
 

@@ -697,3 +697,23 @@ Chi tiết token/component usage nằm trong `docs/DESIGN_SYSTEM.md`. PLAN 40 kh
 - `ImageEditorViewModel` dùng `IImageTransformService` PLAN 22 cho immutable zoom/pan/crop state, pixel crop và viewport projection. Sáu lựa chọn UI map explicit tới `ManualCrop`, `Fit`, `Fill`, `Stretch`, `CanvasResize`, `TransparentPadding` của PLAN 21 và tạo typed `ImageResizeRequest` với exact DDS target dimensions.
 - Canvas chỉ là render projection: target frame giữ exact target aspect/dimension label; pointer drag cập nhật pan, wheel/slider cập nhật zoom, crop percentage đi qua normalized crop validation. RGBA8 straight → BGRA8 premultiplied adapter ghi theo từng row để tránh thêm một full-frame conversion buffer.
 - PLAN 45 không gọi `IImageResizeService`, không Apply/encode DDS, không ghi edit history/project/extracted texture/archive và không triển khai compare PLAN 46. Các mode là preview + validated request intent cho workflow sau.
+## PLAN 46 — Before/After Compare
+
+Compare là presentation layer read-only của Image Editor. `BeforeImage` reuse đúng immutable
+`InternalImage` được load từ project working copy khi editor session bắt đầu; nó không đọc pristine
+template, thumbnail hoặc cache. `AfterImage` là kết quả preview không phá hủy do
+`IImageResizeService` tạo từ current editor request. Preview chạy ngoài UI thread, có cancellation và
+generation identity để kết quả cũ không publish đè edit mới. Compare không gọi persistence, DDS
+encoder, archive service, texture state machine hoặc edit history.
+
+Side-by-side, slider và toggle dùng chung một baseline bitmap và một After bitmap từ
+`InternalImageBitmapAdapter`; các mode không tạo bitmap riêng. Slider chỉ cập nhật UI clip. Before và
+After có edit geometry độc lập nhưng dùng cùng `CompareZoom`/`ComparePan`, được chiếu qua
+`IImageTransformService`. Checkerboard chỉ là các surface dùng semantic theme brush và không đi vào
+pixel/output. Route unload hủy preview đang chạy và bỏ toàn bộ `InternalImage`/`WriteableBitmap`
+reference của editor.
+
+Với fixture 6000×1801 RGBA8, một packed pixel buffer là 43.224.000 byte (xấp xỉ 41,22 MiB).
+Trạng thái ổn định xấu nhất gồm Before + After `InternalImage` và hai `WriteableBitmap`, xấp xỉ
+164,9 MiB, chưa tính buffer native/transient trong lúc resize. Vì vậy compare không lưu frame history,
+không clone baseline và thay/release After presentation resource ngay khi generation mới được publish.

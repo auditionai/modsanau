@@ -14,6 +14,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <StackPanel Spacing="{StaticResource AmsSpace8}">
@@ -234,7 +235,172 @@
                 </Border>
             </Grid>
 
-            <Border Grid.Row="2" Style="{StaticResource AmsStatusBadgeStyle}">
+            <Border Grid.Row="2" Style="{StaticResource AmsGamingPanelStyle}">
+                <Grid RowSpacing="{StaticResource AmsSpace16}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace12}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="{StaticResource AmsSpace4}">
+                            <TextBlock
+                                AutomationProperties.HeadingLevel="Level2"
+                                Style="{StaticResource AmsSectionTitleStyle}"
+                                Text="Before / After Compare" />
+                            <TextBlock
+                                Style="{StaticResource AmsBodyTextStyle}"
+                                Text="Read-only session baseline versus the current live non-destructive preview." />
+                            <TextBlock
+                                AutomationProperties.LiveSetting="Polite"
+                                Style="{StaticResource AmsBodyTextStyle}"
+                                Text="{x:Bind ViewModel.AfterPreviewStatus, Mode=OneWay}" />
+                        </StackPanel>
+                        <ProgressRing
+                            Grid.Column="1"
+                            AutomationProperties.Name="Generating live After preview"
+                            IsActive="{x:Bind ViewModel.IsAfterPreviewLoading, Mode=OneWay}" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" ColumnSpacing="{StaticResource AmsSpace12}" RowSpacing="{StaticResource AmsSpace12}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <ComboBox
+                            AutomationProperties.Name="Compare mode"
+                            DisplayMemberPath="Label"
+                            Header="Compare mode"
+                            IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                            ItemsSource="{x:Bind ViewModel.CompareModes}"
+                            SelectedItem="{x:Bind ViewModel.SelectedCompareMode, Mode=TwoWay}" />
+                        <CheckBox
+                            x:Name="CheckerboardToggle"
+                            Grid.Column="1"
+                            AutomationProperties.Name="Show alpha checkerboard"
+                            Click="OnCheckerboardClicked"
+                            Content="Alpha checkerboard"
+                            IsChecked="True"
+                            IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                            VerticalAlignment="Bottom" />
+                        <StackPanel Grid.Column="2" Grid.ColumnSpan="2" Spacing="{StaticResource AmsSpace4}">
+                            <TextBlock Text="Compare zoom" />
+                            <Slider
+                                x:Name="CompareZoomSlider"
+                                AutomationProperties.Name="Shared Before and After compare zoom"
+                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                Maximum="8"
+                                Minimum="0.1"
+                                StepFrequency="0.1"
+                                Value="1"
+                                ValueChanged="OnCompareZoomChanged" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                            <TextBlock VerticalAlignment="Center" Text="Shared camera" />
+                            <Button AutomationProperties.Name="Pan comparison left" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="left">←</Button>
+                            <Button AutomationProperties.Name="Pan comparison up" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="up">↑</Button>
+                            <Button AutomationProperties.Name="Pan comparison down" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="down">↓</Button>
+                            <Button AutomationProperties.Name="Pan comparison right" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="right">→</Button>
+                            <Button AutomationProperties.Name="Reset comparison camera" Click="OnCompareCameraResetClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}">Reset camera</Button>
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.ComparePanSummary, Mode=OneWay}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Grid.Row="2">
+                        <Grid
+                            x:Name="SideBySideCompare"
+                            ColumnSpacing="{StaticResource AmsSpace12}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
+                                <Grid x:Name="BeforeSideViewport" Height="340" SizeChanged="OnCompareSurfaceSizeChanged">
+                                    <Grid x:Name="BeforeSideCheckerboard" IsHitTestVisible="False" />
+                                    <Canvas x:Name="BeforeSideCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
+                                        <Image x:Name="BeforeSideImage" AutomationProperties.Name="Before session baseline" Stretch="Fill" />
+                                    </Canvas>
+                                    <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Text="Before" /></Border>
+                                </Grid>
+                            </Border>
+                            <Border Grid.Column="1" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
+                                <Grid x:Name="AfterSideViewport" Height="340" SizeChanged="OnCompareSurfaceSizeChanged">
+                                    <Grid x:Name="AfterSideCheckerboard" IsHitTestVisible="False" />
+                                    <Canvas x:Name="AfterSideCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
+                                        <Image x:Name="AfterSideImage" AutomationProperties.Name="After live preview" Stretch="Fill" />
+                                    </Canvas>
+                                    <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Text="After" /></Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <StackPanel x:Name="SliderCompare" Spacing="{StaticResource AmsSpace8}" Visibility="Collapsed">
+                            <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
+                                <Grid x:Name="SliderViewport" Height="380" SizeChanged="OnCompareSurfaceSizeChanged">
+                                    <Grid x:Name="SliderCheckerboard" IsHitTestVisible="False" />
+                                    <Canvas x:Name="BeforeSliderLayer" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
+                                        <Image x:Name="BeforeSliderImage" AutomationProperties.Name="Before session baseline under comparison slider" Stretch="Fill" />
+                                    </Canvas>
+                                    <Canvas x:Name="AfterSliderLayer" IsHitTestVisible="False">
+                                        <Image x:Name="AfterSliderImage" AutomationProperties.Name="After live preview clipped by comparison slider" Stretch="Fill" />
+                                    </Canvas>
+                                    <Canvas IsHitTestVisible="False">
+                                        <Border x:Name="SliderDivider" Background="{ThemeResource AmsFocusBrush}" Width="3" />
+                                        <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Text="Before" /></Border>
+                                        <Border HorizontalAlignment="Right" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Text="After" /></Border>
+                                    </Canvas>
+                                </Grid>
+                            </Border>
+                            <Slider
+                                x:Name="CompareDividerSlider"
+                                AutomationProperties.HelpText="Use Left and Right Arrow keys to move the Before and After divider."
+                                AutomationProperties.Name="Before and After comparison divider"
+                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                LargeChange="0.1"
+                                Maximum="1"
+                                Minimum="0"
+                                SmallChange="0.01"
+                                StepFrequency="0.01"
+                                Value="0.5"
+                                ValueChanged="OnCompareDividerChanged" />
+                        </StackPanel>
+
+                        <StackPanel x:Name="ToggleCompare" Spacing="{StaticResource AmsSpace8}" Visibility="Collapsed">
+                            <ToggleSwitch
+                                x:Name="BeforeAfterToggle"
+                                AutomationProperties.Name="Show Before or After comparison image"
+                                Header="Visible comparison image"
+                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                IsOn="True"
+                                OffContent="Before"
+                                OnContent="After"
+                                Toggled="OnBeforeAfterToggled" />
+                            <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
+                                <Grid x:Name="ToggleViewport" Height="380" SizeChanged="OnCompareSurfaceSizeChanged">
+                                    <Grid x:Name="ToggleCheckerboard" IsHitTestVisible="False" />
+                                    <Canvas x:Name="ToggleCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
+                                        <Image x:Name="ToggleImage" AutomationProperties.Name="Current Before or After comparison image" Stretch="Fill" />
+                                    </Canvas>
+                                    <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock x:Name="ToggleStateLabel" Text="After" /></Border>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="3" Style="{StaticResource AmsStatusBadgeStyle}">
                 <Grid ColumnSpacing="{StaticResource AmsSpace16}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
