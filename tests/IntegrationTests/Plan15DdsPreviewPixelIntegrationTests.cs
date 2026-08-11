@@ -132,6 +132,22 @@ public sealed class Plan15DdsPreviewPixelIntegrationTests : IDisposable
             encoder.EncodeAsync(new(workspace, sharedImage, concurrentSettings, @"output two\same.dds")));
         Assert.All(concurrent, result => Assert.True(result.Succeeded, result.DiagnosticCode));
         Assert.Equal(sharedPixels, sharedImage.Pixels);
+
+        var matcher = new DdsMatchOriginalService(new DdsMetadataReader(), encoder);
+        var targetHashes = await Task.WhenAll(concurrent.Select(result =>
+            ComputeHashAsync(workspace.ResolveRelativePath(result.OutputRelativePath!))));
+        var matched = await Task.WhenAll(
+            matcher.MatchAsync(new(workspace, concurrent[0].OutputRelativePath!, sharedImage, @"matched một\same.dds")),
+            matcher.MatchAsync(new(workspace, concurrent[1].OutputRelativePath!, sharedImage, @"matched two\same.dds")));
+        Assert.All(matched, result =>
+        {
+            Assert.True(result.Succeeded, result.DiagnosticCode);
+            Assert.True(result.MatchReport!.OverallMatch);
+        });
+        Assert.Equal(
+            targetHashes,
+            await Task.WhenAll(concurrent.Select(result =>
+                ComputeHashAsync(workspace.ResolveRelativePath(result.OutputRelativePath!)))));
     }
 
     [Fact]

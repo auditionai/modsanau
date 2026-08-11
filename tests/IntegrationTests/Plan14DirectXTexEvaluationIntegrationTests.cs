@@ -196,37 +196,49 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             harness,
             pathSecurity,
             new DdsEncoderOptions(texconvPath!, TimeSpan.FromMinutes(3), DdsPreviewResourcePolicy.Default));
+        var matchService = new DdsMatchOriginalService(metadataReader, encoder);
+        var profileAudit = realMetadata
+            .Select(item => (item.Path, Result: matchService.DeriveProfile(item.Metadata)))
+            .ToArray();
+        Assert.Equal(52, profileAudit.Length);
+        Assert.All(profileAudit, item => Assert.True(item.Result.Succeeded, item.Result.DiagnosticCode));
+
+        var matchTargets = realMetadata
+            .GroupBy(item => item.Metadata.Format)
+            .Select(group => group.MinBy(item => (long)item.Metadata.Width * item.Metadata.Height)!)
+            .ToList();
+        matchTargets.Add(Assert.Single(
+            realMetadata,
+            item => item.Metadata.Width == 6000 && item.Metadata.Height == 1801));
+        matchTargets.Add(realMetadata.First(item => item.Metadata.EffectiveMipLevelCount > 1));
+        matchTargets = matchTargets
+            .DistinctBy(item => item.Path, StringComparer.OrdinalIgnoreCase)
+            .ToList();
         var encodedProfiles = new List<DdsMetadata>();
-        foreach (var representative in representatives
-                     .GroupBy(item => item.Metadata.Format)
-                     .Select(group => group.MinBy(item => (long)item.Metadata.Width * item.Metadata.Height)!))
+        for (var index = 0; index < matchTargets.Count; index++)
         {
+            var representative = matchTargets[index];
             var target = representative.Metadata;
-            var alpha = target.Format == DdsFormat.BC1
-                ? DdsTargetAlphaSemantics.Opaque
-                : DdsTargetAlphaSemantics.Full;
-            var encode = await encoder.EncodeAsync(new(
+            var targetRelativePath = Path.GetRelativePath(
+                workspace.ArchiveWorkspace.SecureWorkspace.Paths.RootDirectory,
+                representative.Path);
+            var match = await matchService.MatchAsync(new(
                 workspace.ArchiveWorkspace.SecureWorkspace,
+                targetRelativePath,
                 CreateSolidRgbaImage(target.Width, target.Height),
-                new(
-                    target.Width,
-                    target.Height,
-                    target.Format,
-                    checked((int)target.EffectiveMipLevelCount),
-                    target.HeaderType,
-                    DdsColorSpace.Linear,
-                    alpha),
-                $@"real-target-profile\{target.Format}.dds"));
-            Assert.True(encode.Succeeded, encode.DiagnosticCode);
-            Assert.Equal(target.Width, encode.Metadata!.Width);
-            Assert.Equal(target.Height, encode.Metadata.Height);
-            Assert.Equal(target.Format, encode.Metadata.Format);
-            Assert.Equal(target.HeaderType, encode.Metadata.HeaderType);
-            Assert.Equal(target.EffectiveMipLevelCount, encode.Metadata.EffectiveMipLevelCount);
-            encodedProfiles.Add(encode.Metadata);
+                $@"real-match-profile\{index}-{target.Format}.dds"));
+            Assert.True(match.Succeeded, match.DiagnosticCode);
+            Assert.True(match.MatchReport!.OverallMatch);
+            Assert.Equal(target.Width, match.OutputMetadata!.Width);
+            Assert.Equal(target.Height, match.OutputMetadata.Height);
+            Assert.Equal(target.Format, match.OutputMetadata.Format);
+            Assert.Equal(target.HeaderType, match.OutputMetadata.HeaderType);
+            Assert.Equal(target.EffectiveMipLevelCount, match.OutputMetadata.EffectiveMipLevelCount);
+            encodedProfiles.Add(match.OutputMetadata);
         }
 
-        Assert.Equal(4, encodedProfiles.Count);
+        Assert.Contains(encodedProfiles, item => item.Width == 6000 && item.Height == 1801);
+        Assert.Contains(encodedProfiles, item => item.EffectiveMipLevelCount > 1);
 
         var unusualPngRelative = @"Working\evaluation-input-137x512.png";
         var unusualPngPath = workspace.ArchiveWorkspace.SecureWorkspace.ResolveRelativePath(unusualPngRelative);
@@ -307,8 +319,12 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             largestPreviewPixels,
             string.Join(", ", previewedFormats.Order()));
         output.WriteLine(
-            "PLAN 16 real target profiles encoded without replacement: {0}",
-            string.Join(", ", encodedProfiles.Select(item => item.Format).Order()));
+            "PLAN 17 strict audit: profiles=52/52; matched representatives={0}; formats=[{1}]; mip-groups=[{2}]",
+            encodedProfiles.Count,
+            string.Join(", ", encodedProfiles.Select(item => item.Format).Distinct().Order()),
+            string.Join(", ", realMetadata.GroupBy(item => item.Metadata.EffectiveMipLevelCount)
+                .OrderBy(group => group.Key)
+                .Select(group => $"{group.Key}={group.Count()}")));
     }
 
     private static string? GetApprovedTexconvPath() =>

@@ -73,6 +73,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IDdsPreviewService, DdsPreviewService>();
         builder.Services.AddSingleton(DdsEncoderOptions.CreateProduction(AppContext.BaseDirectory));
         builder.Services.AddSingleton<IDdsEncoder, DdsEncoder>();
+        builder.Services.AddSingleton<IDdsMatchOriginalService, DdsMatchOriginalService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

@@ -290,3 +290,23 @@ Internal RGBA8 image
 Format production hiện hỗ trợ đúng tập đã quan sát: BC1, BC3, RGBA8 và BGRA8. Linear hỗ trợ legacy/DX10; sRGB chỉ hỗ trợ DX10 vì legacy header không lưu semantic sRGB. BC1 chỉ nhận opaque hoặc binary alpha; full alpha bị từ chối. Encoder giữ exact dimensions, exact requested mip count và reject input/target dimension mismatch thay vì resize.
 
 Encoder không phải resize engine, Match Original orchestrator, archive replacement hoặc pack workflow. PLAN 17 mới map metadata target thành settings ở project flow; PLAN 16 chỉ cung cấp contract đủ explicit để orchestration đó gọi an toàn.
+
+## Match Original DDS từ PLAN 17
+
+`IDdsMatchOriginalService` orchestration đúng ba abstraction đã có: `IDdsMetadataReader` đọc target, centralized `DeriveProfile` tạo `DdsMatchOriginalProfile`/`DdsTargetSettings`, rồi `IDdsEncoder` tạo output mới. Service đọc lại output và trả `DdsMetadataMatchReport`; UI không tự so metadata hoặc parse diagnostic text.
+
+```text
+Target DDS trong secure workspace
+  → metadata preflight
+  → strict match profile
+  → immutable replacement RGBA8
+  → IDdsEncoder
+  → metadata post-validation
+  → matched DDS mới trong BuildOutput
+```
+
+Strict profile giữ exact format, dimensions, effective mip count, header và resource shape. `DeclaredMipMapCount=0`/`EffectiveMipLevelCount=1` được encode thành đúng một base mip. Legacy `Unknown` color space được lưu trong profile nhưng encoder dùng legacy-compatible Linear command policy, không suy đoán sRGB; DX10 Linear/sRGB được preserve khi meaningful.
+
+BC1 profile luôn giữ BC1 và binary-alpha capability; replacement có semi-transparent alpha bị từ chối, không nâng thành BC3. BC7, cubemap, array và volume được reject có cấu trúc vì encoder hiện chưa hỗ trợ. Match Original không có compatibility mode đổi format.
+
+Match Original nghĩa structural metadata fidelity, không phải byte-identical hash hoặc exact file size. PLAN 17 không resize, replace extracted target, pack archive hoặc install mod.

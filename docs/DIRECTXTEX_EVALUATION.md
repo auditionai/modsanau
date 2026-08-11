@@ -98,3 +98,11 @@ Các con số format/dimension này chỉ là observation của archive mẫu hi
 - BC1 binary alpha dùng ngưỡng `-at 0.5`; BC1 full alpha bị reject. BC3/RGBA8/BGRA8 synthetic transparent roundtrip giữ alpha; RGBA/BGRA solid red decode-back không swap channel.
 - Internal RGBA8 được đóng gói thành valid PNG bridge trong randomized `Working` operation vì CLI không nhận raw pixel buffer. Bridge bị cleanup; DDS được metadata-verify trong isolated output rồi atomic promote. Native wrapper vẫn là optimization tương lai, không cần để đạt PLAN 16.
 - Real disposable target profiles BC1, BC3, RGBA8 và BGRA8 encode thành công mà không replace DDS/archive. 6000×1801 legacy BC3/1 mip và 256×256 DX10 sRGB/9 mips cũng đã được xác minh.
+
+## Finding Match Original từ PLAN 17
+
+- Toàn bộ 52 real DDS derive strict profile thành công: BC1=2, BC3=4, RGBA8=23, BGRA8=23; legacy=52; effective mip groups 1=49, 8=2, 9=1.
+- Real matched encode phủ bốn format, target 6000×1801 và target multi-mip. Output metadata giữ format/header/dimensions/effective mip count; source target hashes không đổi.
+- `EffectiveMipLevelCount` là giá trị encode; declared zero/effective one không được biến thành full chain. Declared value vẫn nằm trong profile để audit.
+- Legacy color space `Unknown` không được chuyển thành synthetic sRGB. DX10 color space chỉ match khi metadata xác định Linear hoặc sRGB và encoder thực sự hỗ trợ combination.
+- Match không yêu cầu output SHA-256 hoặc file size giống target vì BC compression/serialization có thể khác; strict report so structural metadata và resource semantics.

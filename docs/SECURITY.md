@@ -173,3 +173,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - PNG bridge và native output dùng operation ID random trong `Working`/`BuildOutput`. Output DDS chỉ được atomic move tới relative path đã canonicalize sau khi `IDdsMetadataReader` xác minh dimensions, format, header, mip count và 2D resource shape. Existing output không bị overwrite.
 - Legacy+sRGB và BC1+full-alpha bị từ chối thay vì hạ cấp âm thầm. Encoder không sửa input image, real target DDS, extracted DDS hoặc archive.
 - RGBA buffer và temporary compressed PNG vẫn có peak-memory cost theo full-resolution input. Policy 512 MiB/100 triệu pixel/output estimate giảm rủi ro nhưng không thay thế process isolation, strict ACL, Authenticode và release supply-chain hardening tương lai.
+
+## Match Original boundary từ PLAN 17
+
+- Target DDS chỉ được resolve bằng relative path trong `ISecureWorkspace`; metadata reader mở read-only. Service không nhận tool path, trust hash hoặc absolute output path và không overwrite target.
+- Profile chỉ được derive sau metadata validation. Unsupported format/resource/color/mip profile bị reject; không downgrade BC7→BC3, cubemap→2D hoặc BC1→BC3 để né incompatibility.
+- Replacement RGBA phải đúng dimensions target; không cấp phát resize buffer hoặc stretch âm thầm. BC1 semi-alpha bị reject trước encoder.
+- Output tiếp tục đi qua encoder isolation, resource limits, pinned tool, atomic promotion và metadata post-validation. Match report dùng strongly typed booleans; raw process diagnostics và proprietary path không đi vào UI contract.
+- Structural match không chứng minh byte identity, gameplay compatibility hoặc archive safety. Replace/rollback/archive validation vẫn thuộc PLAN sau; local Administrator/TOCTOU/supply-chain risks đã ghi nhận vẫn còn.
