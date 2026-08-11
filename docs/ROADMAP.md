@@ -107,7 +107,11 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 51: typed read-only validation cho arbitrary user-selected export directory/filename; canonical
   absolute path, Unicode/spaces, trusted extension contract, access/reparse/collision semantics và explicit
   overwrite intent. Không persistence/schema change, không copy archive và không game-install metadata.
-- PLAN kế tiếp: PLAN 52 — Atomic Archive Export.
+- PLAN đã hoàn thành kiểm chứng: PLAN 52 — Atomic Archive Export.
+- Phạm vi PLAN 52: consume exact validated PLAN 49 build artifact; source re-hash; destination revalidation;
+  durable temp copy; size/SHA-256 verification; atomic promotion; explicit overwrite backup/rollback và typed
+  rollback failure. Không rebuild, project mutation hoặc game filesystem interaction.
+- PLAN kế tiếp: PLAN 53 — Build & Export UI.
 
 ## Stage Gates
 

@@ -102,3 +102,71 @@ public interface IArchiveExportDestinationValidator
 {
     ArchiveExportDestinationResult Validate(ArchiveExportDestinationRequest request);
 }
+
+public enum ArchiveExportPhase
+{
+    Preparing,
+    VerifyingSource,
+    Copying,
+    VerifyingCandidate,
+    Promoting,
+    Completed,
+    Failed,
+    Cancelled
+}
+
+public enum ArchiveExportFailureReason
+{
+    None,
+    InvalidRequest,
+    BuildArtifactUnavailable,
+    BuildArtifactInvalid,
+    DestinationInvalid,
+    CopyFailed,
+    VerificationFailed,
+    PromotionFailed,
+    RollbackFailed,
+    Cancelled
+}
+
+public sealed record ArchiveExportProgress(ArchiveExportPhase Phase, string DiagnosticCode);
+
+public sealed record ArchiveExportRequest(
+    Projects.AuditionProject Project,
+    Projects.IProjectArchiveWorkspace Workspace,
+    string OutputDirectory,
+    string OutputFileName,
+    ArchiveExportOverwritePolicy OverwritePolicy);
+
+public sealed record ArchiveExportResult(
+    bool Succeeded,
+    bool Cancelled,
+    ArchiveExportPhase FinalPhase,
+    ArchiveExportFailureReason FailureReason,
+    string DiagnosticCode,
+    ArchiveExportDestination? Destination,
+    long Size,
+    Archives.Sha256Digest? Sha256)
+{
+    public static ArchiveExportResult Success(
+        ArchiveExportDestination destination,
+        long size,
+        Archives.Sha256Digest sha256) =>
+        new(true, false, ArchiveExportPhase.Completed, ArchiveExportFailureReason.None,
+            "ARCHIVE_EXPORT_COMPLETED", destination, size, sha256);
+
+    public static ArchiveExportResult Failure(ArchiveExportFailureReason reason, string code) =>
+        new(false, false, ArchiveExportPhase.Failed, reason, code, null, 0, null);
+
+    public static ArchiveExportResult CancelledResult() =>
+        new(false, true, ArchiveExportPhase.Cancelled, ArchiveExportFailureReason.Cancelled,
+            "ARCHIVE_EXPORT_CANCELLED", null, 0, null);
+}
+
+public interface IArchiveExportService
+{
+    Task<ArchiveExportResult> ExportAsync(
+        ArchiveExportRequest request,
+        IProgress<ArchiveExportProgress>? progress = null,
+        CancellationToken cancellationToken = default);
+}

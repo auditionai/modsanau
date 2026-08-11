@@ -815,3 +815,17 @@ Save current project
 - Collision được trả structured; `ReplaceExisting` ở PLAN 51 chỉ là validated intent và không ghi file.
   PLAN 52 phải revalidate ngay trước write và thực hiện temp/hash/atomic promotion/rollback.
 - PLAN 51 không persist path, không đổi `.audproj`/settings schema, không build/copy archive và không gọi process.
+
+## Atomic Archive Export từ PLAN 52
+
+- `IArchiveExportService` chỉ nhận exact `AuditionProject`/workspace có `ProjectBuildStatus.Succeeded`, resolve
+  `BuildOutput` artifact đã được PLAN 49 promote và hash lại theo stored `OutputSha256`. Export không pack/rebuild,
+  không update project và không coi destination là product identity.
+- Destination PLAN 51 được validate trước copy và revalidate ngay trước promotion. Candidate có random name cùng
+  destination filesystem, được copy async với write-through/flush rồi đối chiếu size + SHA-256 source.
+- `RejectExisting` fail trước mutation. `ReplaceExisting` dùng filesystem replace giữ backup tới khi final file
+  được đọc/hash lại. Final mismatch/exception rollback exact previous file; rollback failure là typed fatal result
+  và giữ recovery backup thay vì xóa bằng chứng.
+- Critical final verification/commit không bị cancellation cắt ngang sau promotion; cancellation trước promotion
+  cleanup candidate. Singleton service serialize transaction để tránh local destination races; PLAN 54 quản lý
+  bounded batch orchestration.

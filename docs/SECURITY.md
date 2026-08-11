@@ -466,3 +466,13 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   existing bytes và không tạo probe/temp file. Access denied không bị làm mờ thành not-found.
 - PLAN 51 chỉ xác nhận intent tại một thời điểm nên vẫn có TOCTOU. PLAN 52 phải revalidate, mở/write an toàn,
   hash candidate và atomic promote trong transaction giữ destination cũ tới commit.
+
+## Atomic Archive Export boundary từ PLAN 52
+
+- Source chỉ là exact PLAN 49 build output trong matching ready project workspace; status/path/stored hash được
+  kiểm tra lại trước copy. Export không nhận arbitrary source file và không chạy archive tool.
+- Candidate/backup names là random code-owned safe segments cùng destination root. Copy dùng create-new,
+  async/write-through/flush; size và SHA-256 phải match trước và sau atomic promotion.
+- Explicit overwrite dùng backup transaction. Failure trước promote không chạm final; failure sau promote rollback
+  destination cũ. Rollback failure không bị nuốt và recovery backup được giữ để operator xử lý.
+- Service không log full source/destination path hoặc hashes, không persistence machine path và không chạm game.
