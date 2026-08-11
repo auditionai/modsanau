@@ -15,6 +15,7 @@
     <SolidColorBrush x:Key="AmsTextPrimaryBrush" Color="{ThemeResource AmsTextPrimaryColor}" />
     <SolidColorBrush x:Key="AmsTextSecondaryBrush" Color="{ThemeResource AmsTextSecondaryColor}" />
     <SolidColorBrush x:Key="AmsFocusBrush" Color="{ThemeResource AmsFocusColor}" />
+    <SolidColorBrush x:Key="AmsShellBackgroundBrush" Color="{ThemeResource AmsBackgroundColor}" />
 
     <!-- Button component tokens. BorderBrush intentionally represents the depth layer. -->
     <SolidColorBrush x:Key="AmsButtonPrimaryBrush" Color="{ThemeResource AmsAccentColor}" />
@@ -36,4 +37,6 @@
     <StaticResource x:Key="AmsButtonPadding" ResourceKey="AmsControlPadding" />
     <StaticResource x:Key="AmsPanelPadding" ResourceKey="AmsCardPadding" />
     <StaticResource x:Key="AmsStatusBadgePadding" ResourceKey="AmsBadgePadding" />
+    <StaticResource x:Key="AmsShellHeaderPadding" ResourceKey="AmsPrimitiveShellHeaderPadding" />
+    <StaticResource x:Key="AmsShellContentPadding" ResourceKey="AmsPrimitiveShellContentPadding" />
 </ResourceDictionary>

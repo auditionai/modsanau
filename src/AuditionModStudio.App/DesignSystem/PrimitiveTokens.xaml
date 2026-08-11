@@ -32,6 +32,8 @@
     <Thickness x:Key="AmsPrimitiveControlPadding">16,10</Thickness>
     <Thickness x:Key="AmsPrimitiveCardPadding">20</Thickness>
     <Thickness x:Key="AmsPrimitiveBadgePadding">10,4</Thickness>
+    <Thickness x:Key="AmsPrimitiveShellHeaderPadding">16,8</Thickness>
+    <Thickness x:Key="AmsPrimitiveShellContentPadding">24</Thickness>
     <Thickness x:Key="AmsPrimitiveFocusThickness">2</Thickness>
 
     <!-- Shape, typography and motion primitives. -->

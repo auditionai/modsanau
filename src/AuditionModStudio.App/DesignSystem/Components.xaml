@@ -153,4 +153,11 @@
         <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusPill}" />
         <Setter Property="Padding" Value="{StaticResource AmsStatusBadgePadding}" />
     </Style>
+
+    <Style x:Key="AmsShellHeaderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource AmsPanelBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AmsCardBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="{StaticResource AmsShellHeaderPadding}" />
+    </Style>
 </ResourceDictionary>

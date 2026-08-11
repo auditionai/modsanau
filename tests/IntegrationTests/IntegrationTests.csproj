@@ -30,4 +30,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\..\src\AuditionModStudio.App\Shell\AppRoute.cs" Link="AppShell\AppRoute.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Shell\AppShellViewModel.cs" Link="AppShell\AppShellViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Shell\ShellNavigationItem.cs" Link="AppShell\ShellNavigationItem.cs" />
+  </ItemGroup>
+
 </Project>

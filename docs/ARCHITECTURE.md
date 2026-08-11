@@ -657,3 +657,11 @@ WinUI resources dùng bốn dictionary merge theo dependency order: primitives �
 Foundation hiện có gồm shared acrylic/fallback gaming panel, standard và accent-gradient rounded cards, primary/secondary depth buttons với hover/pressed/disabled states, status badge container cùng section/body typography. Button template giữ `Button` semantics và system focus visual; motion chỉ dùng opacity/transform ngắn. Window Mica hiện hữu tiếp tục là top-level backdrop, còn acrylic chỉ là shared panel brush để giới hạn overdraw.
 
 Chi tiết token/component usage nằm trong `docs/DESIGN_SYSTEM.md`. PLAN 40 không tạo navigation, page layout, dashboard/sidebar, texture grid/editor, view model hay workflow binding; toàn bộ App Shell thuộc PLAN 41.
+
+## App Shell từ PLAN 41
+
+- `MainWindow` chỉ sở hữu window/title-bar wiring và host `MainPage` được DI cấp; không resolve route bằng service locator và không chạy business operation.
+- `AppShellViewModel` là presentation state in-memory. Route dùng enum `AppRoute` cùng một catalog code-owned; route label không được dùng làm filesystem, project, template hoặc entitlement identity.
+- `NavigationView` cung cấp sidebar thích ứng và native keyboard/selection semantics. Content PLAN 41 chỉ là placeholder; các page Home, Project Workspace, Texture Grid và Crop/Resize được mở ở PLAN tương ứng.
+- Top bar chỉ hiển thị trạng thái trung tính khi auth/cloud chưa tồn tại. Credits và connection trong client không phải authority; shell không chứa token, secret, executable path, process argument hoặc trusted hash.
+- Shell không tạo background queue, không poll process và không tự cleanup/recover workspace. Khi PLAN sau cần trạng thái task/recovery, orchestration phải reuse contract PLAN 38/39.

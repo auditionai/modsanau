@@ -356,3 +356,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Component dùng semantic `ThemeResource`; raw colors chỉ tồn tại trong primitive layer. Default/Light/HighContrast có cùng key contract, focus indicator luôn explicit và trạng thái không được chỉ dựa vào màu.
 - Shared acrylic/gradient/shadow được giới hạn ở component resource; motion chỉ dùng opacity/transform ngắn để giảm overdraw/layout churn. Clarity và system accessibility behavior thắng decoration.
 - Design token/style không chứa secret, filesystem path, executable path, entitlement hay business/security decision. PLAN 40 không thêm UI workflow hoặc App Shell.
+
+## App Shell boundary từ PLAN 41
+
+- Route và label là code-owned presentation metadata; không load dynamic XAML, remote resource hoặc user-controlled navigation identity.
+- Top bar không coi credits, connection, notification hoặc account text là authority. Trạng thái thương mại về sau vẫn phải đến từ trusted backend và client chỉ hiển thị.
+- Shell/ViewModel không nhận executable path, raw archive argument, country selector, trusted template hash hoặc secret; không gọi filesystem/process/network.
+- Navigation không làm thay đổi project/workspace lifecycle. Đóng cửa sổ vẫn đi qua graceful host shutdown hiện có và không xóa retained project workspace.

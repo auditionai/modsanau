@@ -4,15 +4,114 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="using:AuditionModStudio.App"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="{ThemeResource AmsShellBackgroundBrush}"
     mc:Ignorable="d">
 
-    <!--
-        This is the main content area of your application.
-        Add your UI elements here — for example, controls, layouts, and data-bound views.
-        Use 'dotnet new winui-page' to create additional pages and navigate to them via
-        the Frame in MainWindow (RootFrame).
-    -->
-    <Grid />
+    <NavigationView
+        x:Name="ShellNavigation"
+        AlwaysShowHeader="False"
+        CompactModeThresholdWidth="640"
+        ExpandedModeThresholdWidth="1000"
+        IsBackButtonVisible="Collapsed"
+        IsSettingsVisible="False"
+        PaneDisplayMode="Auto"
+        PaneTitle="Audition AI Mod Studio"
+        SelectionChanged="OnNavigationSelectionChanged">
+        <Grid>
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup>
+                    <VisualState x:Name="CompactShellState">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="0" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="ShellTitle.Visibility" Value="Collapsed" />
+                            <Setter Target="AccountStatusText.Visibility" Value="Collapsed" />
+                            <Setter Target="CreditsStatusText.Visibility" Value="Collapsed" />
+                            <Setter Target="NotificationStatusText.Visibility" Value="Collapsed" />
+                            <Setter Target="ConnectionStatusText.Visibility" Value="Collapsed" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="ExpandedShellState">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="900" />
+                        </VisualState.StateTriggers>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Style="{StaticResource AmsShellHeaderStyle}">
+                <Grid ColumnSpacing="{StaticResource AmsSpace16}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        x:Name="ShellTitle"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource AmsSectionTitleStyle}"
+                        Text="Audition AI Mod Studio" />
+
+                    <StackPanel
+                        Grid.Column="1"
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal"
+                        Spacing="{StaticResource AmsSpace8}">
+                        <Border AutomationProperties.Name="Account status: Signed out" Style="{StaticResource AmsStatusBadgeStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                                <FontIcon Glyph="&#xE77B;" />
+                                <TextBlock x:Name="AccountStatusText" Text="{x:Bind ViewModel.AccountStatus}" />
+                            </StackPanel>
+                        </Border>
+                        <Border AutomationProperties.Name="Credits status: unavailable" Style="{StaticResource AmsStatusBadgeStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                                <FontIcon Glyph="&#xE8C7;" />
+                                <TextBlock x:Name="CreditsStatusText" Text="{x:Bind ViewModel.CreditsStatus}" />
+                            </StackPanel>
+                        </Border>
+                        <Border AutomationProperties.Name="Notifications: none" Style="{StaticResource AmsStatusBadgeStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                                <FontIcon Glyph="&#xEA8F;" />
+                                <TextBlock x:Name="NotificationStatusText" Text="{x:Bind ViewModel.NotificationStatus}" />
+                            </StackPanel>
+                        </Border>
+                        <Border AutomationProperties.Name="Connection status: Offline" Style="{StaticResource AmsStatusBadgeStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                                <FontIcon Glyph="&#xEB55;" />
+                                <TextBlock x:Name="ConnectionStatusText" Text="{x:Bind ViewModel.ConnectionStatus}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <ScrollViewer Grid.Row="1">
+                <Grid Padding="{StaticResource AmsShellContentPadding}">
+                    <Border
+                        MaxWidth="960"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top"
+                        Style="{StaticResource AmsGamingPanelStyle}">
+                        <StackPanel Spacing="{StaticResource AmsSpace12}">
+                            <TextBlock
+                                x:Name="ContentHeading"
+                                AutomationProperties.HeadingLevel="Level1"
+                                Style="{StaticResource AmsSectionTitleStyle}"
+                                Text="{x:Bind ViewModel.CurrentTitle, Mode=OneWay}" />
+                            <TextBlock
+                                Style="{StaticResource AmsBodyTextStyle}"
+                                Text="{x:Bind ViewModel.CurrentDescription, Mode=OneWay}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </NavigationView>
 </Page>

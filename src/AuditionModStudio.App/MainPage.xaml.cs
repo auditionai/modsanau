@@ -1,20 +1,51 @@
+using AuditionModStudio.App.Shell;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
 
 namespace AuditionModStudio.App;
 
-/// <summary>
-/// The main content page displayed inside the application window.
-/// Add your UI logic, event handlers, and data binding here.
-/// </summary>
 public sealed partial class MainPage : Page
 {
-    public MainPage()
+    public MainPage(AppShellViewModel viewModel)
     {
+        ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
+        PopulateNavigationItems();
+    }
 
-        // TODO: Add your initialization logic here.
+    public AppShellViewModel ViewModel { get; }
+
+    private void PopulateNavigationItems()
+    {
+        foreach (var item in ViewModel.NavigationItems)
+        {
+            var navigationItem = new NavigationViewItem
+            {
+                Content = item.Label,
+                Icon = new FontIcon { Glyph = item.Glyph },
+                Tag = item.Route
+            };
+
+            AutomationProperties.SetName(navigationItem, item.Label);
+            ShellNavigation.MenuItems.Add(navigationItem);
+        }
+
+        ShellNavigation.SelectedItem = ShellNavigation.MenuItems[0];
+    }
+
+    private void OnNavigationSelectionChanged(
+        NavigationView sender,
+        NavigationViewSelectionChangedEventArgs args)
+    {
+        if (args.SelectedItemContainer?.Tag is not AppRoute route)
+        {
+            return;
+        }
+
+        if (ViewModel.Navigate(route))
+        {
+            ContentHeading.Focus(FocusState.Programmatic);
+        }
     }
 }

@@ -7,14 +7,14 @@ using Microsoft.UI.Xaml;
 namespace AuditionModStudio.App;
 
 /// <summary>
-/// The application window. This hosts a Frame that displays pages. Add your
-/// UI and logic to MainPage.xaml / MainPage.xaml.cs instead of here so you
-/// can use Page features such as navigation events and the Loaded lifecycle.
+/// The application window hosts the injected application shell and owns only
+/// window-specific wiring.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
-    public MainWindow(ILogger<MainWindow> logger)
+    public MainWindow(MainPage mainPage, ILogger<MainWindow> logger)
     {
+        ArgumentNullException.ThrowIfNull(mainPage);
         ArgumentNullException.ThrowIfNull(logger);
         InitializeComponent();
 
@@ -23,8 +23,7 @@ public sealed partial class MainWindow : Window
 
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
-        // Navigate the root frame to the main page on startup.
-        RootFrame.Navigate(typeof(MainPage));
+        RootContent.Content = mainPage;
         logger.LogDebug("Main window initialized");
     }
 }

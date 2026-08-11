@@ -84,7 +84,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 39: versioned lock/session metadata cho managed workspace; startup discovery không phá hủy; typed Active/StaleRecoverable/StaleCleanupOnly/Unsafe inventory; explicit exact-ID recovery hoặc cleanup với lock/reparse revalidation tại thời điểm action.
 - PLAN đã hoàn thành: PLAN 40 — Design System.
 - Phạm vi PLAN 40: WinUI three-layer design tokens; dark/light/high-contrast semantic contract; shared acrylic panel, rounded/gradient cards, depth hover/pressed buttons, badge và typography styles; keyboard focus/accessibility/performance rules.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 41 — App Shell; chưa được triển khai.
+- PLAN đã hoàn thành kiểm chứng: PLAN 41 — App Shell.
+- Phạm vi PLAN 41: shell WinUI thích ứng với 8 route strongly typed; top bar account/credits/notifications/connection; ViewModel presentation state; keyboard focus sau navigation; reuse design system Default/Light/HighContrast. Nội dung feature vẫn là placeholder theo đúng ranh giới PLAN.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 42 — Home: Game → Mod First; chưa được triển khai.
 
 ## Stage Gates
 
