@@ -189,3 +189,12 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - BC7, volume, array và cubemap tiếp tục bị reject có cấu trúc. Không có fallback format/header/mip và không suy diễn legacy `Unknown` thành sRGB.
 - Validator không copy, move, delete hoặc overwrite target/candidate. Replacement extracted DDS chưa tồn tại trong PLAN 18; caller tương lai chỉ được replace sau `Succeeded=true`.
 - Metadata-only validation dùng header buffer hữu hạn, không decode payload hoặc cấp phát theo dimensions không tin cậy. Nó không chứng minh pixel fidelity, byte identity, game compatibility hay archive safety; các gate đó thuộc PLAN sau.
+
+## Image import boundary từ PLAN 20
+
+- Import chỉ nhận absolute user-selected local path, canonicalize bằng `Path.GetFullPath`, yêu cầu regular existing file và reject reparse point trên source/ancestor. Source luôn mở `FileMode.Open`, `FileAccess.Read`; service không ghi temp/output cạnh source và không mutate file.
+- PNG/JPEG/WebP/BMP được nhận diện từ signature và đối chiếu với format do `SKCodec` nhận diện; extension không được tin. Unsupported, empty, truncated, invalid và decode failure trả enum + stable diagnostic code, không chuyển exception/raw metadata cho UI.
+- File size được chặn ở 512 MiB. Codec chỉ probe metadata trước; dimension tối đa 16384, pixel tối đa 100 triệu và decoded RGBA tối đa 512 MiB được kiểm tra bằng checked 64-bit arithmetic trước pixel allocation. Đây giảm decompression-bomb risk nhưng native decoder parsing vẫn là attack surface.
+- Decoder `SkiaSharp` 4.150.1 được pin tập trung, license MIT, có native Skia runtime. Release cần dependency provenance, vulnerability scan, RID inventory và native-binary integrity/signing review; package pin không tự chứng minh supply-chain safety.
+- Service stateless, không dùng temp/global filename nên concurrent import độc lập. Cancellation được kiểm tra trước I/O, sau signature/probe, trước/sau decode và trước model promotion; native `SKCodec.GetPixels` không hỗ trợ mid-call cancellation tức thời.
+- Internal pixels là immutable managed RGBA8 straight-alpha, không chứa EXIF blob. Native stream/codec/bitmap/color-space objects được dispose deterministically. PLAN 20 không resize, replace DDS, pack archive hoặc launch game.

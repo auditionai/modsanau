@@ -327,3 +327,21 @@ Target DDS (read-only) + encoded candidate (read-only)
 Comparison bắt buộc gồm format, dimensions, effective mip count, header type, meaningful DX10 color space và resource shape. Legacy `Unknown` color space không bị suy diễn thành sRGB. Hash/file size không được so như compatibility contract vì BC compression/serialization có thể khác nhau.
 
 `DdsMatchOriginalService` reuse validator này sau `IDdsEncoder`; output chỉ được trả thành công khi validation PASS. PLAN 18 vẫn không replace extracted target, không rollback/archive-pack và không mở rộng support sang BC7, volume, array hoặc cubemap. Workflow Apply/replace tương lai phải coi `DdsValidationResult.Succeeded` là precondition bắt buộc.
+
+## Internal Image Model & Import từ PLAN 20
+
+`IImageImportService` là boundary UI-neutral giữa file do người dùng chọn và image processing. Request nhận absolute local path, implementation mở read-only, nhận diện signature thực và chỉ cho phép PNG, JPEG, WebP hoặc BMP. Extension không quyết định decoder. UI file picker, DDS settings và archive logic không đi vào service.
+
+```text
+User image (read-only)
+  → signature + regular-path validation
+  → SKCodec metadata probe
+  → dimension/pixel/decoded-byte policy
+  → RGBA8888 straight-alpha decode + EXIF orientation normalization
+  → immutable InternalImage
+  → future image processing → DdsRgbaImage/IDdsEncoder
+```
+
+`InternalImage` dùng packed `RGBA8Straight`: channel order R-G-B-A, 8 bit/channel, stride luôn `width × 4`, immutable owned `ImmutableArray<byte>`. Constructor defensive-copy tại import trust boundary; `DdsRgbaImage.Create(InternalImage)` reuse cùng immutable storage nên không tạo conversion/channel-copy thứ hai. Buffer chỉ chứa managed memory nên không cần caller dispose; mọi `SKCodec`, stream, bitmap và color-space native object được service dispose trước khi trả kết quả.
+
+Skia decode vào explicit sRGB output color space. Embedded profile được decoder áp dụng khi có thể; model chỉ giữ cờ codec-reported và không giữ EXIF/ICC blob. EXIF orientation 1–8 được normalize vào pixels và normalized dimensions. Animated/multi-frame input chỉ lấy frame đầu trong scope PLAN 20; resize/crop/editor document/DDS replacement không thuộc model này.

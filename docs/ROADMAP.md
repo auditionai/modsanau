@@ -40,7 +40,11 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 17: centralized metadata→strict profile; exact format/header/dimensions/effective-mips/color/resource semantics; BC1 alpha compatibility; `IDdsEncoder` orchestration; structured match report; 52/52 real profile audit và real representative matched encode without target/archive mutation.
 - PLAN đã hoàn thành: PLAN 18 — DDS Validation.
 - Phạm vi PLAN 18: independent `IDdsValidationService`; reopen target/candidate; exact structural metadata report; structured unsupported/missing/invalid/mismatch/cancelled failures; Match Original post-encode gate reuse; read-only workspace safety và không replacement.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 19 — Real DDS Roundtrip Gate; không tự động bắt đầu.
+- PLAN đã hoàn thành Gate B: PLAN 19 — Real DDS Roundtrip Gate.
+- Phạm vi PLAN 19: đúng `tn_coby_logo.dds` từ disposable extract; Match Original → encoder → validation reopen → decode-back; exact BC3/DXT5 legacy 6000×1801/1 mip và source/archive hash bất biến.
+- PLAN đã hoàn thành: PLAN 20 — Internal Image Model & Import.
+- Phạm vi PLAN 20: PNG/JPEG/WebP/BMP signature-based import; metadata preflight; immutable packed straight-alpha RGBA8; EXIF orientation normalization; sRGB decode; structured failures; cancellation/concurrency; source read-only và DDS encoder interoperability.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 21 — Arbitrary Resize Engine; không tự động bắt đầu.
 
 ## Stage Gates
 

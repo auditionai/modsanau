@@ -2,6 +2,7 @@ using AuditionModStudio.Archives;
 using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
+using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Paths;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Startup;
@@ -12,6 +13,7 @@ using AuditionModStudio.Infrastructure.Paths;
 using AuditionModStudio.Infrastructure.Startup;
 using AuditionModStudio.Infrastructure.Settings;
 using AuditionModStudio.Infrastructure.Workspaces;
+using AuditionModStudio.Imaging;
 using AuditionModStudio.Projects;
 using AuditionModStudio.Dds;
 using Microsoft.Extensions.DependencyInjection;
@@ -75,6 +77,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IDdsEncoder, DdsEncoder>();
         builder.Services.AddSingleton<IDdsValidationService, DdsValidationService>();
         builder.Services.AddSingleton<IDdsMatchOriginalService, DdsMatchOriginalService>();
+        builder.Services.AddSingleton(ImageImportResourcePolicy.Default);
+        builder.Services.AddSingleton<IImageImportService, ImageImportService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

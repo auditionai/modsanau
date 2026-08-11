@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Workspaces;
 
 namespace AuditionModStudio.Core.Dds;
@@ -43,6 +44,17 @@ public sealed record DdsRgbaImage(
 {
     public static DdsRgbaImage Create(int width, int height, int stride, ReadOnlySpan<byte> pixels) =>
         new(width, height, stride, DdsImagePixelFormat.Rgba8, ImmutableArray.Create(pixels.ToArray()));
+
+    public static DdsRgbaImage Create(InternalImage image)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        return new(
+            image.Width,
+            image.Height,
+            image.Stride,
+            DdsImagePixelFormat.Rgba8,
+            image.Pixels);
+    }
 }
 
 public sealed record DdsTargetSettings(
