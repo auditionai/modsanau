@@ -899,6 +899,15 @@ process output hay trusted hash. Validation không sửa project, cache, texture
 
 Statuses: Preparing/Validating/Packing/Verifying/Completed/Failed/Cancelled.
 
+Đã triển khai `IProjectBuildService` đúng thứ tự trên. Build lưu snapshot trước khi validate; chỉ tiếp tục
+khi `IProjectValidator.CanBuild=true`. Working archive và extracted tree được copy có giới hạn vào một
+secure workspace ngẫu nhiên, từ chối reparse point và xác minh working archive hash trước khi pack.
+`IAuditionArchiveService` là boundary duy nhất chạy pack; project working archive và pristine template
+không bị mutate. Artifact sau pack được mở kiểm tra độc lập, hash SHA-256, copy durable rồi promote
+atomically vào `BuildOutput/Output/<exact archive filename>`. Build state chỉ thành `Succeeded` sau khi
+atomic `.audproj` save cuối đạt; save/cancellation/exception sau promotion rollback output cũ. Temporary
+build workspace luôn được dispose và không được retain.
+
 ## PLAN 50 — Real Replace + Pack Gate
 
 Replace only `tn_coby_logo.dds` or another safe test texture in a copy of `015.ab`, pack, then manually test in Audition. Document exact outcome. This is Gate C.

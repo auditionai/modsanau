@@ -413,3 +413,21 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   validator không launch process.
 - Kết quả không chứa absolute path, expected/actual hash, raw exception hoặc tool output. Cancellation không
   tạo partial mutation; toàn bộ operation không ghi project/cache/DDS/archive/pristine template.
+
+## Build Pipeline boundary từ PLAN 49
+
+- Build chỉ nhận exact immutable project + retained workspace; không nhận output path, executable path,
+  extension, raw arguments hoặc country selection từ UI. Save và PLAN 48 validation là precondition trước
+  khi cấp temporary build workspace.
+- Project working archive được mở read-only, hash lại theo workspace descriptor rồi copy durable. Extracted
+  tree được traverse không theo reparse point, resolve containment từng entry và giới hạn file count/total
+  bytes trước khi copy. Temporary workspace ngẫu nhiên bị cleanup trên mọi terminal path.
+- Pack chỉ gọi `IAuditionArchiveService`; production ACV engine provision/hash-check `acv.exe`, dùng absolute
+  path, structured arguments, redirected stdin/stdout/stderr và trusted region profile. Build service không
+  launch process hoặc parse raw ACV output.
+- Candidate phải tồn tại, non-empty, đọc được và được SHA-256 trước promotion. Copy sang project Output dùng
+  temp cùng filesystem, durable flush, hash verification và atomic replace/move. Existing output có backup
+  transaction; final `.audproj` save fail/cancel/exception phục hồi bytes cũ hoặc xóa output mới.
+- Log/result không chứa absolute path, asset filename list, raw stdout/stderr hoặc trusted expected hash.
+  SHA-256 là integrity/content identity, không phải chữ ký hay DRM; Gate C gameplay compatibility vẫn thuộc
+  PLAN 50 và chưa được suy ra từ build success.

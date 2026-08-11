@@ -748,3 +748,30 @@ session baseline kế tiếp phản ánh byte thực sau encode, không reuse pr
 - Validator là read-only và cancellable: không save project, không tái tạo cache, không sửa DDS/archive,
   không chạy pack và không tự xử lý lỗi. Build orchestration PLAN 49 phải gọi boundary này và chỉ tiếp tục
   khi `CanBuild` là true.
+
+## Build Pipeline từ PLAN 49
+
+`IProjectBuildService` là orchestration boundary UI-neutral cho chuỗi bắt buộc:
+
+```text
+Save current project
+  → IProjectValidator
+  → randomized temporary ISecureWorkspace
+  → verified copy working archive + extracted tree
+  → IAuditionArchiveService.PackAsync
+  → independent non-empty/read verification
+  → SHA-256
+  → durable atomic promotion to BuildOutput/Output
+  → save immutable ProjectBuildState.Succeeded
+```
+
+- Temporary build workspace không phải project workspace và không được retain. Pack chỉ mutate archive copy
+  trong temporary `Working`; extracted project tree, project working archive và pristine template giữ nguyên.
+- Clone traversal reject reparse point, resolve từng relative path qua `IPathSecurity`, xác minh working archive
+  theo descriptor hash và áp giới hạn code-owned cho file count/total bytes.
+- Output giữ exact archive filename/extension từ template metadata, không hard-code `.ab`/`.acv`. Promotion
+  copy + flush + verify hash rồi replace/move trong project `BuildOutput/Output`; output cũ có transactional
+  backup và tự rollback nếu project save cuối fail, cancel hoặc ném exception.
+- Progress public chỉ có `Preparing/Validating/Packing/Verifying/Completed/Failed/Cancelled`, count và stable
+  diagnostic code. Không publish asset path, tool output hoặc hash trust metadata. Build concurrency được
+  serialize trong service; ACV execution tiếp tục async/cancellable và dùng progress của archive boundary.

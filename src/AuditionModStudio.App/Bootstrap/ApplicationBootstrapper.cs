@@ -87,6 +87,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IArchiveToolProvisioningService, ArchiveToolProvisioningService>();
         builder.Services.AddSingleton<IArchiveToolRunner, AcvTool5Runner>();
         builder.Services.AddSingleton<IGameRegionProfileResolver, GameRegionProfileCatalog>();
+        builder.Services.AddSingleton(new AcvTool5ArchiveEngineOptions(AppContext.BaseDirectory, "acv.exe"));
+        builder.Services.AddSingleton<IArchiveEngine, AcvTool5ArchiveEngine>();
         var templateVersions = TemplateVersionCatalog.Create([]);
         if (!templateVersions.Succeeded)
         {
@@ -154,6 +156,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IProjectCreationService, ProjectCreationService>();
         builder.Services.AddSingleton<IProjectLoadService, ProjectLoadService>();
         builder.Services.AddSingleton<IProjectValidator, ProjectValidator>();
+        builder.Services.AddSingleton(ProjectBuildOptions.Default);
+        builder.Services.AddSingleton<IProjectBuildService, ProjectBuildService>();
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
         builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();
