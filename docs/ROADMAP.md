@@ -52,7 +52,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 23: managed deterministic `InternalImage` adjustment pipeline cho brightness/contrast/exposure/saturation/vibrance/hue/temperature/tint/highlights/shadows/gamma/sharpen/blur/opacity; explicit range/order/sRGB semantics; exact alpha policy; cancellation/concurrency/resource validation và DDS RGBA interoperability.
 - PLAN đã hoàn thành: PLAN 24 — Edit History / Undo Redo.
 - Phạm vi PLAN 24: UI-independent per-editor history session; hybrid immutable state/image-reference snapshots; linear undo/redo và redo invalidation; stable revisions, saved checkpoint/dirty state; transaction coalescing; bounded entry/byte budget, unique image accounting và oldest-undo eviction.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 25 — Alpha Channel Utilities; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 25 — Alpha Channel Utilities.
+- Phạm vi PLAN 25: `InternalImage` in/out cho view/invert/threshold; immutable tightly-packed `AlphaChannelData` cho extract/replace; grayscale opaque view; exact `A >= threshold`; byte-exact RGB và hidden-RGB preservation; structured validation, cancellation, concurrency, resource policy, history và DDS interoperability.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 26 — Game Catalog; không tự động bắt đầu.
 
 ## Stage Gates
 

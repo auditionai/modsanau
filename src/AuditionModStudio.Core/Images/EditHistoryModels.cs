@@ -8,7 +8,8 @@ public enum EditOperationKind
     Transform,
     Crop,
     Resize,
-    Adjustment
+    Adjustment,
+    Alpha
 }
 
 public sealed record EditOperationDescriptor(EditOperationKind Kind);

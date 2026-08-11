@@ -233,3 +233,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Entry count và estimated memory đều bounded. Unique immutable image buffer chỉ tính một lần theo reference identity; oldest undo entry được evict trước và current state không bị evict. Entry không thể vừa budget bị reject atomically.
 - Memory estimate bao gồm exact RGBA pixel bytes và fixed entry overhead, chưa bao gồm toàn bộ GC/object overhead. Đây là resource-control policy, không phải memory sandbox hay bảo vệ trước local Administrator.
 - PLAN 24 không persist history hoặc deserialize polymorphic commands. Project history schema, recovery và untrusted durable data validation thuộc PLAN project tương ứng.
+
+## Alpha channel boundary từ PLAN 25
+
+- Alpha request chỉ chứa immutable `InternalImage`, operation enum, optional immutable replacement channel và integer threshold; không nhận path, stream, native pointer, UI object, executable hoặc DDS/archive metadata.
+- Dimensions, pixel count và RGBA bytes được kiểm tra lại bằng `ImageImportResourcePolicy` với checked arithmetic. Threshold ngoài `0..255`, operation không xác định và replacement sai dimensions bị reject bằng structured failure.
+- View/extract/replace/invert/threshold chạy bằng managed memory, không filesystem/process/temp/secret và không thêm native dependency. Service stateless nên concurrent calls không chia sẻ mutable state.
+- Replace/invert/threshold giữ RGB byte-exact, kể cả hidden RGB khi alpha bằng 0; utility không premultiply nên không làm sai contract straight-alpha hoặc tự tạo fringe do zero hidden color.
+- Cancellation được kiểm tra theo row và trước khi promote kết quả; failure/cancellation không trả partial image/channel. Full-resolution operation vẫn có peak-memory cost theo input/output; policy 100 triệu pixel/512 MiB giảm allocation abuse nhưng không phải memory sandbox.

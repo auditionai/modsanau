@@ -420,3 +420,18 @@ Snapshot strategy là hybrid. Transform/crop và non-destructive adjustment ch�
 Revision tăng đơn điệu và không reuse sau khi redo branch bị discard. Saved checkpoint lưu exact revision; `IsDirty` so current/saved revision và phản ánh pending transaction update. Standard linear behavior áp dụng: undo chuyển latest entry sang redo; redo phục hồi exact after-state; edit mới sau undo xóa toàn redo branch.
 
 Transaction hỗ trợ `Begin → Update* → Commit | Cancel` để coalesce slider hoặc pointer drag. Intermediate update thay preview state nhưng không tăng revision hoặc tạo entry. Commit tạo đúng một entry; cancel phục hồi exact before-state. Nested transaction và push/undo/redo/save/clear trong transaction bị reject có cấu trúc. History chỉ ghi state sau khi caller đã thực hiện edit thành công; PLAN 24 không replay operation, persist project history hoặc cung cấp UI command.
+
+## Alpha Channel Utilities từ PLAN 25
+
+`IAlphaChannelService` là boundary stateless, UI-neutral làm việc trực tiếp trên canonical immutable `InternalImage`. Service không đọc/ghi file, không biết DDS/archive/UI và không thêm native dependency. Năm operation đúng roadmap là View, Extract, Replace, Invert và Threshold.
+
+```text
+InternalImage RGBA8 straight-alpha sRGB
+  → validate operation/resource/numeric input
+  → view | extract | replace | invert | threshold
+  → InternalImage hoặc immutable AlphaChannelData
+```
+
+View tạo `InternalImage` grayscale opaque với `R=G=B=source A`, `A=255`. Extract tạo channel plane một byte/pixel, stride bằng width; đây là dữ liệu kênh, không phải image pixel model thay thế. Replace yêu cầu channel có exact dimensions. Invert dùng `A' = 255 - A`. Threshold dùng rule cố định `A >= threshold → 255`, `A < threshold → 0`, threshold nguyên trong `0..255`.
+
+Replace, Invert và Threshold chỉ thay alpha; RGB, kể cả hidden RGB tại pixel fully transparent, được giữ byte-exact. Không premultiply/unpremultiply trong utility nên output vẫn straight alpha. Nếu Replace/Threshold không đổi byte alpha nào thì immutable source được reuse. Managed loops kiểm tra cancellation theo row, không publish partial output và không dùng mutable state dùng chung. Alpha edit có `EditOperationKind.Alpha` để orchestrator tương lai lưu before/after image references; service không tự ghi history.
