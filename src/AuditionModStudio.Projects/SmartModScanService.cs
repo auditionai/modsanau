@@ -2,10 +2,8 @@ using System.Collections.Immutable;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Games;
-using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Core.Paths;
-using AuditionModStudio.Core.Projects;
 
 namespace AuditionModStudio.Projects;
 
@@ -15,7 +13,6 @@ public sealed class SmartModScanService(
     ITextureManifestCatalog manifestCatalog,
     IArchiveAssetScanner assetScanner,
     IDdsMetadataReader metadataReader,
-    IThumbnailCache thumbnailCache,
     IPathSecurity pathSecurity) : ISmartModScanService
 {
     public async Task<SmartModScanResult> ScanAsync(
@@ -24,8 +21,7 @@ public sealed class SmartModScanService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (!request.GameId.IsValid || request.Workspace is null
-            || request.MaximumThumbnailDimension is <= 0 or > 1_024)
+        if (!request.GameId.IsValid || request.Workspace is null)
         {
             return Failure(SmartModScanFailureReason.InvalidRequest, "SMART_SCAN_REQUEST_INVALID");
         }
@@ -83,19 +79,6 @@ public sealed class SmartModScanService(
                             metadata.ErrorCode ?? "SMART_SCAN_DDS_METADATA_FAILED", asset.RelativePath);
                 }
 
-                progress?.Report(new(SmartModScanPhase.GeneratingThumbnail, textures.Length, index, asset.RelativePath));
-                var thumbnail = await thumbnailCache.GetOrCreateAsync(
-                    new(request.Workspace, new(asset.RelativePath), new(asset.Sha256),
-                        request.MaximumThumbnailDimension),
-                    cancellationToken).ConfigureAwait(false);
-                if (!thumbnail.Succeeded)
-                {
-                    return thumbnail.Cancelled
-                        ? Failure(SmartModScanFailureReason.Cancelled, "SMART_SCAN_CANCELLED", asset.RelativePath)
-                        : Failure(SmartModScanFailureReason.ThumbnailGenerationFailed,
-                            thumbnail.DiagnosticCode!, asset.RelativePath);
-                }
-
                 progress?.Report(new(SmartModScanPhase.ResolvingManifest, textures.Length, index, asset.RelativePath));
                 var resolution = manifestCatalog.Resolve(request.GameId, request.ModId, new(asset.RelativePath));
                 if (resolution.Slot is not null
@@ -106,7 +89,7 @@ public sealed class SmartModScanService(
                 }
 
                 var unknown = resolution.Slot is null;
-                smartTextures.Add(new(asset, metadata.Metadata!, thumbnail.Image!, resolution, unknown, unknown));
+                smartTextures.Add(new(asset, metadata.Metadata!, resolution, unknown, unknown));
                 progress?.Report(new(SmartModScanPhase.ResolvingManifest, textures.Length, index + 1, asset.RelativePath));
             }
 

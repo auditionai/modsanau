@@ -603,3 +603,20 @@ Smart Scan observed DDS + content SHA-256
 Disk entry dùng schema/version và tự mô tả source hash, requested dimension cùng immutable RGBA image metadata. Đọc entry phải kiểm tra đầy đủ header, enum, dimensions, stride, pixel length và exact file length. Entry hỏng là derived data: bị loại và tạo lại, không làm thay đổi DDS nguồn. Publish dùng temporary file cùng thư mục, durable flush rồi atomic move; cancellation không publish partial entry. Memory/disk có giới hạn cấu hình, disk eviction deterministic theo lần truy cập và chỉ chạm file cache do ứng dụng quản lý.
 
 Các request đồng thời cùng key được gộp bằng async single-flight per-key; key khác không bị global serialization. `ThumbnailCache` đăng ký singleton để memory tier được chia sẻ và mọi collection công khai vẫn immutable. PLAN 36 không triển khai metadata-first UI, lazy full-texture load, background queue, crash recovery hoặc App Shell.
+
+## Lazy Loading từ PLAN 37
+
+Smart Scan giờ là tầng metadata-first: scanner/hash, real `DdsMetadata` và manifest resolution được phát hành trong immutable `SmartTextureAsset`, nhưng model không chứa `InternalImage`. `SmartModScanRequest` cũng không còn thumbnail size vì scan không tạo thumbnail.
+
+```text
+Open/recover project → Smart Scan → metadata-only texture catalog
+                                      ├─ LoadThumbnailAsync → IThumbnailCache
+                                      └─ user selection → LoadSelectedTextureAsync
+                                                           → IDdsPreviewService
+                                                           → IImageImportService
+                                                           → full InternalImage
+```
+
+`ITextureLazyLoadingService` là orchestration boundary cho hai bước sau metadata. Thumbnail reuse content-hash cache PLAN 36. Selected-texture load decode mip 0 qua DirectXTex preview boundary hiện có, đối chiếu toàn bộ observed DDS metadata với snapshot scan trước khi import pixels, rồi trả immutable full image. Service stateless và không giữ full-resolution cache; lifetime ảnh full thuộc caller/editor tương lai.
+
+Thumbnail miss có thể transiently decode nguồn để tạo ảnh nhỏ theo pipeline PLAN 36, nhưng full-resolution editor image không được publish hoặc resident cho đến explicit selected API. PLAN 37 chưa có UI selection model, viewport prefetch, task queue, notification, crash recovery hay App Shell.

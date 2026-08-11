@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Games;
-using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Projects;
 
 namespace AuditionModStudio.Core.Mods;
@@ -18,14 +17,12 @@ public interface ISmartModScanService
 public sealed record SmartModScanRequest(
     GameId GameId,
     ModId ModId,
-    IProjectArchiveWorkspace Workspace,
-    int MaximumThumbnailDimension = 256);
+    IProjectArchiveWorkspace Workspace);
 
 public enum SmartModScanPhase
 {
     ScanningAssets,
     ReadingMetadata,
-    GeneratingThumbnail,
     ResolvingManifest,
     Completed
 }
@@ -39,7 +36,6 @@ public sealed record SmartModScanProgress(
 public sealed record SmartTextureAsset(
     TextureAsset Asset,
     DdsMetadata Metadata,
-    InternalImage Thumbnail,
     TextureManifestResolution ManifestResolution,
     bool UnknownSemantics,
     bool CanBeLabeled);
@@ -56,7 +52,6 @@ public enum SmartModScanFailureReason
     UnknownMod,
     AssetScanFailed,
     DdsMetadataReadFailed,
-    ThumbnailGenerationFailed,
     AmbiguousMapping,
     Cancelled
 }

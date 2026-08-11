@@ -327,3 +327,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Ghi cache dùng file tạm ngẫu nhiên trong cùng managed directory, flush rồi atomic move. Cancellation/failure dọn file tạm; lỗi ghi cache không biến thumbnail hợp lệ trong memory thành thất bại giả và không sửa source/archive/project.
 - Giới hạn dimension, số entry memory/disk và tổng byte disk ngăn cache tăng không giới hạn. Single-flight chỉ khóa theo content key, có cancellation và không chạy network/process mới; lời gọi DirectXTex nếu cache miss vẫn đi qua `IDdsPreviewService` cùng executable allowlist/hash đã có.
 - Cache không chứa secret, entitlement, executable path, raw command argument hay authoritative manifest metadata. PLAN 36 không cho local settings/user input override tool trust hoặc cache root.
+
+## Lazy Loading boundary từ PLAN 37
+
+- Metadata-first catalog không chứa decoded pixel buffer, absolute path, tool path hay secret. Asset path/hash đến từ observed scanner identity; request sai relative path hoặc SHA-256 bị reject trước dependency call.
+- Thumbnail chỉ đi qua `IThumbnailCache`. Full texture chỉ đi qua explicit `LoadSelectedTextureAsync`, rồi reuse `IDdsPreviewService` hash-pinned và in-memory image importer; không có đường decode/process trực tiếp mới.
+- Metadata do preview đọc lại phải exact-match snapshot từ Smart Scan trước khi pixels được publish. Mismatch được xem là stale selection và fail có cấu trúc, không silently dùng bytes đã thay đổi với metadata cũ.
+- Service không cache full-resolution image, không mutate DDS/extracted tree/archive/project, không network và không nhận executable/config trust override. Cancellation/failure không trả partial image.

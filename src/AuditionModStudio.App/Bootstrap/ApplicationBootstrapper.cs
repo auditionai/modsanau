@@ -137,6 +137,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         });
         builder.Services.AddSingleton(ThumbnailCacheOptions.Default);
         builder.Services.AddSingleton<IThumbnailCache, ThumbnailCache>();
+        builder.Services.AddSingleton<ITextureLazyLoadingService, TextureLazyLoadingService>();
         builder.Services.AddSingleton<ISmartModScanService, SmartModScanService>();
         builder.Services.AddSingleton<IProjectCreationService, ProjectCreationService>();
         builder.Services.AddSingleton<IProjectLoadService, ProjectLoadService>();

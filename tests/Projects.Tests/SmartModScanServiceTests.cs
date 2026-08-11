@@ -17,7 +17,7 @@ namespace Projects.Tests;
 public sealed class SmartModScanServiceTests
 {
     [Fact]
-    public async Task Exact_path_maps_and_propagates_manifest_metadata_real_dds_metadata_and_thumbnail()
+    public async Task Exact_path_maps_and_propagates_manifest_and_real_dds_metadata_without_pixels()
     {
         await using var context = new ScanContext(CreateManifest(
             Slot("logo_main", "Texture/Login/logo.dds", "Logo đăng nhập")));
@@ -37,7 +37,8 @@ public sealed class SmartModScanServiceTests
         Assert.True(texture.ManifestResolution.Slot.Editable);
         Assert.Equal("alpha_aware", texture.ManifestResolution.Slot.RecommendedEditMode.Value);
         Assert.Equal(DdsFormat.BC3, texture.Metadata.Format);
-        Assert.InRange(Math.Max(texture.Thumbnail.Width, texture.Thumbnail.Height), 1, 64);
+        Assert.DoesNotContain(typeof(SmartTextureAsset).GetProperties(),
+            property => property.PropertyType == typeof(InternalImage));
         Assert.Empty(result.MissingManifestSlots);
     }
 
@@ -184,7 +185,6 @@ public sealed class SmartModScanServiceTests
         Assert.True(result.Succeeded);
         Assert.Contains(progress.Values, item => item.Phase == SmartModScanPhase.ScanningAssets);
         Assert.Contains(progress.Values, item => item.Phase == SmartModScanPhase.ReadingMetadata);
-        Assert.Contains(progress.Values, item => item.Phase == SmartModScanPhase.GeneratingThumbnail);
         Assert.Contains(progress.Values, item => item.Phase == SmartModScanPhase.ResolvingManifest);
         var completed = Assert.Single(progress.Values, item => item.Phase == SmartModScanPhase.Completed);
         Assert.Equal(1, completed.TotalTextures);
@@ -244,7 +244,6 @@ public sealed class SmartModScanServiceTests
                 new StubManifestCatalog(manifest, ambiguousManifestResolver),
                 _scanner,
                 _metadata,
-                new StubThumbnailCache(),
                 new PathSecurity());
         }
 
@@ -264,7 +263,7 @@ public sealed class SmartModScanServiceTests
         public Task<SmartModScanResult> ScanAsync(
             CancellationToken cancellationToken = default,
             IProgress<SmartModScanProgress>? progress = null) =>
-            _service.ScanAsync(new(new("audition"), new("login_mod"), Workspace, 64), progress, cancellationToken);
+            _service.ScanAsync(new(new("audition"), new("login_mod"), Workspace), progress, cancellationToken);
 
         public string[] Hashes() => Directory.EnumerateFiles(ExtractedRoot, "*", SearchOption.AllDirectories)
             .OrderBy(path => path, StringComparer.Ordinal)
@@ -341,20 +340,6 @@ public sealed class SmartModScanServiceTests
                 ? DdsMetadataReadResult.Failure(DdsMetadataFailureReason.CorruptHeader, "DDS_BAD")
                 : DdsMetadataReadResult.Success(Metadata));
     }
-
-    private sealed class StubThumbnailCache : IThumbnailCache
-    {
-        public Task<ThumbnailCacheResult> GetOrCreateAsync(
-            ThumbnailCacheRequest request,
-            CancellationToken cancellationToken = default) => Task.FromResult(
-            ThumbnailCacheResult.Success(
-                Image(request.MaximumDimension, Math.Max(1, request.MaximumDimension / 2)),
-                ThumbnailCacheSource.Generated));
-    }
-
-    private static InternalImage Image(int width, int height) => new(
-        width, height, width * 4, Enumerable.Repeat((byte)255, width * height * 4).ToArray(),
-        new(ImageSourceFormat.Png, width, height, ImageSourceOrientation.Normal, true, false));
 
     private static DdsMetadata Metadata { get; } = new(
         128, 64, null, 1, 1, DdsFormat.BC3, DdsFormatSupport.Known, "DXT5", null,

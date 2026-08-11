@@ -94,10 +94,9 @@ public sealed class Plan29SmartModScanIntegrationTests
             manifests,
             new ArchiveAssetScanner(pathSecurity),
             new DdsMetadataReader(),
-            thumbnailCache,
             pathSecurity);
 
-        var result = await service.ScanAsync(new(new("audition"), new("fixture_mod"), workspace, 64));
+        var result = await service.ScanAsync(new(new("audition"), new("fixture_mod"), workspace));
 
         Assert.True(result.Succeeded, $"{result.DiagnosticCode}: {result.FailedRelativePath}");
         Assert.Equal(101, result.ObservedCatalog!.TotalFileCount);
@@ -113,8 +112,15 @@ public sealed class Plan29SmartModScanIntegrationTests
             Assert.Equal(texture.Asset.FileName, texture.ManifestResolution.DisplayName);
             Assert.Equal(texture.Asset.RelativePath.Replace('\\', '/'), texture.ManifestResolution.RelativePath.Value);
             Assert.NotEqual(DdsFormat.Unknown, texture.Metadata.Format);
-            Assert.InRange(Math.Max(texture.Thumbnail.Width, texture.Thumbnail.Height), 1, 64);
         });
+        var firstTexture = result.Groups.SelectMany(group => group.Textures).First();
+        var lazyLoader = new TextureLazyLoadingService(
+            thumbnailCache,
+            new SyntheticPreviewService(),
+            new SyntheticMemoryImageImportService());
+        var thumbnail = await lazyLoader.LoadThumbnailAsync(new(workspace, firstTexture.Asset, 64));
+        Assert.True(thumbnail.Succeeded, thumbnail.DiagnosticCode);
+        Assert.InRange(Math.Max(thumbnail.Image!.Width, thumbnail.Image.Height), 1, 64);
         Assert.Empty(result.MissingManifestSlots);
         Assert.Equal(hashesBefore, await HashTreeAsync(extractedRoot));
         Assert.Equal(archiveHashBefore, await HashAsync(archivePath));
