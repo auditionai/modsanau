@@ -382,3 +382,21 @@ Crop bounds dùng half-open semantics. Interactive crop bị clamp vào image; z
 Transform order explicit: flip/scale quanh image center → quarter-turn rotation → image-space translation → fit/letterbox viewport → zoom quanh viewport center → viewport pan. Inverse mapping đảo cùng matrix. Rotation chỉ 0/90/180/270; pan dùng viewport logical units, translate dùng image pixels. Zoom mặc định giới hạn 0.1–32; pan không clamp vì roadmap không đặt visibility constraint.
 
 Reset trả identity state. Viewport resize chỉ derive projection mới, không quantize hoặc mutate normalized crop. Model không biết DPI, XAML, pointer event, Canvas/Skia UI, không resample pixels và không triển khai undo/redo.
+
+## Image Adjustments Core từ PLAN 23
+
+`IImageAdjustmentService` là boundary stateless, UI-neutral nhận và trả cùng canonical `InternalImage`. Service không đọc/ghi file, không gọi process, không biết DDS/archive và không expose type Skia. Neutral settings trả lại chính immutable source; mọi adjustment khác tạo `InternalImage` mới cùng dimensions, packed stride và source metadata.
+
+```text
+InternalImage RGBA8 straight-alpha sRGB
+  → validate finite/range/resource policy
+  → deterministic managed adjustment pipeline
+  → centralized clamp + midpoint-away-from-zero quantization
+  → immutable InternalImage RGBA8 straight-alpha sRGB
+```
+
+Range contract: brightness/contrast/saturation/vibrance/temperature/tint/highlights/shadows `[-1,1]`; exposure `[-5,5] EV`; hue `[-180,180]°`; gamma `[0.1,10]`; sharpen `[0,1]`; blur `[0,20] px`; opacity `[0,1]`. NaN, Infinity và out-of-range bị reject có cấu trúc, không silent clamp parameter.
+
+Processing order cố định là brightness → contrast → exposure → saturation → vibrance → hue → temperature → tint → highlights → shadows → gamma → sharpen → blur → opacity. Brightness là offset `value × 255`; contrast dùng midpoint 127.5 và factor `1 + value`; exposure dùng `2^EV`; saturation dùng Rec.709 luma coefficients; vibrance dùng chroma-adaptive saturation; hue dùng deterministic luma-preserving RGB rotation. Temperature/tint và highlight/shadow là transform sRGB-channel có semantic đơn giản, không được mô tả là physical white balance hoặc tone-mapping engine. Gamma là arbitrary `channel^(1/gamma)`, không phải sRGB transfer conversion.
+
+Sharpen dùng four-neighbor unsharp kernel; blur dùng separable box blur với radius tối đa 20 và fractional blend. Math chạy trực tiếp trên sRGB channels, chưa phải linear-light/ICC pipeline. Hidden RGB của fully-transparent pixel vẫn được adjust deterministic. Tất cả operation trừ opacity giữ alpha byte exact; opacity chỉ nhân alpha, không đổi RGB. Service kiểm tra cancellation theo row/column, không trả partial image, và concurrent call không dùng shared mutable state.

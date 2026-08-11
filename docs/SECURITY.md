@@ -214,3 +214,12 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Canonical crop là normalized continuous state. Pixel conversion duy nhất dùng floor left/top, ceil right/bottom và checked/clamped bounds, giảm off-by-one và repeated-quantization drift.
 - Projection matrix được derive từ immutable state theo transform order documented và inverse chỉ được dùng khi invertible. Service stateless, không cần UI thread và concurrent calculations không chia sẻ mutable state.
 - PLAN 22 không execute arbitrary transform code, không resample, không tạo file và không log user geometry/metadata. Pixel execution duy nhất là strongly typed request translation tới validated PLAN 21 Manual Crop service.
+
+## Image adjustments boundary từ PLAN 23
+
+- Adjustment request chỉ chứa validated immutable `InternalImage` và numeric settings; không nhận path, stream, native pointer, UI object, executable hoặc DDS/archive metadata.
+- Mọi parameter phải finite và nằm trong range contract. NaN, Infinity và out-of-range trả structured failure; channel overflow bị centralized clamp/quantize, không wrap byte.
+- Dimensions, pixel count và decoded bytes được kiểm lại bằng `ImageImportResourcePolicy` với checked arithmetic trước output allocation. Neutral operation reuse source; non-neutral operation không mutate source và chỉ promote output sau khi hoàn tất.
+- Managed loop kiểm tra cancellation theo row/column và không trả partial image. Service không có static mutable state nên concurrent request độc lập và deterministic với cùng input/settings/version.
+- Sharpen/blur cần thêm full-image buffer và có peak-memory cost; policy hiện giảm allocation abuse nhưng chưa có memory-pressure telemetry hay pooled-buffer budget. Không filesystem/process/native dependency mới được thêm trong adjustment engine.
+- Math RGB chạy trên sRGB channel và hidden RGB của transparent pixel vẫn được adjust. Alpha giữ exact cho mọi operation trừ opacity explicit; đây là contract pixel, không phải color-management/ICC hoặc compositing security boundary.
