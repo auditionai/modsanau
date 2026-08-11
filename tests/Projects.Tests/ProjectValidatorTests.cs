@@ -25,6 +25,18 @@ public sealed class ProjectValidatorTests
     }
 
     [Fact]
+    public async Task Platform_separators_in_workspace_descriptor_match_normalized_project_paths()
+    {
+        await using var context = new Context(descriptorUsesBackslashes: true);
+
+        var result = await context.ValidateAsync();
+
+        Assert.True(result.CanBuild);
+        Assert.DoesNotContain(result.Issues,
+            issue => issue.DiagnosticCode == "PROJECT_VALIDATE_WORKSPACE_REFERENCE_INVALID");
+    }
+
+    [Fact]
     public async Task Missing_archive_folder_and_expected_file_are_structured_errors()
     {
         await using var context = new Context(includeTexture: false);
@@ -100,7 +112,8 @@ public sealed class ProjectValidatorTests
             bool includeTexture = true,
             bool includeUnexpectedTexture = false,
             long savedRevision = 0,
-            long currentRevision = 0)
+            long currentRevision = 0,
+            bool descriptorUsesBackslashes = false)
         {
             _root = Path.Combine(Path.GetTempPath(), "ProjectValidatorTests", Guid.NewGuid().ToString("N"));
             Paths = new(
@@ -119,7 +132,7 @@ public sealed class ProjectValidatorTests
                 "archive-015", "015.ab", "templates/015.ab", ArchiveEngineType.AcvTool5,
                 "audition_vn", "015", "1", new string('A', 64), "audition-vn-2026");
             var projectId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-            Workspace = new StubWorkspace(secure, template, projectId);
+            Workspace = new StubWorkspace(secure, template, projectId, descriptorUsesBackslashes);
             var now = new DateTimeOffset(2026, 8, 12, 10, 0, 0, TimeSpan.Zero);
             Project = AuditionProject.Create(
                 1, projectId, "Project", new GameId("audition"), new ModId("login_mod"),
@@ -202,7 +215,11 @@ public sealed class ProjectValidatorTests
 
     private sealed class StubWorkspace : IProjectArchiveWorkspace
     {
-        public StubWorkspace(ISecureWorkspace secure, AuditionArchiveTemplate template, Guid projectId)
+        public StubWorkspace(
+            ISecureWorkspace secure,
+            AuditionArchiveTemplate template,
+            Guid projectId,
+            bool descriptorUsesBackslashes)
         {
             ArchiveWorkspace = ArchiveWorkspace.Create(secure, template);
             var now = DateTimeOffset.UtcNow;
@@ -210,7 +227,9 @@ public sealed class ProjectValidatorTests
                 new(template.TemplateId.Value, template.TemplateVersion!.Value.Value,
                     template.ExpectedSha256!.Value.Value, template.EngineType, template.RegionProfileId,
                     template.CompatibleGameBuild!.Value.Value),
-                "Working/015.ab", "Extracted/015", "BuildOutput", null,
+                descriptorUsesBackslashes ? "Working\\015.ab" : "Working/015.ab",
+                descriptorUsesBackslashes ? "Extracted\\015" : "Extracted/015",
+                "BuildOutput", null,
                 ".project-archive-workspace.json", template.ExpectedSha256.Value.Value, now, now,
                 ProjectArchiveWorkspaceState.Ready);
         }

@@ -508,3 +508,18 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   hữu isolated workspace, hash verification, atomicity và rollback; batch layer không copy file hoặc gọi process.
 - Progress/diagnostic chỉ dùng stable code, job index/ID và số đếm; không log destination, hash, archive asset list,
   raw exception hoặc tool output. Batch không discover/mutate/install/launch/automate game.
+
+## File-Only Production Gate boundary từ PLAN 55
+
+- Pristine `015.ab`, `015.keydat`, `acv.exe`, extracted fixture và target DDS chỉ được đọc/hash; mọi template pack,
+  edit, build và verify diễn ra trong randomized managed workspace. Gate hash lại pristine inputs sau workflow.
+- Template chuẩn bị từ fixture được pack bằng production archive service rồi copy vào trusted test source; Create
+  Project vẫn bắt buộc source-hash verification trước working copy/extract/scan.
+- Artifact user-named được kiểm tra size/hash sau atomic export. Re-extract chỉ dùng bản stage byte-identical trong
+  verify workspace với canonical ACV basename; stage hash phải trùng artifact trước khi tool được chạy.
+- Re-extracted inventory được so theo normalized relative path và SHA-256: target duy nhất phải đổi, mọi non-target
+  phải byte-identical. Thiếu file, file thừa, corruption, metadata mismatch hoặc pristine mutation đều fail gate.
+- Fix validator cho separator chỉ chuẩn hóa logical relative identity; nó không nới path containment, reparse-point,
+  archive hash, workspace ID/project ID hoặc tool integrity checks.
+- Generated archive nằm dưới ignored controlled output; fixture/tool/keydat/DDS/generated archive không được Git
+  track. SHA-256 là integrity identity, không phải chữ ký hoặc bằng chứng tương thích runtime.

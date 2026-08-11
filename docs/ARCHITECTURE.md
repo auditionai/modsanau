@@ -863,3 +863,18 @@ Save current project
   cancellation gọi `TryCancel` trên exact manager task ID và đợi terminal state trước khi trả kết quả.
 - Result success có deterministic filename, final path, size, SHA-256 và updated project aggregate; failure không
   publish partial artifact. PLAN 54 không thêm UI project picker, game path, install, backup, restore hoặc launch.
+
+## File-Only Production Gate từ PLAN 55
+
+- Gate gọi đúng production boundaries cho template pack, Create Project, Smart Scan, Apply Texture, Project
+  Validator, Build Pipeline, Atomic Archive Export và archive re-extract. Test adapter chỉ cấp entitlement và
+  trusted pristine source; adapter không thay thế xử lý archive/DDS/project/export.
+- Vì ACV Tool 5 gắn companion keydat với canonical archive basename, artifact có tên user-selected được hash rồi
+  stage byte-identical thành trusted canonical `015.ab` trong verify workspace cô lập trước re-extract. Staging
+  không đổi deliverable, không yêu cầu xuất keydat và không suy ra game path.
+- Project workspace reference là normalized relative identity. Validator chuẩn hóa `\` thành `/` trước khi so
+  sánh descriptor do Windows tạo với `.audproj`, trong khi filesystem resolution vẫn nằm sau secure workspace.
+- Gate chỉ PASS khi inventory re-extract đầy đủ, target có expected changed content/metadata, mọi non-target giữ
+  byte integrity, pristine fixture/tool giữ hash và final controlled artifact có size/SHA-256 xác định.
+- Product pipeline kết thúc tại file archive đã export. Manual launch/visual/gameplay là optional external QA và
+  không thuộc acceptance scope hiện tại.

@@ -106,10 +106,10 @@ public sealed class ProjectValidator(
         var descriptor = workspace.Descriptor;
         if (descriptor.ProjectId != project.ProjectId
             || !descriptor.WorkspaceId.Equals(project.Workspace.WorkspaceId, StringComparison.Ordinal)
-            || !descriptor.WorkingArchiveRelativePath.Equals(
-                project.Workspace.WorkingArchiveRelativePath.Value, StringComparison.Ordinal)
-            || !descriptor.ExtractedDirectoryRelativePath.Equals(
-                project.Workspace.ExtractedRootRelativePath.Value, StringComparison.Ordinal))
+            || !Normalize(descriptor.WorkingArchiveRelativePath).Equals(
+                Normalize(project.Workspace.WorkingArchiveRelativePath.Value), StringComparison.Ordinal)
+            || !Normalize(descriptor.ExtractedDirectoryRelativePath).Equals(
+                Normalize(project.Workspace.ExtractedRootRelativePath.Value), StringComparison.Ordinal))
         {
             Add(issues, ProjectValidationSeverity.Error, ProjectValidationIssueKind.InvalidPath,
                 "PROJECT_VALIDATE_WORKSPACE_REFERENCE_INVALID");
