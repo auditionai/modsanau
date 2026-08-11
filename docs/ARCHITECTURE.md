@@ -345,3 +345,22 @@ User image (read-only)
 `InternalImage` dùng packed `RGBA8Straight`: channel order R-G-B-A, 8 bit/channel, stride luôn `width × 4`, immutable owned `ImmutableArray<byte>`. Constructor defensive-copy tại import trust boundary; `DdsRgbaImage.Create(InternalImage)` reuse cùng immutable storage nên không tạo conversion/channel-copy thứ hai. Buffer chỉ chứa managed memory nên không cần caller dispose; mọi `SKCodec`, stream, bitmap và color-space native object được service dispose trước khi trả kết quả.
 
 Skia decode vào explicit sRGB output color space. Embedded profile được decoder áp dụng khi có thể; model chỉ giữ cờ codec-reported và không giữ EXIF/ICC blob. EXIF orientation 1–8 được normalize vào pixels và normalized dimensions. Animated/multi-frame input chỉ lấy frame đầu trong scope PLAN 20; resize/crop/editor document/DDS replacement không thuộc model này.
+
+## Arbitrary Resize Engine từ PLAN 21
+
+`IImageResizeService` chỉ nhận `InternalImage`, target dimensions và strongly typed options; không đọc/ghi file, không biết encoded image format, DDS metadata, archive hoặc UI. Output tiếp tục là immutable packed `RGBA8Straight` `InternalImage`.
+
+```text
+InternalImage
+  → target/options preflight
+  → straight RGBA premultiply
+  → direct Skia pixel resize/crop/canvas operation
+  → unpremultiply
+  → new InternalImage
+```
+
+Modes có semantic cố định: Stretch/Free Aspect tạo exact target không giữ aspect; Fit giữ aspect và letterbox transparent vào exact canvas; Fill giữ aspect và crop theo alignment; Keep Aspect trả fitted dimensions trong requested bounding box; Manual Crop resize rectangle hợp lệ vào exact target; Canvas Resize đặt source không scale và cho phép clip/pad; Transparent Padding chỉ pad và reject canvas nhỏ hơn source. Alignment công khai gồm center/top/bottom/left/right.
+
+Filter công khai tối thiểu là Nearest Neighbor và Linear, default Linear; library default không được dùng. Filtering diễn ra theo sRGB channel behavior, chưa phải gamma-linear/perceptual resize. Engine premultiply alpha trước filter và unpremultiply trước output để không gắn nhãn premultiplied data thành straight alpha hoặc tạo black fringe ở transparent edge.
+
+Target dùng chung policy PLAN 20: dimension 16384, 100 triệu pixel và 512 MiB decoded RGBA, checked trước native allocation. Same-size Stretch/Free Aspect trả lại cùng immutable source; các operation khác không mutate source. PLAN 21 không phải interactive crop/transform model, editor, AI upscaler hoặc DDS/archive orchestration.

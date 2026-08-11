@@ -198,3 +198,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Decoder `SkiaSharp` 4.150.1 được pin tập trung, license MIT, có native Skia runtime. Release cần dependency provenance, vulnerability scan, RID inventory và native-binary integrity/signing review; package pin không tự chứng minh supply-chain safety.
 - Service stateless, không dùng temp/global filename nên concurrent import độc lập. Cancellation được kiểm tra trước I/O, sau signature/probe, trước/sau decode và trước model promotion; native `SKCodec.GetPixels` không hỗ trợ mid-call cancellation tức thời.
 - Internal pixels là immutable managed RGBA8 straight-alpha, không chứa EXIF blob. Native stream/codec/bitmap/color-space objects được dispose deterministically. PLAN 20 không resize, replace DDS, pack archive hoặc launch game.
+
+## Image resize boundary từ PLAN 21
+
+- Resize request không có file/tool/native-library path. Input là validated immutable `InternalImage`; target dimensions, mode, filter, alignment và crop rectangle vẫn bị coi là untrusted và được validate trước native allocation.
+- Target dùng chung `ImageImportResourcePolicy`: positive dimensions tối đa 16384, 100 triệu pixel và 512 MiB RGBA. Pixel/stride/byte arithmetic dùng checked integer/64-bit; invalid enum, crop overflow/out-of-bounds và padding canvas quá nhỏ trả stable structured failure.
+- Source được copy vào per-operation premultiplied native bitmap; destination, canvas và color-space objects chỉ sống trong operation và được dispose deterministically. Output được unpremultiply/copy thành immutable managed `InternalImage`, không giữ reference tới native buffer đã dispose.
+- Service stateless, không dùng shared bitmap/temp filename nên concurrent requests độc lập. Cancellation được kiểm tra trước geometry/allocation, trước và sau native draw, trước output promotion; native draw không hỗ trợ interrupt giữa call.
+- Resize giữ cả source, native source/destination và managed output tại peak; policy hạn chế nhưng chưa thay thế memory-pressure telemetry. SkiaSharp native runtime/provenance risk đã ghi nhận ở PLAN 20 tiếp tục áp dụng.
