@@ -2,6 +2,7 @@ using AuditionModStudio.Archives;
 using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
+using AuditionModStudio.Core.Exports;
 using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Games;
 using AuditionModStudio.Core.Mods;
@@ -12,6 +13,7 @@ using AuditionModStudio.Core.Settings;
 using AuditionModStudio.Core.Tasks;
 using AuditionModStudio.Core.Workspaces;
 using AuditionModStudio.Infrastructure.Logging;
+using AuditionModStudio.Infrastructure.Exports;
 using AuditionModStudio.Infrastructure.Paths;
 using AuditionModStudio.Infrastructure.Startup;
 using AuditionModStudio.Infrastructure.Settings;
@@ -60,6 +62,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         _logSession.ConfigureServices(builder.Services);
         builder.Services.AddSingleton<IAppPaths>(paths);
         builder.Services.AddSingleton<IPathSecurity>(pathSecurity);
+        builder.Services.AddSingleton<IExportDestinationFileSystem, SystemExportDestinationFileSystem>();
+        builder.Services.AddSingleton<IArchiveExportDestinationValidator, ArchiveExportDestinationValidator>();
         builder.Services.AddSingleton<SecureWorkspaceService>();
         builder.Services.AddSingleton<ISecureWorkspaceService>(services =>
             services.GetRequiredService<SecureWorkspaceService>());

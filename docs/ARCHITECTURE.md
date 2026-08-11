@@ -803,3 +803,15 @@ Save current project
   Pristine archive, keydat, tool và source extracted fixture phải giữ nguyên hash.
 - Manual launch/visual/gameplay validation chỉ là optional external compatibility QA, không được suy ra từ
   technical gate và không block PLAN 50 trong current application acceptance scope.
+
+## Export Destination từ PLAN 51
+
+- `IArchiveExportDestinationValidator` là boundary read-only nhận output directory/filename do user chọn,
+  trusted archive filename contract và explicit `RejectExisting`/`ReplaceExisting` policy. Nó không nhận hoặc
+  suy ra GameId, ModId, template, region, engine hay project identity từ path.
+- Directory phải absolute/canonical/existing, đọc attributes được và không chứa reparse point từ filesystem
+  root đến destination. Filename chỉ là một normalized Windows-safe segment; extension phải match contract
+  lấy từ trusted archive filename thay vì hard-code `.ab`/`.acv`.
+- Collision được trả structured; `ReplaceExisting` ở PLAN 51 chỉ là validated intent và không ghi file.
+  PLAN 52 phải revalidate ngay trước write và thực hiện temp/hash/atomic promotion/rollback.
+- PLAN 51 không persist path, không đổi `.audproj`/settings schema, không build/copy archive và không gọi process.

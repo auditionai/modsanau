@@ -456,3 +456,13 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Manual game observation nằm ngoài application trust/acceptance boundary. Không có code launch, login,
   automation hoặc runtime observation được thêm để làm Gate C PASS, và không tuyên bố compatibility in-game
   khi chưa có external QA riêng.
+
+## Export Destination boundary từ PLAN 51
+
+- Destination path/filename là untrusted machine-local input. Validator canonicalize absolute directory,
+  reject missing/inaccessible/unavailable/reparse path, validate one safe filename segment và bind extension
+  với trusted archive filename contract. Destination không cấp product/trust identity.
+- Existing file luôn là collision trừ khi caller cung cấp explicit `ReplaceExisting`; validation không mutate
+  existing bytes và không tạo probe/temp file. Access denied không bị làm mờ thành not-found.
+- PLAN 51 chỉ xác nhận intent tại một thời điểm nên vẫn có TOCTOU. PLAN 52 phải revalidate, mở/write an toàn,
+  hash candidate và atomic promote trong transaction giữ destination cũ tới commit.

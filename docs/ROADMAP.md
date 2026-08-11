@@ -103,7 +103,11 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - PLAN đã hoàn thành Product Gate C: PLAN 50 — Real Replace + Pack Gate.
 - Product direction hậu PLAN 50 xác nhận ứng dụng là file editor/archive builder; mọi future game
   install/detect/backup/restore/launch direction bị supersede.
-- PLAN kế tiếp: PLAN 51 — Export Destination.
+- PLAN đã hoàn thành kiểm chứng: PLAN 51 — Export Destination.
+- Phạm vi PLAN 51: typed read-only validation cho arbitrary user-selected export directory/filename; canonical
+  absolute path, Unicode/spaces, trusted extension contract, access/reparse/collision semantics và explicit
+  overwrite intent. Không persistence/schema change, không copy archive và không game-install metadata.
+- PLAN kế tiếp: PLAN 52 — Atomic Archive Export.
 
 ## Stage Gates
 
