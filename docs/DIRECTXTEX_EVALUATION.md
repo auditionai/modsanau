@@ -113,3 +113,10 @@ Các con số format/dimension này chỉ là observation của archive mẫu hi
 - PASS yêu cầu exact format, dimensions, effective mip count, header, meaningful DX10 color space và 2D/single-array/non-cubemap resource shape.
 - Legacy `Unknown` color space không bị chuyển thành synthetic sRGB. BC7, volume, array và cubemap vẫn unsupported và không bị downgrade.
 - Validator read-only và không replace extracted target. `DdsMatchOriginalService` chỉ trả success sau gate này; real roundtrip riêng của `tn_coby_logo.dds` vẫn thuộc PLAN 19.
+
+## Real DDS Roundtrip Gate từ PLAN 19
+
+- Gate dùng `tn_coby_logo.dds` từ disposable extract của `015.ab`, không dùng cây extract ở repository root và không commit DDS thật.
+- Target được mở read-only, xác nhận đúng 6000×1801, BC3/FourCC `DXT5`, legacy header và 1 mip. Known RGBA replacement đi qua `IDdsMatchOriginalService`, vì vậy profile xuất phát từ target, encode đi qua `IDdsEncoder` và candidate bắt buộc được reopen qua `IDdsValidationService`.
+- Generated DDS giữ exact format, dimensions, header, mip count, color/resource semantics và decode-back thành PNG thành công. BC3 là lossy nên gate không yêu cầu hash hoặc pixel-perfect so với source; source DDS và pristine archive phải giữ nguyên SHA-256.
+- Gate không replace file trong extracted archive, không repack, không chạy game và không triển khai image engine của PLAN 20. Kiểm thử archive/game vẫn là bước thủ công về sau như roadmap quy định.
