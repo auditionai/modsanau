@@ -435,3 +435,19 @@ InternalImage RGBA8 straight-alpha sRGB
 View tạo `InternalImage` grayscale opaque với `R=G=B=source A`, `A=255`. Extract tạo channel plane một byte/pixel, stride bằng width; đây là dữ liệu kênh, không phải image pixel model thay thế. Replace yêu cầu channel có exact dimensions. Invert dùng `A' = 255 - A`. Threshold dùng rule cố định `A >= threshold → 255`, `A < threshold → 0`, threshold nguyên trong `0..255`.
 
 Replace, Invert và Threshold chỉ thay alpha; RGB, kể cả hidden RGB tại pixel fully transparent, được giữ byte-exact. Không premultiply/unpremultiply trong utility nên output vẫn straight alpha. Nếu Replace/Threshold không đổi byte alpha nào thì immutable source được reuse. Managed loops kiểm tra cancellation theo row, không publish partial output và không dùng mutable state dùng chung. Alpha edit có `EditOperationKind.Alpha` để orchestrator tương lai lưu before/after image references; service không tự ghi history.
+
+## Game Catalog từ PLAN 26
+
+`Core` định nghĩa stable value object `GameId`, immutable `GameDefinition` và read-only contract `IGameCatalog`. `AuditionModStudio.Mods` cung cấp `GameCatalog`; composition root tạo và validate built-in catalog ngay khi bootstrap rồi đăng ký singleton. Catalog hiện có đúng game đầu tiên với ID machine-friendly `audition` và display metadata `Audition`.
+
+```text
+Code-owned built-in definitions
+  → validate IDs/null/empty/duplicate
+  → deterministic sort bằng GameId ordinal
+  → immutable GameCatalog singleton
+  → GetGames | TryGetGame
+```
+
+`GameId` chỉ nhận 1–64 lowercase ASCII letter/digit/underscore/hyphen, bắt đầu bằng letter/digit; display name hỗ trợ Unicode/khoảng trắng nhưng không tham gia identity. `GetGames` trả immutable snapshot đã sort; `TryGetGame` coi unknown/default ID là expected miss, không ném `KeyNotFoundException`. Provider không đọc file/settings/network và không expose mutable dictionary/list nên concurrent reads không cần lock.
+
+PLAN 26 cố ý không đặt archive filename, source path, template/version/hash, engine, region, country selection hoặc install path trong `GameDefinition`. Các relationship `Game → Mod Type → Archive Template → Engine/Region` thuộc `ModDefinition` của PLAN 27; cách tách này ngăn screen dùng Game Catalog để hard-code `015.ab` trước khi mapping semantic được định nghĩa đúng PLAN.

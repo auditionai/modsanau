@@ -241,3 +241,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - View/extract/replace/invert/threshold chạy bằng managed memory, không filesystem/process/temp/secret và không thêm native dependency. Service stateless nên concurrent calls không chia sẻ mutable state.
 - Replace/invert/threshold giữ RGB byte-exact, kể cả hidden RGB khi alpha bằng 0; utility không premultiply nên không làm sai contract straight-alpha hoặc tự tạo fringe do zero hidden color.
 - Cancellation được kiểm tra theo row và trước khi promote kết quả; failure/cancellation không trả partial image/channel. Full-resolution operation vẫn có peak-memory cost theo input/output; policy 100 triệu pixel/512 MiB giảm allocation abuse nhưng không phải memory sandbox.
+
+## Game catalog boundary từ PLAN 26
+
+- Production catalog là code-owned application metadata được validate trước khi đăng ký singleton; không load từ user settings, project JSON, filesystem hoặc remote endpoint.
+- Stable `GameId` bị giới hạn vào machine-friendly lowercase ASCII grammar. `DisplayName` là presentation metadata có Unicode nhưng không được dùng làm identity, filesystem path hoặc security decision.
+- `GameDefinition` của PLAN 26 không chứa executable path, archive filename/source path, tool/template hash, archive engine, region profile, raw country selection, install path hoặc secret. Các trusted mapping đó chỉ được thêm ở PLAN tương ứng với validation riêng.
+- Catalog reject null/empty/duplicate definition bằng structured issue và không phát hành partial catalog. Built-in validation failure làm bootstrap fail-fast thay vì xuất hiện muộn khi người dùng chọn game.
+- Public collection và definition đều immutable; concurrent reads không chia sẻ mutable state. PLAN 26 không ghi filesystem, không chạy process, không gọi network và không tạo trust override từ local configuration.

@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AuditionModStudio.Core\AuditionModStudio.Core.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Mods\AuditionModStudio.Mods.csproj" />
   </ItemGroup>
 
   <ItemGroup>
