@@ -165,3 +165,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Mỗi operation ghi vào `BuildOutput/DdsPreview-<random-id>`, không ghi PNG cạnh DDS source và không dùng global filename. PNG được kiểm tra IHDR/dimensions trước khi trở thành immutable memory DTO; temp operation directory được cleanup trong `finally`.
 - Cancellation khác failure; external process có finite configurable timeout và kill process tree. Preview result chỉ trả stable diagnostic code, không chuyển raw stdout/stderr hoặc proprietary filename cho UI.
 - Preview full-resolution giữ PNG bytes trong RAM; giới hạn hiện tại giảm rủi ro allocation nhưng chưa phải streaming/thumbnail cache. SHA pinning vẫn không loại bỏ hoàn toàn local Administrator, TOCTOU, DLL search-order hoặc release supply-chain risk.
+
+## DDS encoder boundary từ PLAN 16
+
+- Encoder nhận internal immutable RGBA8 buffer và explicit settings, không nhận arbitrary PNG/tool/destination absolute path. Stride, buffer length, dimensions, pixel count, mip chain, output estimate và alpha compatibility được kiểm tra trước khi ghi bridge hoặc launch process.
+- Tool path tiếp tục do composition root cung cấp và đi qua exact PLAN 14 filename/version/hash boundary. Command dùng `ArgumentList`, `--`, no shell; timeout/cancellation tiếp tục kill process tree và raw diagnostics không đi vào encoder result.
+- PNG bridge và native output dùng operation ID random trong `Working`/`BuildOutput`. Output DDS chỉ được atomic move tới relative path đã canonicalize sau khi `IDdsMetadataReader` xác minh dimensions, format, header, mip count và 2D resource shape. Existing output không bị overwrite.
+- Legacy+sRGB và BC1+full-alpha bị từ chối thay vì hạ cấp âm thầm. Encoder không sửa input image, real target DDS, extracted DDS hoặc archive.
+- RGBA buffer và temporary compressed PNG vẫn có peak-memory cost theo full-resolution input. Policy 512 MiB/100 triệu pixel/output estimate giảm rủi ro nhưng không thay thế process isolation, strict ACL, Authenticode và release supply-chain hardening tương lai.

@@ -34,7 +34,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 14: controlled `texconv` prototype pin version/hash; DDS→PNG; PNG→BC3; exact NPOT/unusual dimensions; forced mip count; forced legacy DXT5 header; cancellation/progress/security policy; real disposable-workspace evaluation và documented native API findings.
 - PLAN đã hoàn thành: PLAN 15 — DDS Preview Service.
 - Phạm vi PLAN 15: metadata preflight; controlled hash-pinned DirectXTex decode mip 0; immutable PNG-memory preview; alpha và RGBA/BGRA channel correctness; centralized resource policy; structured failures; timeout/cancellation; concurrent temp isolation/cleanup; 52/52 real DDS production-service gate.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 16 — Image → DDS Encoder; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 16 — Image → DDS Encoder.
+- Phạm vi PLAN 16: immutable internal RGBA8 input; explicit target format/dimensions/mips/header/color/alpha settings; controlled DirectXTex BC1/BC3/RGBA8/BGRA8 encode; legacy/DX10 handling; validate-before-atomic-promote; preview roundtrip và real target-profile coverage.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 17 — Match Original DDS; không tự động bắt đầu.
 
 ## Stage Gates
 

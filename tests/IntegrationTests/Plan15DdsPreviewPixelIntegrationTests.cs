@@ -78,6 +78,91 @@ public sealed class Plan15DdsPreviewPixelIntegrationTests : IDisposable
         Assert.Empty(Directory.EnumerateFileSystemEntries(workspace.Paths.BuildOutputDirectory));
     }
 
+    [Fact]
+    [Trait("Category", "Integration")]
+    [Trait("Platform", "WindowsOnly")]
+    public async Task Production_encoder_roundtrips_all_real_formats_mips_alpha_and_channels()
+    {
+        var texconvPath = RequireApprovedTexconv();
+        var workspace = CreateWorkspace();
+        var preview = CreateService(workspace, texconvPath);
+        var encoder = CreateEncoder(texconvPath);
+        var cases = new[]
+        {
+            new EncodeCase(DdsFormat.BC1, 137, 512, 4, 255, DdsTargetAlphaSemantics.Opaque),
+            new EncodeCase(DdsFormat.BC3, 4, 4, 1, 64, DdsTargetAlphaSemantics.Full),
+            new EncodeCase(DdsFormat.Rgba8, 4, 4, 1, 64, DdsTargetAlphaSemantics.Full),
+            new EncodeCase(DdsFormat.Bgra8, 4, 4, 1, 64, DdsTargetAlphaSemantics.Full),
+        };
+
+        foreach (var item in cases)
+        {
+            var result = await encoder.EncodeAsync(new(
+                workspace,
+                SolidRedImage(item.Width, item.Height, item.Alpha),
+                new(
+                    item.Width,
+                    item.Height,
+                    item.Format,
+                    item.Mips,
+                    DdsHeaderType.Legacy,
+                    DdsColorSpace.Linear,
+                    item.AlphaSemantics),
+                $@"Encoded Output\{item.Format}.dds"));
+            Assert.True(result.Succeeded, result.DiagnosticCode);
+            Assert.Equal(item.Format, result.Metadata!.Format);
+            Assert.Equal((uint)item.Mips, result.Metadata.EffectiveMipLevelCount);
+            Assert.Equal(DdsHeaderType.Legacy, result.Metadata.HeaderType);
+
+            var decoded = await preview.CreateAsync(new(workspace, result.OutputRelativePath!));
+            Assert.True(decoded.Succeeded, decoded.DiagnosticCode);
+            var pixel = DecodeFirstPixel(decoded.Image!.EncodedPng.AsSpan());
+            Assert.InRange(pixel.R, (byte)250, byte.MaxValue);
+            Assert.InRange(pixel.G, byte.MinValue, (byte)5);
+            Assert.InRange(pixel.B, byte.MinValue, (byte)5);
+            Assert.InRange(pixel.A, (byte)Math.Max(0, item.Alpha - 3), (byte)Math.Min(255, item.Alpha + 3));
+        }
+
+        var sharedImage = SolidRedImage(8, 8, 255);
+        var sharedPixels = sharedImage.Pixels;
+        var concurrentSettings = new DdsTargetSettings(
+            8, 8, DdsFormat.Rgba8, 1, DdsHeaderType.Legacy, DdsColorSpace.Linear, DdsTargetAlphaSemantics.Opaque);
+        var concurrent = await Task.WhenAll(
+            encoder.EncodeAsync(new(workspace, sharedImage, concurrentSettings, @"đầu ra một\same.dds")),
+            encoder.EncodeAsync(new(workspace, sharedImage, concurrentSettings, @"output two\same.dds")));
+        Assert.All(concurrent, result => Assert.True(result.Succeeded, result.DiagnosticCode));
+        Assert.Equal(sharedPixels, sharedImage.Pixels);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    [Trait("Platform", "WindowsOnly")]
+    public async Task Production_encoder_preserves_6000x1801_and_supports_dx10_srgb()
+    {
+        var texconvPath = RequireApprovedTexconv();
+        var workspace = CreateWorkspace();
+        var encoder = CreateEncoder(texconvPath);
+        var large = await encoder.EncodeAsync(new(
+            workspace,
+            SolidRedImage(6000, 1801, 255),
+            new(6000, 1801, DdsFormat.BC3, 1, DdsHeaderType.Legacy, DdsColorSpace.Linear, DdsTargetAlphaSemantics.Full),
+            "large 6000x1801.dds"));
+        Assert.True(large.Succeeded, large.DiagnosticCode);
+        Assert.Equal(6000, large.Metadata!.Width);
+        Assert.Equal(1801, large.Metadata.Height);
+        Assert.Equal(1u, large.Metadata.EffectiveMipLevelCount);
+
+        var srgb = await encoder.EncodeAsync(new(
+            workspace,
+            SolidRedImage(256, 256, 255),
+            new(256, 256, DdsFormat.Rgba8, 9, DdsHeaderType.Dx10, DdsColorSpace.Srgb, DdsTargetAlphaSemantics.Opaque),
+            "dx10-srgb.dds"));
+        Assert.True(srgb.Succeeded, srgb.DiagnosticCode);
+        Assert.Equal(DdsHeaderType.Dx10, srgb.Metadata!.HeaderType);
+        Assert.Equal(DdsColorSpace.Srgb, srgb.Metadata.ColorSpace);
+        Assert.Equal(9u, srgb.Metadata.EffectiveMipLevelCount);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
@@ -115,6 +200,33 @@ public sealed class Plan15DdsPreviewPixelIntegrationTests : IDisposable
                 texconvPath,
                 TimeSpan.FromSeconds(30),
                 DdsPreviewResourcePolicy.Default));
+    }
+
+    private static DdsEncoder CreateEncoder(string texconvPath)
+    {
+        var pathSecurity = new PathSecurity();
+        var metadataReader = new DdsMetadataReader();
+        var harness = new DirectXTexEvaluationHarness(
+            pathSecurity,
+            metadataReader,
+            DirectXTexEvaluationToolCatalog.May2026X64);
+        return new(
+            metadataReader,
+            harness,
+            pathSecurity,
+            new DdsEncoderOptions(texconvPath, TimeSpan.FromMinutes(2), DdsPreviewResourcePolicy.Default));
+    }
+
+    private static DdsRgbaImage SolidRedImage(int width, int height, byte alpha)
+    {
+        var pixels = new byte[checked(width * height * 4)];
+        for (var index = 0; index < pixels.Length; index += 4)
+        {
+            pixels[index] = 255;
+            pixels[index + 3] = alpha;
+        }
+
+        return DdsRgbaImage.Create(width, height, checked(width * 4), pixels);
     }
 
     private static string RequireApprovedTexconv()
@@ -277,6 +389,14 @@ public sealed class Plan15DdsPreviewPixelIntegrationTests : IDisposable
         byte A);
 
     private readonly record struct Rgba(byte R, byte G, byte B, byte A);
+
+    private sealed record EncodeCase(
+        DdsFormat Format,
+        int Width,
+        int Height,
+        int Mips,
+        byte Alpha,
+        DdsTargetAlphaSemantics AlphaSemantics);
 
     private sealed class TestWorkspace(SecureWorkspacePaths paths) : ISecureWorkspace
     {

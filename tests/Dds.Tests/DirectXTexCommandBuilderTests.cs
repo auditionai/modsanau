@@ -57,6 +57,42 @@ public sealed class DirectXTexCommandBuilderTests
         Assert.DoesNotContain("-pow2", info.ArgumentList);
     }
 
+    [Theory]
+    [InlineData(DdsFormat.BC1, DdsColorSpace.Linear, "BC1_UNORM")]
+    [InlineData(DdsFormat.BC3, DdsColorSpace.Srgb, "BC3_UNORM_SRGB")]
+    [InlineData(DdsFormat.Rgba8, DdsColorSpace.Linear, "R8G8B8A8_UNORM")]
+    [InlineData(DdsFormat.Bgra8, DdsColorSpace.Srgb, "B8G8R8A8_UNORM_SRGB")]
+    public void Production_encode_maps_explicit_format_and_dx10_header(
+        DdsFormat format,
+        DdsColorSpace colorSpace,
+        string expected)
+    {
+        var request = CreateRequest(DirectXTexEvaluationOperation.EncodeToDds) with
+        {
+            TargetWidth = 256,
+            TargetHeight = 256,
+            MipLevelCount = 9,
+            TargetFormat = format,
+            TargetColorSpace = colorSpace,
+            TargetHeaderType = DdsHeaderType.Dx10,
+            TargetAlphaSemantics = format == DdsFormat.BC1
+                ? DdsTargetAlphaSemantics.Opaque
+                : DdsTargetAlphaSemantics.Full,
+        };
+
+        var info = DirectXTexCommandBuilder.Create(
+            @"C:\tool\texconv.exe",
+            @"C:\work",
+            request,
+            @"C:\work\input.png",
+            @"C:\work\out");
+
+        var arguments = info.ArgumentList.ToArray();
+        Assert.Equal(expected, arguments[Array.IndexOf(arguments, "-f") + 1]);
+        Assert.Contains("-dx10", arguments);
+        Assert.DoesNotContain("-pow2", arguments);
+    }
+
     private static DirectXTexEvaluationRequest CreateRequest(DirectXTexEvaluationOperation operation) => new(
         operation,
         null!,

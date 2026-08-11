@@ -15,4 +15,8 @@ public sealed record DirectXTexEvaluationRequest(
     TimeSpan Timeout,
     long MaximumInputBytes = 536_870_912,
     long MaximumPixelCount = 100_000_000,
-    int MaximumDiagnosticCharacters = 262_144);
+    int MaximumDiagnosticCharacters = 262_144,
+    DdsFormat TargetFormat = DdsFormat.BC3,
+    DdsColorSpace TargetColorSpace = DdsColorSpace.Linear,
+    DdsHeaderType TargetHeaderType = DdsHeaderType.Legacy,
+    DdsTargetAlphaSemantics TargetAlphaSemantics = DdsTargetAlphaSemantics.Full);

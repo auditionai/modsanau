@@ -191,6 +191,43 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
                 workspace.ArchiveWorkspace.SecureWorkspace.Paths.BuildOutputDirectory),
             path => Path.GetFileName(path).StartsWith("DdsPreview-", StringComparison.Ordinal));
 
+        var encoder = new DdsEncoder(
+            metadataReader,
+            harness,
+            pathSecurity,
+            new DdsEncoderOptions(texconvPath!, TimeSpan.FromMinutes(3), DdsPreviewResourcePolicy.Default));
+        var encodedProfiles = new List<DdsMetadata>();
+        foreach (var representative in representatives
+                     .GroupBy(item => item.Metadata.Format)
+                     .Select(group => group.MinBy(item => (long)item.Metadata.Width * item.Metadata.Height)!))
+        {
+            var target = representative.Metadata;
+            var alpha = target.Format == DdsFormat.BC1
+                ? DdsTargetAlphaSemantics.Opaque
+                : DdsTargetAlphaSemantics.Full;
+            var encode = await encoder.EncodeAsync(new(
+                workspace.ArchiveWorkspace.SecureWorkspace,
+                CreateSolidRgbaImage(target.Width, target.Height),
+                new(
+                    target.Width,
+                    target.Height,
+                    target.Format,
+                    checked((int)target.EffectiveMipLevelCount),
+                    target.HeaderType,
+                    DdsColorSpace.Linear,
+                    alpha),
+                $@"real-target-profile\{target.Format}.dds"));
+            Assert.True(encode.Succeeded, encode.DiagnosticCode);
+            Assert.Equal(target.Width, encode.Metadata!.Width);
+            Assert.Equal(target.Height, encode.Metadata.Height);
+            Assert.Equal(target.Format, encode.Metadata.Format);
+            Assert.Equal(target.HeaderType, encode.Metadata.HeaderType);
+            Assert.Equal(target.EffectiveMipLevelCount, encode.Metadata.EffectiveMipLevelCount);
+            encodedProfiles.Add(encode.Metadata);
+        }
+
+        Assert.Equal(4, encodedProfiles.Count);
+
         var unusualPngRelative = @"Working\evaluation-input-137x512.png";
         var unusualPngPath = workspace.ArchiveWorkspace.SecureWorkspace.ResolveRelativePath(unusualPngRelative);
         await WriteSolidRgbaPngAsync(unusualPngPath, 137, 512);
@@ -269,6 +306,9 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             largestPreviewMetadata.Height,
             largestPreviewPixels,
             string.Join(", ", previewedFormats.Order()));
+        output.WriteLine(
+            "PLAN 16 real target profiles encoded without replacement: {0}",
+            string.Join(", ", encodedProfiles.Select(item => item.Format).Order()));
     }
 
     private static string? GetApprovedTexconvPath() =>
@@ -354,6 +394,18 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
         await WriteChunkAsync(stream, "IEND"u8.ToArray(), []);
         await stream.FlushAsync();
         stream.Flush(flushToDisk: true);
+    }
+
+    private static DdsRgbaImage CreateSolidRgbaImage(int width, int height)
+    {
+        var pixels = new byte[checked(width * height * 4)];
+        for (var index = 0; index < pixels.Length; index += 4)
+        {
+            pixels[index] = 255;
+            pixels[index + 3] = 255;
+        }
+
+        return DdsRgbaImage.Create(width, height, checked(width * 4), pixels);
     }
 
     private static async Task WriteChunkAsync(Stream stream, byte[] type, byte[] data)

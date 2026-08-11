@@ -5,7 +5,8 @@ public sealed record DdsPreviewResourcePolicy(
     long MaximumPixelCount,
     int MaximumDimension,
     long MaximumEncodedPreviewBytes,
-    int MaximumDiagnosticCharacters)
+    int MaximumDiagnosticCharacters,
+    long MaximumEncodedDdsBytes = 536_870_912)
 {
     public static DdsPreviewResourcePolicy Default { get; } = new(
         MaximumInputBytes: 536_870_912,

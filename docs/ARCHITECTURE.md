@@ -270,3 +270,23 @@ DDS trong ISecureWorkspace
 `DdsPreviewService` dùng `DirectXTexEvaluationHarness` như process boundary đã được pin của PLAN 14, nhưng không expose harness hoặc tool path trong preview request. Đường dẫn tool production là cấu hình DI code-owned dưới application base directory; mỗi request dùng output directory GUID riêng dưới `BuildOutput`, đọc kết quả vào memory rồi cleanup trong `finally`. Service stateless, chạy bất đồng bộ, hỗ trợ cancellation/finite timeout và không sửa source.
 
 PLAN 15 chỉ decode full-resolution base mip; không resize/downscale âm thầm. Preview Service không phải production encoder, image editor hay disk thumbnail cache. Encoder vẫn thuộc PLAN 16; UI adapter/cache thuộc PLAN phù hợp sau.
+
+## Image → DDS Encoder từ PLAN 16
+
+`Core` định nghĩa `IDdsEncoder`, immutable internal `DdsRgbaImage` và explicit `DdsTargetSettings`. Image contract ghi rõ width, height, stride, `Rgba8` và buffer; settings bắt buộc format, mip count, header type, color space và alpha semantics. Không tồn tại Audition default format hoặc overload tự chọn BC3.
+
+Pipeline production encode:
+
+```text
+Internal RGBA8 image
+  → stride/buffer/dimension/alpha/mip/resource validation
+  → explicit DdsTargetSettings
+  → temporary PNG bridge trong Working
+  → controlled DirectXTex encode trong isolated BuildOutput operation
+  → IDdsMetadataReader verification
+  → atomic move tới controlled BuildOutput relative path
+```
+
+Format production hiện hỗ trợ đúng tập đã quan sát: BC1, BC3, RGBA8 và BGRA8. Linear hỗ trợ legacy/DX10; sRGB chỉ hỗ trợ DX10 vì legacy header không lưu semantic sRGB. BC1 chỉ nhận opaque hoặc binary alpha; full alpha bị từ chối. Encoder giữ exact dimensions, exact requested mip count và reject input/target dimension mismatch thay vì resize.
+
+Encoder không phải resize engine, Match Original orchestrator, archive replacement hoặc pack workflow. PLAN 17 mới map metadata target thành settings ở project flow; PLAN 16 chỉ cung cấp contract đủ explicit để orchestration đó gọi an toàn.

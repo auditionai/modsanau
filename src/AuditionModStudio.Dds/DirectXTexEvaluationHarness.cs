@@ -418,9 +418,14 @@ public sealed class DirectXTexEvaluationHarness(
             || metadata is null
             || metadata.Width != request.TargetWidth
             || metadata.Height != request.TargetHeight
-            || metadata.Format != DdsFormat.BC3
+            || metadata.Format != request.TargetFormat
             || metadata.EffectiveMipLevelCount != request.MipLevelCount
-            || request.ForceLegacyHeader && metadata.HeaderType != DdsHeaderType.Legacy)
+            || metadata.HeaderType != request.TargetHeaderType
+            || request.TargetHeaderType == DdsHeaderType.Dx10
+                && metadata.ColorSpace != request.TargetColorSpace
+            || metadata.ResourceDimension != DdsResourceDimension.Texture2D
+            || metadata.IsCubemap
+            || metadata.ArraySize != 1)
         {
             return Failure(
                 DirectXTexEvaluationState.Failed,
@@ -448,13 +453,18 @@ public sealed class DirectXTexEvaluationHarness(
             return "DIRECTXTEX_INVALID_REQUEST";
         }
 
-        if (request.Operation == DirectXTexEvaluationOperation.EncodeBc3)
+        if (request.Operation != DirectXTexEvaluationOperation.DecodeToPng)
         {
             if (request.TargetWidth is null or <= 0 or > MaximumTexconvDimension
                 || request.TargetHeight is null or <= 0 or > MaximumTexconvDimension
                 || !HasSafePixelCount(request.TargetWidth.Value, request.TargetHeight.Value, request.MaximumPixelCount)
                 || request.MipLevelCount <= 0
-                || request.MipLevelCount > CalculateMaximumMipLevels(request.TargetWidth.Value, request.TargetHeight.Value))
+                || request.MipLevelCount > CalculateMaximumMipLevels(request.TargetWidth.Value, request.TargetHeight.Value)
+                || request.TargetFormat is not (DdsFormat.BC1 or DdsFormat.BC3 or DdsFormat.Rgba8 or DdsFormat.Bgra8)
+                || request.TargetColorSpace is not (DdsColorSpace.Linear or DdsColorSpace.Srgb)
+                || request.TargetHeaderType == DdsHeaderType.Legacy && request.TargetColorSpace == DdsColorSpace.Srgb
+                || request.TargetFormat == DdsFormat.BC1
+                    && request.TargetAlphaSemantics == DdsTargetAlphaSemantics.Full)
             {
                 return "DIRECTXTEX_INVALID_ENCODE_SETTINGS";
             }

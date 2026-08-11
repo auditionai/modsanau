@@ -13,7 +13,10 @@ internal static class SyntheticDds
         uint headerSize = 124,
         uint pixelFormatSize = 32,
         bool uncompressed = false,
-        uint alphaMask = 0)
+        uint alphaMask = 0,
+        uint redMask = 0x000000ff,
+        uint greenMask = 0x0000ff00,
+        uint blueMask = 0x00ff0000)
     {
         var bytes = new byte[129];
         Write(bytes, 0, FourCc("DDS "));
@@ -28,9 +31,9 @@ internal static class SyntheticDds
         if (uncompressed)
         {
             Write(bytes, 88, 32);
-            Write(bytes, 92, 0x000000ff);
-            Write(bytes, 96, 0x0000ff00);
-            Write(bytes, 100, 0x00ff0000);
+            Write(bytes, 92, redMask);
+            Write(bytes, 96, greenMask);
+            Write(bytes, 100, blueMask);
             Write(bytes, 104, alphaMask);
         }
 

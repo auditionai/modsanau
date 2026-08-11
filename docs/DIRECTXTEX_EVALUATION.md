@@ -89,3 +89,12 @@ Các con số format/dimension này chỉ là observation của archive mẫu hi
 - Production service xử lý 52/52 real DDS của disposable extract, gồm BC1, BC3, RGBA8 và BGRA8; 6000×1801 và 4000×4000 giữ nguyên dimensions. Đây vẫn chỉ là coverage của archive mẫu hiện tại.
 - Full-resolution PNG là UI-safe transport chứ không phải color-management engine. Service không tự gamma-convert; legacy unknown color space vẫn `Unknown`, DXGI sRGB metadata vẫn nằm trong source metadata. PNG writer behavior của DirectXTex/WIC không được dùng để suy đoán legacy sRGB.
 - Output directory per request loại collision khi hai DDS khác folder có cùng basename. Tool provisioning chấp nhận race an toàn khi một request đồng thời đã đặt đúng pinned binary trước.
+
+## Finding production encode từ PLAN 16
+
+- `DdsTargetSettings` map tập trung: BC1→`BC1_UNORM`, BC3→`BC3_UNORM`, RGBA8→`R8G8B8A8_UNORM`, BGRA8→`B8G8R8A8_UNORM`; suffix `_SRGB` chỉ được dùng khi caller explicit yêu cầu sRGB.
+- `-dx9` ép legacy header nhưng DirectXTex ghi SRGB thành non-SRGB, nên production contract từ chối legacy+sRGB. `-dx10` được dùng explicit cho DX10 và metadata color space được reader xác minh.
+- `-m <n>` giữ exact requested mip count; không dùng `-m 0` hoặc `-pow2`. Input/target dimension mismatch bị reject trước tool, không resize.
+- BC1 binary alpha dùng ngưỡng `-at 0.5`; BC1 full alpha bị reject. BC3/RGBA8/BGRA8 synthetic transparent roundtrip giữ alpha; RGBA/BGRA solid red decode-back không swap channel.
+- Internal RGBA8 được đóng gói thành valid PNG bridge trong randomized `Working` operation vì CLI không nhận raw pixel buffer. Bridge bị cleanup; DDS được metadata-verify trong isolated output rồi atomic promote. Native wrapper vẫn là optimization tương lai, không cần để đạt PLAN 16.
+- Real disposable target profiles BC1, BC3, RGBA8 và BGRA8 encode thành công mà không replace DDS/archive. 6000×1801 legacy BC3/1 mip và 256×256 DX10 sRGB/9 mips cũng đã được xác minh.
