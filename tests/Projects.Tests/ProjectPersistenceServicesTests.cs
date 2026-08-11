@@ -45,6 +45,59 @@ public sealed class ProjectPersistenceServicesTests
     }
 
     [Fact]
+    public async Task Load_round_trips_exact_project_without_rebinding_identity()
+    {
+        await using var context = new Context();
+        var expected = Project("Dự án khôi phục");
+        Assert.True((await context.Store.SaveAsync(expected)).Succeeded);
+
+        var loaded = await context.Store.LoadAsync(ProjectId);
+
+        Assert.True(loaded.Succeeded, loaded.DiagnosticCode);
+        Assert.Equal(expected.ProjectId, loaded.Project!.ProjectId);
+        Assert.Equal(expected.Name, loaded.Project.Name);
+        Assert.Equal(expected.GameId, loaded.Project.GameId);
+        Assert.Equal(expected.ModId, loaded.Project.ModId);
+        Assert.Equal(expected.TemplateIdentity, loaded.Project!.TemplateIdentity);
+        Assert.Equal(expected.Workspace, loaded.Project.Workspace);
+    }
+
+    [Fact]
+    public async Task Load_distinguishes_missing_corrupt_and_unsupported_schema()
+    {
+        await using var context = new Context();
+        var missing = await context.Store.LoadAsync(ProjectId);
+        Assert.Equal(AuditionProjectLoadFailureReason.Missing, missing.FailureReason);
+
+        var path = Path.Combine(context.Paths.ProjectsDirectory, AuditionProjectStore.GetFileName(ProjectId));
+        await File.WriteAllTextAsync(path, "{not-json");
+        var corrupt = await context.Store.LoadAsync(ProjectId);
+        Assert.Equal(AuditionProjectLoadFailureReason.Corrupt, corrupt.FailureReason);
+
+        Assert.True((await context.Store.SaveAsync(Project("Schema"))).Succeeded);
+        var json = await File.ReadAllTextAsync(path);
+        await File.WriteAllTextAsync(path, json.Replace("\"schemaVersion\": 1", "\"schemaVersion\": 99", StringComparison.Ordinal));
+        var unsupported = await context.Store.LoadAsync(ProjectId);
+        Assert.Equal(AuditionProjectLoadFailureReason.UnsupportedSchema, unsupported.FailureReason);
+    }
+
+    [Fact]
+    public async Task Load_rejects_unknown_json_member_and_project_id_mismatch()
+    {
+        await using var context = new Context();
+        Assert.True((await context.Store.SaveAsync(Project("Strict"))).Succeeded);
+        var path = Path.Combine(context.Paths.ProjectsDirectory, AuditionProjectStore.GetFileName(ProjectId));
+        var json = await File.ReadAllTextAsync(path);
+        await File.WriteAllTextAsync(path, json.Replace("{", "{\"unknownMember\":true,", StringComparison.Ordinal));
+        Assert.Equal(AuditionProjectLoadFailureReason.Corrupt, (await context.Store.LoadAsync(ProjectId)).FailureReason);
+
+        Assert.True((await context.Store.SaveAsync(Project("Mismatch"))).Succeeded);
+        json = await File.ReadAllTextAsync(path);
+        await File.WriteAllTextAsync(path, json.Replace(ProjectId.ToString(), Guid.NewGuid().ToString(), StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(AuditionProjectLoadFailureReason.InvalidProject, (await context.Store.LoadAsync(ProjectId)).FailureReason);
+    }
+
+    [Fact]
     public async Task Metadata_cache_rejects_windows_path_collision_without_writing_partial_file()
     {
         await using var context = new Context();
@@ -72,6 +125,23 @@ public sealed class ProjectPersistenceServicesTests
         Assert.True(json.IndexOf("Texture/A.dds", StringComparison.Ordinal) < json.IndexOf("Texture/Z.dds", StringComparison.Ordinal));
         Assert.True((await context.Cache.DeleteAsync(ProjectId)).Succeeded);
         Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    public async Task Metadata_cache_validation_distinguishes_valid_missing_and_corrupt()
+    {
+        await using var context = new Context();
+        Assert.Equal(ProjectMetadataCacheValidationStatus.Missing,
+            (await context.Cache.ValidateAsync(ProjectId)).Status);
+
+        Assert.True((await context.Cache.StoreAsync(ProjectId, [Metadata("Texture/A.dds", 'A')])).Succeeded);
+        Assert.Equal(ProjectMetadataCacheValidationStatus.Valid,
+            (await context.Cache.ValidateAsync(ProjectId)).Status);
+
+        var path = Path.Combine(context.Paths.CacheDirectory, "ProjectMetadata", $"{ProjectId:N}.metadata.json");
+        await File.WriteAllTextAsync(path, "[]");
+        Assert.Equal(ProjectMetadataCacheValidationStatus.Corrupt,
+            (await context.Cache.ValidateAsync(ProjectId)).Status);
     }
 
     private static readonly Guid ProjectId = Guid.Parse("11111111-1111-1111-1111-111111111111");

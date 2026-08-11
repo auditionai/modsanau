@@ -144,6 +144,84 @@ public sealed class SecureWorkspaceTests
         }
     }
 
+    [Fact]
+    public async Task Existing_active_workspace_is_recovered_by_exact_id()
+    {
+        var testRoot = CreateTestRoot();
+        try
+        {
+            var paths = new AppPaths(testRoot);
+            await using var service = new SecureWorkspaceService(paths, new PathSecurity());
+            await using var created = await service.CreateAsync();
+
+            var recovered = await service.TryOpenExistingAsync(created.Id);
+
+            Assert.Same(created, recovered);
+            Assert.Null(await service.TryOpenExistingAsync("../" + created.Id));
+            Assert.Null(await service.TryOpenExistingAsync(created.Id.ToUpperInvariant()));
+        }
+        finally
+        {
+            DeleteTestRoot(testRoot);
+        }
+    }
+
+    [Fact]
+    public async Task Abandoned_valid_workspace_can_be_reopened_without_creating_a_new_identity()
+    {
+        var testRoot = CreateTestRoot();
+        try
+        {
+            var paths = new AppPaths(testRoot);
+            paths.EnsureDirectoriesExist();
+            var workspaceId = new string('a', 32);
+            var root = Path.Combine(paths.WorkspacesDirectory, workspaceId);
+            Directory.CreateDirectory(Path.Combine(root, "Working"));
+            Directory.CreateDirectory(Path.Combine(root, "Extracted"));
+            Directory.CreateDirectory(Path.Combine(root, "BuildOutput"));
+            await File.WriteAllTextAsync(Path.Combine(root, ".workspace.lock"), "version=1\n");
+            await using var service = new SecureWorkspaceService(paths, new PathSecurity());
+
+            var recovered = await service.TryOpenExistingAsync(workspaceId);
+
+            Assert.NotNull(recovered);
+            Assert.Equal(workspaceId, recovered.Id);
+            Assert.Equal(root, recovered.Paths.RootDirectory);
+            await recovered.DisposeAsync();
+            Assert.False(Directory.Exists(root));
+        }
+        finally
+        {
+            DeleteTestRoot(testRoot);
+        }
+    }
+
+    [Fact]
+    public async Task Retained_workspace_releases_lock_without_deleting_project_data()
+    {
+        var testRoot = CreateTestRoot();
+        try
+        {
+            var paths = new AppPaths(testRoot);
+            await using var service = new SecureWorkspaceService(paths, new PathSecurity());
+            var workspace = await service.CreateAsync();
+            var root = workspace.Paths.RootDirectory;
+
+            service.Retain(workspace);
+            await workspace.DisposeAsync();
+
+            Assert.True(Directory.Exists(root));
+            Assert.Equal(0, await service.CleanupAbandonedAsync());
+            var reopened = await service.TryOpenExistingAsync(workspace.Id);
+            Assert.NotNull(reopened);
+            await reopened.DisposeAsync();
+        }
+        finally
+        {
+            DeleteTestRoot(testRoot);
+        }
+    }
+
     private static StringComparison PathComparison => OperatingSystem.IsWindows()
         ? StringComparison.OrdinalIgnoreCase
         : StringComparison.Ordinal;

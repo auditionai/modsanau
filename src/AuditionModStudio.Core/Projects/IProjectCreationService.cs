@@ -107,6 +107,10 @@ public interface IAuditionProjectStore
     Task<AuditionProjectStoreResult> DeleteAsync(
         Guid projectId,
         CancellationToken cancellationToken = default);
+
+    Task<AuditionProjectLoadResult> LoadAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default);
 }
 
 public enum AuditionProjectStoreFailureReason
@@ -130,6 +134,31 @@ public sealed record AuditionProjectStoreResult(
         new(false, reason, code, null);
 }
 
+public enum AuditionProjectLoadFailureReason
+{
+    None,
+    InvalidProjectId,
+    Missing,
+    Corrupt,
+    UnsupportedSchema,
+    InvalidProject,
+    IoFailure,
+    Cancelled
+}
+
+public sealed record AuditionProjectLoadResult(
+    bool Succeeded,
+    AuditionProjectLoadFailureReason FailureReason,
+    string? DiagnosticCode,
+    AuditionProject? Project)
+{
+    public static AuditionProjectLoadResult Success(AuditionProject project) =>
+        new(true, AuditionProjectLoadFailureReason.None, null, project);
+
+    public static AuditionProjectLoadResult Failure(AuditionProjectLoadFailureReason reason, string code) =>
+        new(false, reason, code, null);
+}
+
 public sealed record ProjectTextureMetadataSnapshot(
     ModRelativePath RelativePath,
     Sha256Digest SourceSha256,
@@ -144,6 +173,10 @@ public interface IProjectMetadataCache
         CancellationToken cancellationToken = default);
 
     Task<ProjectMetadataCacheResult> DeleteAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default);
+
+    Task<ProjectMetadataCacheValidationResult> ValidateAsync(
         Guid projectId,
         CancellationToken cancellationToken = default);
 }
@@ -164,4 +197,20 @@ public sealed record ProjectMetadataCacheResult(
     public static ProjectMetadataCacheResult Success() => new(true, ProjectMetadataCacheFailureReason.None, null);
     public static ProjectMetadataCacheResult Failure(ProjectMetadataCacheFailureReason reason, string code) =>
         new(false, reason, code);
+}
+
+public enum ProjectMetadataCacheValidationStatus
+{
+    Valid,
+    Missing,
+    Corrupt,
+    InvalidProjectId,
+    Cancelled
+}
+
+public sealed record ProjectMetadataCacheValidationResult(
+    ProjectMetadataCacheValidationStatus Status,
+    string? DiagnosticCode)
+{
+    public bool IsValid => Status == ProjectMetadataCacheValidationStatus.Valid;
 }

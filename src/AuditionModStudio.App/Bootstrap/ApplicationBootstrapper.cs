@@ -54,7 +54,13 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         _logSession.ConfigureServices(builder.Services);
         builder.Services.AddSingleton<IAppPaths>(paths);
         builder.Services.AddSingleton<IPathSecurity>(pathSecurity);
-        builder.Services.AddSingleton<ISecureWorkspaceService, SecureWorkspaceService>();
+        builder.Services.AddSingleton<SecureWorkspaceService>();
+        builder.Services.AddSingleton<ISecureWorkspaceService>(services =>
+            services.GetRequiredService<SecureWorkspaceService>());
+        builder.Services.AddSingleton<ISecureWorkspaceRecoveryService>(services =>
+            services.GetRequiredService<SecureWorkspaceService>());
+        builder.Services.AddSingleton<ISecureWorkspaceRetentionService>(services =>
+            services.GetRequiredService<SecureWorkspaceService>());
         builder.Services.AddSingleton<ISettingsValidator, SettingsValidator>();
         builder.Services.AddSingleton<IAtomicSettingsWriter, AtomicSettingsWriter>();
         builder.Services.AddSingleton<ISettingsService, SettingsService>();
@@ -76,6 +82,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAuditionArchiveService, AuditionArchiveService>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceManifestStore, ProjectArchiveWorkspaceManifestStore>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceService, ProjectArchiveWorkspaceService>();
+        builder.Services.AddSingleton<IProjectArchiveWorkspaceRecoveryService, ProjectArchiveWorkspaceRecoveryService>();
         builder.Services.AddSingleton<IAuditionProjectStore, AuditionProjectStore>();
         builder.Services.AddSingleton<IProjectMetadataCache, ProjectMetadataCache>();
         builder.Services.AddSingleton<ITemplateEntitlementService, UnavailableTemplateEntitlementService>();
@@ -128,6 +135,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         });
         builder.Services.AddSingleton<ISmartModScanService, SmartModScanService>();
         builder.Services.AddSingleton<IProjectCreationService, ProjectCreationService>();
+        builder.Services.AddSingleton<IProjectLoadService, ProjectLoadService>();
         builder.Services.AddSingleton<IStartupValidator, StartupValidator>();
         builder.Services.AddSingleton<MainWindow>();
 

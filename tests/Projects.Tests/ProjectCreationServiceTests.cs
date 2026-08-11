@@ -328,6 +328,14 @@ public sealed class ProjectCreationServiceTests
         public bool Succeed { get; set; } = true;
         public bool Stored { get; private set; }
         public bool Deleted { get; private set; }
+
+        public Task<ProjectMetadataCacheValidationResult> ValidateAsync(
+            Guid projectId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new ProjectMetadataCacheValidationResult(
+                ProjectMetadataCacheValidationStatus.Valid,
+                null));
+
         public Task<ProjectMetadataCacheResult> StoreAsync(
             Guid projectId,
             IEnumerable<ProjectTextureMetadataSnapshot> textures,
@@ -351,6 +359,14 @@ public sealed class ProjectCreationServiceTests
         public bool Succeed { get; set; } = true;
         public bool Saved { get; private set; }
         public bool Deleted { get; private set; }
+
+        public Task<AuditionProjectLoadResult> LoadAsync(
+            Guid projectId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(AuditionProjectLoadResult.Failure(
+                AuditionProjectLoadFailureReason.Missing,
+                "TEST_PROJECT_MISSING"));
+
         public Task<AuditionProjectStoreResult> SaveAsync(AuditionProject project, CancellationToken cancellationToken = default)
         {
             Saved = true;

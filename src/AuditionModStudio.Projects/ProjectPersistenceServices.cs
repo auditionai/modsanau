@@ -89,6 +89,78 @@ public sealed class AuditionProjectStore(IAppPaths appPaths, IPathSecurity pathS
         }
     }
 
+    public async Task<AuditionProjectLoadResult> LoadAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (projectId == Guid.Empty)
+        {
+            return AuditionProjectLoadResult.Failure(
+                AuditionProjectLoadFailureReason.InvalidProjectId,
+                "AUDPROJ_LOAD_PROJECT_ID_INVALID");
+        }
+
+        try
+        {
+            var path = pathSecurity.ResolvePathWithinRoot(appPaths.ProjectsDirectory, GetFileName(projectId));
+            pathSecurity.EnsureNoReparsePoints(appPaths.ProjectsDirectory, path);
+            if (!File.Exists(path))
+            {
+                return AuditionProjectLoadResult.Failure(
+                    AuditionProjectLoadFailureReason.Missing,
+                    "AUDPROJ_LOAD_MISSING");
+            }
+
+            var document = await ProjectAtomicJsonWriter.ReadAsync<AuditionProjectDocument>(
+                appPaths.ProjectsDirectory,
+                GetFileName(projectId),
+                pathSecurity,
+                cancellationToken).ConfigureAwait(false);
+            if (document is null || document.ProjectId != projectId)
+            {
+                return AuditionProjectLoadResult.Failure(
+                    AuditionProjectLoadFailureReason.InvalidProject,
+                    "AUDPROJ_LOAD_ID_MISMATCH");
+            }
+
+            if (document.SchemaVersion != AuditionProject.CurrentSchemaVersion)
+            {
+                return AuditionProjectLoadResult.Failure(
+                    AuditionProjectLoadFailureReason.UnsupportedSchema,
+                    "AUDPROJ_LOAD_SCHEMA_UNSUPPORTED");
+            }
+
+            var model = document.ToProject();
+            return model.Succeeded
+                ? AuditionProjectLoadResult.Success(model.Project!)
+                : AuditionProjectLoadResult.Failure(
+                    AuditionProjectLoadFailureReason.InvalidProject,
+                    model.Issues.FirstOrDefault()?.DiagnosticCode ?? "AUDPROJ_LOAD_MODEL_INVALID");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return AuditionProjectLoadResult.Failure(
+                AuditionProjectLoadFailureReason.Cancelled,
+                "AUDPROJ_LOAD_CANCELLED");
+        }
+        catch (JsonException)
+        {
+            return AuditionProjectLoadResult.Failure(
+                AuditionProjectLoadFailureReason.Corrupt,
+                "AUDPROJ_LOAD_CORRUPT");
+        }
+        catch (Exception exception) when (exception is IOException
+                                          or UnauthorizedAccessException
+                                          or InvalidDataException
+                                          or InvalidOperationException
+                                          or ArgumentException)
+        {
+            return AuditionProjectLoadResult.Failure(
+                AuditionProjectLoadFailureReason.IoFailure,
+                "AUDPROJ_LOAD_FAILED");
+        }
+    }
+
     public static string GetFileName(Guid projectId) => $"{projectId:N}{ProjectFileExtension}";
 }
 
@@ -194,6 +266,59 @@ public sealed class ProjectMetadataCache(IAppPaths appPaths, IPathSecurity pathS
         }
     }
 
+    public async Task<ProjectMetadataCacheValidationResult> ValidateAsync(
+        Guid projectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (projectId == Guid.Empty)
+        {
+            return new(ProjectMetadataCacheValidationStatus.InvalidProjectId, "PROJECT_METADATA_PROJECT_ID_INVALID");
+        }
+
+        try
+        {
+            pathSecurity.EnsureNoReparsePoints(appPaths.CacheDirectory, appPaths.CacheDirectory);
+            var directory = pathSecurity.ResolvePathWithinRoot(appPaths.CacheDirectory, CacheDirectoryName);
+            var path = pathSecurity.ResolvePathWithinRoot(directory, GetFileName(projectId));
+            pathSecurity.EnsureNoReparsePoints(appPaths.CacheDirectory, path);
+            if (!File.Exists(path))
+            {
+                return new(ProjectMetadataCacheValidationStatus.Missing, "PROJECT_METADATA_MISSING");
+            }
+
+            var document = await ProjectAtomicJsonWriter.ReadAsync<ProjectMetadataDocument>(
+                directory,
+                GetFileName(projectId),
+                pathSecurity,
+                cancellationToken).ConfigureAwait(false);
+            if (document is null || document.SchemaVersion != 1 || document.ProjectId != projectId
+                || document.Textures.IsDefault
+                || document.Textures.Any(texture => string.IsNullOrWhiteSpace(texture.RelativePath)
+                                                    || string.IsNullOrWhiteSpace(texture.SourceSha256)
+                                                    || texture.Metadata is null)
+                || document.Textures.Select(texture => texture.RelativePath)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).Count() != document.Textures.Length)
+            {
+                return new(ProjectMetadataCacheValidationStatus.Corrupt, "PROJECT_METADATA_INVALID");
+            }
+
+            return new(ProjectMetadataCacheValidationStatus.Valid, null);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return new(ProjectMetadataCacheValidationStatus.Cancelled, "PROJECT_METADATA_VALIDATE_CANCELLED");
+        }
+        catch (Exception exception) when (exception is JsonException
+                                          or IOException
+                                          or UnauthorizedAccessException
+                                          or InvalidDataException
+                                          or InvalidOperationException
+                                          or ArgumentException)
+        {
+            return new(ProjectMetadataCacheValidationStatus.Corrupt, "PROJECT_METADATA_CORRUPT");
+        }
+    }
+
     internal static string GetFileName(Guid projectId) => $"{projectId:N}.metadata.json";
 
     private sealed record ProjectMetadataDocument(
@@ -253,6 +378,56 @@ internal sealed record AuditionProjectDocument(
         AuditionProjectBuildStateDocument.FromSnapshot(project.BuildState),
         project.CreatedAt,
         project.UpdatedAt);
+
+    public AuditionProjectCreateResult ToProject()
+    {
+        try
+        {
+            return AuditionProject.Create(
+                SchemaVersion,
+                ProjectId,
+                Name,
+                new(GameId),
+                new(ModId),
+                new(new(Template.TemplateId), new(Template.Version), new(Template.Sha256), new(Template.CompatibleGameBuild)),
+                new(
+                    Workspace.WorkspaceId,
+                    new(Workspace.WorkingArchiveRelativePath),
+                    new(Workspace.ExtractedRootRelativePath)),
+                EditedTextures.Select(item => new ProjectEditedTextureRecord(
+                    new(item.RelativePath),
+                    new(item.OriginalSha256),
+                    new(item.CurrentSha256),
+                    new(item.CurrentImageAssetId),
+                    item.Revision)),
+                ImageAssets.Select(item => new ProjectAssetRecord(new(item.Id), new(item.RelativePath), new(item.Sha256))),
+                AiAssets.Select(item => new ProjectAssetRecord(new(item.Id), new(item.RelativePath), new(item.Sha256))),
+                new(
+                    EditState.CurrentRevision,
+                    EditState.SavedRevision,
+                    EditState.ActiveTextureRelativePath is null ? null : new(EditState.ActiveTextureRelativePath),
+                    EditState.History.Select(item => new ProjectEditHistoryRecord(
+                        item.Revision,
+                        new(item.TextureRelativePath),
+                        item.Operation,
+                        new(item.BeforeImageAssetId),
+                        new(item.AfterImageAssetId))).ToImmutableArray()),
+                new(
+                    BuildState.Status,
+                    BuildState.LastBuildAt,
+                    BuildState.OutputArchiveRelativePath is null ? null : new(BuildState.OutputArchiveRelativePath),
+                    BuildState.OutputSha256 is null ? null : new(BuildState.OutputSha256)),
+                CreatedAt,
+                UpdatedAt);
+        }
+        catch (Exception exception) when (exception is ArgumentException
+                                          or InvalidOperationException
+                                          or NullReferenceException)
+        {
+            return AuditionProjectCreateResult.Failure([
+                new(AuditionProjectValidationFailureReason.InvalidRecord, "AUDPROJ_DOCUMENT_INVALID")]);
+        }
+    }
 }
 
 internal sealed record AuditionProjectTemplateDocument(
@@ -330,10 +505,12 @@ internal sealed record AuditionProjectBuildStateDocument(
 
 internal static class ProjectAtomicJsonWriter
 {
+    private const long MaximumDocumentBytes = 64L * 1024 * 1024;
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false) }
     };
 
@@ -373,5 +550,28 @@ internal static class ProjectAtomicJsonWriter
                 File.Delete(temporary);
             }
         }
+    }
+
+    public static async Task<T?> ReadAsync<T>(
+        string directory,
+        string fileName,
+        IPathSecurity pathSecurity,
+        CancellationToken cancellationToken)
+    {
+        var path = pathSecurity.ResolvePathWithinRoot(directory, fileName);
+        pathSecurity.EnsureNoReparsePoints(directory, path);
+        await using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            81920,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        if (stream.Length > MaximumDocumentBytes)
+        {
+            throw new InvalidDataException("Project JSON document exceeds the supported size limit.");
+        }
+
+        return await JsonSerializer.DeserializeAsync<T>(stream, Options, cancellationToken).ConfigureAwait(false);
     }
 }

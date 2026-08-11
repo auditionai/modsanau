@@ -98,7 +98,7 @@ Temp\Workspaces\<128-bit-random-id>\
   BuildOutput\
 ```
 
-`SecureWorkspacePaths` phân tách working archive, extracted files và build output. Pristine template nằm ngoài model writable này, trong `SecureTemplateCache`; PLAN 03 không có API ghi đè pristine template. `ISecureWorkspace` giữ exclusive handle trên `.workspace.lock` đến khi dispose. Host dispose `SecureWorkspaceService`, nhờ đó các lease còn thuộc process được cleanup trong graceful shutdown.
+`SecureWorkspacePaths` phân tách working archive, extracted files và build output. Pristine template nằm ngoài model writable này, trong `SecureTemplateCache`; PLAN 03 không có API ghi đè pristine template. `ISecureWorkspace` giữ exclusive handle trên `.workspace.lock` đến khi dispose. Workspace tạm chưa commit bị cleanup khi dispose; từ PLAN 33, workspace đã gắn với `.audproj` được retain để dispose/host shutdown chỉ nhả exclusive lock, không xóa dữ liệu project.
 
 Cleanup abandoned workspace chỉ xét direct child có ID đúng định dạng và marker hợp lệ; workspace còn exclusive lock bị bỏ qua. Cleanup không nhận arbitrary path và không đi vào `Projects`, `SecureTemplateCache` hoặc dữ liệu project.
 
@@ -559,3 +559,15 @@ Game + Mod + Name
 Workflow có typed phase/progress, cancellation và structured failure. Chỉ sau extract + complete Smart Scan + atomic metadata cache + atomic `.audproj` save mới trả success cùng live workspace lease. Mọi failure sau workspace allocation sẽ xóa exact project/cache ID và dispose workspace; rollback failure được báo riêng, không che thành success.
 
 `AuditionProjectStore` dùng filename `<ProjectId:N>.audproj` dưới managed `Projects`; project name không tham gia path. `ProjectMetadataCache` lưu full observed DDS metadata dưới managed `Cache/ProjectMetadata`, sort theo normalized path và reject Windows collision. Cả hai ghi temp cùng filesystem, flush-to-disk rồi atomic replace. Production DI đăng ký provider entitlement/acquisition fail-closed vì chưa có authoritative premium/template distribution; không tự tin local setting hoặc network endpoint. PLAN 32 chưa load/recover project, re-extract policy, Texture State Machine hay reset.
+
+## Load/Recover Project từ PLAN 33
+
+`IProjectLoadService` load exact `<ProjectId:N>.audproj`, reject JSON lạ/schema không hỗ trợ/model sai, sau đó resolve exact template `(TemplateId, Version)` và bắt buộc hash + compatible build khớp snapshot. Không fallback sang current template và không infer từ archive filename.
+
+Luồng recovery phân biệt rõ:
+
+1. Workspace + manifest + working archive hợp lệ, cache hợp lệ: trả project ngay, không extract và không scan.
+2. Workspace hợp lệ nhưng cache thiếu/hỏng: chỉ chạy Smart Scan để dựng lại observed DDS metadata cache.
+3. Workspace thiếu/không hợp lệ: kiểm tra entitlement, acquire lại exact trusted template, tạo workspace cùng `ProjectId`, extract, scan/cache và atomic-save workspace reference mới.
+
+`ISecureWorkspaceRecoveryService` chỉ mở direct managed child có lowercase-hex ID, marker `version=1`, cấu trúc thư mục đầy đủ và không reparse point. Project workspace được retain chỉ sau khi `.audproj` save thành công; nhờ đó rollback workspace mới vẫn xóa atomically, cò close/reopen project chỉ nhả/tái chiếm lock. PLAN 33 không triển khai Texture State Machine, reset hay thumbnail cache.

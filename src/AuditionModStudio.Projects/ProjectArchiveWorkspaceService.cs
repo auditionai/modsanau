@@ -14,7 +14,8 @@ public sealed class ProjectArchiveWorkspaceService(
     ISecureWorkspaceService secureWorkspaceService,
     IProjectArchiveWorkspaceManifestStore manifestStore,
     TimeProvider? timeProvider = null,
-    ILogger<ProjectArchiveWorkspaceService>? logger = null) : IProjectArchiveWorkspaceService
+    ILogger<ProjectArchiveWorkspaceService>? logger = null) : IProjectArchiveWorkspaceService,
+    IProjectArchiveWorkspaceRetentionService
 {
     public const int CurrentSchemaVersion = 1;
     public const string ManifestFileName = ".project-archive-workspace.json";
@@ -22,6 +23,17 @@ public sealed class ProjectArchiveWorkspaceService(
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private readonly ILogger<ProjectArchiveWorkspaceService> _logger =
         logger ?? NullLogger<ProjectArchiveWorkspaceService>.Instance;
+
+    public void Retain(IProjectArchiveWorkspace workspace)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        if (secureWorkspaceService is not ISecureWorkspaceRetentionService retention)
+        {
+            throw new InvalidOperationException("The secure workspace provider does not support project retention.");
+        }
+
+        retention.Retain(workspace.ArchiveWorkspace.SecureWorkspace);
+    }
 
     public async Task<ProjectArchiveWorkspaceCreateResult> CreateAsync(
         ProjectArchiveWorkspaceCreateRequest request,
@@ -134,7 +146,7 @@ public sealed class ProjectArchiveWorkspaceService(
             var timestamp = _timeProvider.GetUtcNow();
             var descriptor = new ProjectArchiveWorkspaceDescriptor(
                 CurrentSchemaVersion,
-                Guid.NewGuid(),
+                request.ProjectId ?? Guid.NewGuid(),
                 request.DisplayName.Trim(),
                 secureWorkspace.Id,
                 new(
@@ -305,7 +317,9 @@ public sealed class ProjectArchiveWorkspaceService(
     private static ProjectArchiveWorkspaceCreateResult? ValidateRequest(
         ProjectArchiveWorkspaceCreateRequest request)
     {
-        if (request.ArchiveTemplate?.Identity is not { IsValid: true } || request.PristineSource is null)
+        if (request.ArchiveTemplate?.Identity is not { IsValid: true }
+            || request.PristineSource is null
+            || request.ProjectId == Guid.Empty)
         {
             return ProjectArchiveWorkspaceCreateResult.Failure(
                 ProjectArchiveWorkspaceFailureReason.InvalidRequest,

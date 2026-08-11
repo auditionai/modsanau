@@ -6,11 +6,13 @@ using AuditionModStudio.Core.Workspaces;
 
 namespace AuditionModStudio.Infrastructure.Workspaces;
 
-public sealed class SecureWorkspaceService : ISecureWorkspaceService, IAsyncDisposable
+public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWorkspaceRecoveryService,
+    ISecureWorkspaceRetentionService, IAsyncDisposable
 {
     private const string LockFileName = ".workspace.lock";
     private const int MaximumCreationAttempts = 10;
     private readonly ConcurrentDictionary<string, SecureWorkspaceLease> _activeWorkspaces = new();
+    private readonly ConcurrentDictionary<string, byte> _retainedWorkspaces = new();
     private readonly IAppPaths _appPaths;
     private readonly IPathSecurity _pathSecurity;
     private int _disposeState;
@@ -89,6 +91,107 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, IAsyncDisp
         throw new IOException("Unable to allocate a unique secure workspace.");
     }
 
+    public ValueTask<ISecureWorkspace?> TryOpenExistingAsync(
+        string workspaceId,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposeState != 0, this);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsWorkspaceId(workspaceId))
+        {
+            return ValueTask.FromResult<ISecureWorkspace?>(null);
+        }
+
+        if (_activeWorkspaces.TryGetValue(workspaceId, out var active))
+        {
+            return ValueTask.FromResult<ISecureWorkspace?>(active);
+        }
+
+        EnsureWorkspaceRoot();
+        var root = _pathSecurity.ResolvePathWithinRoot(_appPaths.WorkspacesDirectory, workspaceId);
+        if (!Directory.Exists(root))
+        {
+            return ValueTask.FromResult<ISecureWorkspace?>(null);
+        }
+
+        FileStream? lockStream = null;
+        try
+        {
+            _pathSecurity.EnsureNoReparsePoints(_appPaths.WorkspacesDirectory, root);
+            EnsureTreeHasNoReparsePoints(root);
+            var paths = GetExistingWorkspacePaths(root);
+            var lockPath = _pathSecurity.ResolvePathWithinRoot(root, LockFileName);
+            if (!File.Exists(lockPath))
+            {
+                return ValueTask.FromResult<ISecureWorkspace?>(null);
+            }
+
+            lockStream = new FileStream(
+                lockPath,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.None,
+                4096,
+                FileOptions.WriteThrough);
+            var retained = false;
+            using (var reader = new StreamReader(lockStream, Encoding.UTF8, leaveOpen: true))
+            {
+                if (!string.Equals(reader.ReadLine(), "version=1", StringComparison.Ordinal))
+                {
+                    lockStream.Dispose();
+                    return ValueTask.FromResult<ISecureWorkspace?>(null);
+                }
+
+                retained = reader.ReadToEnd().Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                    .Contains("retained=1", StringComparer.Ordinal);
+            }
+
+            lockStream.Position = 0;
+            var lease = new SecureWorkspaceLease(
+                workspaceId,
+                paths,
+                lockStream,
+                _pathSecurity,
+                CleanupOwnedAsync);
+            if (_activeWorkspaces.TryAdd(workspaceId, lease))
+            {
+                if (retained)
+                {
+                    _retainedWorkspaces.TryAdd(workspaceId, 0);
+                }
+
+                lockStream = null;
+                return ValueTask.FromResult<ISecureWorkspace?>(lease);
+            }
+
+            lockStream.Dispose();
+            return ValueTask.FromResult<ISecureWorkspace?>(
+                _activeWorkspaces.TryGetValue(workspaceId, out active) ? active : null);
+        }
+        catch (Exception exception) when (exception is IOException
+                                          or UnauthorizedAccessException
+                                          or InvalidDataException
+                                          or InvalidOperationException
+                                          or ArgumentException)
+        {
+            lockStream?.Dispose();
+            return ValueTask.FromResult<ISecureWorkspace?>(null);
+        }
+    }
+
+    public void Retain(ISecureWorkspace workspace)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        if (!_activeWorkspaces.TryGetValue(workspace.Id, out var active)
+            || !ReferenceEquals(active, workspace))
+        {
+            throw new InvalidOperationException("Only an active owned workspace can be retained.");
+        }
+
+        active.MarkRetained();
+        _retainedWorkspaces.TryAdd(workspace.Id, 0);
+    }
+
     public Task<int> CleanupAbandonedAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposeState != 0, this);
@@ -118,14 +221,17 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, IAsyncDisp
 
             try
             {
-                using (new FileStream(
-                           lockPath,
-                           FileMode.Open,
-                           FileAccess.ReadWrite,
-                           FileShare.None,
-                           bufferSize: 1,
-                           FileOptions.None))
+                using (var stream = new FileStream(
+                           lockPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None,
+                           bufferSize: 4096, FileOptions.None))
                 {
+                    using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
+                    var lines = reader.ReadToEnd().Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+                    if (lines.Contains("retained=1", StringComparer.Ordinal))
+                    {
+                        continue;
+                    }
+
                     EnsureTreeHasNoReparsePoints(directory);
                 }
 
@@ -187,12 +293,28 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, IAsyncDisp
         return new SecureWorkspacePaths(root, working, extracted, buildOutput);
     }
 
+    private static SecureWorkspacePaths GetExistingWorkspacePaths(string root)
+    {
+        var working = Path.Combine(root, "Working");
+        var extracted = Path.Combine(root, "Extracted");
+        var buildOutput = Path.Combine(root, "BuildOutput");
+        if (!Directory.Exists(working) || !Directory.Exists(extracted) || !Directory.Exists(buildOutput))
+        {
+            throw new InvalidDataException("The existing managed workspace is incomplete.");
+        }
+
+        return new(root, working, extracted, buildOutput);
+    }
+
     private ValueTask CleanupOwnedAsync(SecureWorkspaceLease workspace)
     {
         if (_activeWorkspaces.TryRemove(
                 new KeyValuePair<string, SecureWorkspaceLease>(workspace.Id, workspace)))
         {
-            DeleteWorkspaceIfSafe(workspace.Paths.RootDirectory, requireLockMarker: true);
+            if (!_retainedWorkspaces.TryRemove(workspace.Id, out _))
+            {
+                DeleteWorkspaceIfSafe(workspace.Paths.RootDirectory, requireLockMarker: true);
+            }
         }
 
         return ValueTask.CompletedTask;
@@ -297,6 +419,19 @@ internal sealed class SecureWorkspaceLease : ISecureWorkspace
         var resolved = _pathSecurity.ResolvePathWithinRoot(Paths.RootDirectory, relativePath);
         _pathSecurity.EnsureNoReparsePoints(Paths.RootDirectory, resolved);
         return resolved;
+    }
+
+    public void MarkRetained()
+    {
+        var stream = _lockStream ?? throw new ObjectDisposedException(nameof(SecureWorkspaceLease));
+        lock (stream)
+        {
+            stream.Position = stream.Length;
+            using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
+            writer.WriteLine("retained=1");
+            writer.Flush();
+            stream.Flush(flushToDisk: true);
+        }
     }
 
     public async ValueTask DisposeAsync()

@@ -371,6 +371,44 @@ public sealed class ProjectArchiveWorkspaceServiceTests
             workspace.ArchiveWorkspace.WorkingArchiveRelativePath)));
     }
 
+    [Fact]
+    public async Task Retained_project_workspace_recovers_only_when_manifest_matches_project_snapshot()
+    {
+        await using var context = TestContext.Create();
+        var created = await context.CreateAsync();
+        var workspace = AssertWorkspace(created);
+        var descriptor = workspace.Descriptor;
+        var now = descriptor.CreatedAt;
+        var project = AuditionProject.Create(
+            1,
+            descriptor.ProjectId,
+            descriptor.DisplayName,
+            new("audition"),
+            new("login_mod"),
+            descriptor.ArchiveTemplate.Identity,
+            new(descriptor.WorkspaceId, new(descriptor.WorkingArchiveRelativePath),
+                new(descriptor.ExtractedDirectoryRelativePath)),
+            [], [], [],
+            new(0, 0, null, []),
+            new(ProjectBuildStatus.NotBuilt, null, null, null),
+            now,
+            now).Project!;
+        context.Service.Retain(workspace);
+        await workspace.DisposeAsync();
+
+        var recovered = await context.RecoverAsync(project);
+
+        Assert.True(recovered.Recovered, recovered.DiagnosticCode);
+        Assert.Equal(descriptor.WorkspaceId, recovered.Workspace!.Descriptor.WorkspaceId);
+        await recovered.Workspace.DisposeAsync();
+
+        var wrongProject = AuditionProject.Create(
+            1, Guid.NewGuid(), descriptor.DisplayName, project.GameId, project.ModId,
+            project.TemplateIdentity, project.Workspace, [], [], [], project.EditState,
+            project.BuildState, now, now).Project!;
+        Assert.False((await context.RecoverAsync(wrongProject)).Recovered);
+    }
+
     private static IProjectArchiveWorkspace AssertWorkspace(ProjectArchiveWorkspaceCreateResult result)
     {
         Assert.True(result.Succeeded, result.DiagnosticCode);
@@ -465,6 +503,15 @@ public sealed class ProjectArchiveWorkspaceServiceTests
                 failManifestWrite);
 
         public Task<ProjectArchiveWorkspaceCreateResult> CreateAsync() => Service.CreateAsync(Request);
+
+        public Task<ProjectArchiveWorkspaceRecoveryResult> RecoverAsync(AuditionProject project)
+        {
+            var recovery = new ProjectArchiveWorkspaceRecoveryService(
+                _secureWorkspaceService,
+                new ProjectArchiveWorkspaceManifestStore(new PathSecurity()),
+                Service);
+            return recovery.TryRecoverAsync(project);
+        }
 
         public async ValueTask DisposeAsync()
         {

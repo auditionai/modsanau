@@ -226,6 +226,11 @@ public sealed class ProjectCreationService(
                         cacheStored).ConfigureAwait(false);
                 }
 
+                if (workspaceService is IProjectArchiveWorkspaceRetentionService retention)
+                {
+                    retention.Retain(workspace);
+                }
+
                 Report(progress, ProjectCreationPhase.Completed, TotalSteps);
                 return ProjectCreationResult.Success(model.Project!, workspace);
             }

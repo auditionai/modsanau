@@ -68,7 +68,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 31: immutable schema-v1 aggregate lưu project/game/mod/exact-template identity, logical workspace references, edited textures, image/AI assets, edit/history references, build state và timestamps; atomic graph validation, deterministic ordering và generic content SHA-256. Chưa triển khai filesystem persistence/workflow/recovery.
 - PLAN đã hoàn thành: PLAN 32 — Create Project Workflow.
 - Phạm vi PLAN 32: typed Game/Mod/Name orchestration; fail-closed entitlement/template acquisition; trusted region resolution; verified project workspace; archive extract với existing keydat policy; Smart Scan/manifest/DDS metadata cache; atomic `.audproj` save; cancellation/progress và full rollback partial state.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 33 — Load/Recover Project; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 33 — Load/Recover Project.
+- Phạm vi PLAN 33: strict `.audproj` load; exact template version/hash/build binding; secure retained-workspace reopen; manifest/archive validation; cache validation/rebuild; chỉ re-extract khi workspace thiếu hoặc không hợp lệ; typed progress/failure và atomic save sau recovery.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 34 — Texture State Machine; không tự động bắt đầu.
 
 ## Stage Gates
 

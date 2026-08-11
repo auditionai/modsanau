@@ -299,3 +299,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Working archive/extracted tree chỉ được tạo qua managed workspace và existing verified-copy/archive engine. Interactive AuditionVN selection tiếp tục thuộc trusted region profile + redirected runner; workflow không xây process command hoặc chạm raw selector.
 - `.audproj` và DDS metadata cache dùng ProjectId-derived filename dưới managed directories, reject reparse/path collision và atomic temp/flush/promote. Project name không tham gia path; cache không chứa thumbnail pixels, executable path hoặc secret.
 - Failure/cancellation sau allocation xóa đúng project/cache ID và dispose isolated workspace. Không sửa pristine template; rollback failure là typed fatal result. PLAN 32 không tự recover/load, re-extract khi reopen, mutate texture hoặc reset project.
+
+## Load/Recover Project boundary từ PLAN 33
+
+- `.audproj` và metadata cache là local untrusted JSON: deserialize strict, giới hạn 64 MiB, reject unknown member/schema/ID/model/path collision. Project filename chỉ sinh từ exact GUID; display name không tham gia path.
+- Recovery chỉ bind exact template version/hash/compatible build đã lưu. Thiếu version không fallback sang current; re-extract phải qua entitlement, trusted acquisition, region profile và existing archive service.
+- Workspace reopen chỉ nhận lowercase 32-hex managed child, exclusive marker hợp lệ, directory layout đầy đủ và tree không reparse point. Manifest phải khớp project ID, workspace ID, template identity và normalized relative paths trước khi publish lease.
+- Retention chỉ áp dụng sau atomic project save hoặc khi mở workspace project đã tồn tại. Workspace recovery mới bị hủy trước commit vẫn được xóa; retained workspace dispose chỉ nhả lock. Cache hỏng không là lý do mutate pristine archive.
