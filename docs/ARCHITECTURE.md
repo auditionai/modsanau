@@ -649,3 +649,11 @@ Mỗi secure workspace giữ exclusive `.workspace.lock`, đồng thời file n�
 - `Unsafe`: marker/path/tree không hợp lệ; không recover/cleanup tự động.
 
 Startup không xóa candidate. `RecoverAsync` re-inspect rồi reuse exact `TryOpenExistingAsync`; `CleanupAsync` chỉ nhận workspace ID, resolve lại direct managed root, acquire lock, kiểm tra marker/reparse lần nữa và giữ lock trong lúc xóa. Thành công loại candidate khỏi offer. `.audproj`, pristine template, archive, project root và workspace khác không bị sửa. PLAN 39 không có UI prompt, content repair, project migration hay Design System.
+
+## Design System từ PLAN 40
+
+WinUI resources dùng bốn dictionary merge theo dependency order: primitives → semantic theme tokens → component tokens → reusable component styles. `Default`, `Light` và `HighContrast` publish cùng semantic color-key contract; component styles không chứa raw hex và vì vậy theme switching không cần fork template.
+
+Foundation hiện có gồm shared acrylic/fallback gaming panel, standard và accent-gradient rounded cards, primary/secondary depth buttons với hover/pressed/disabled states, status badge container cùng section/body typography. Button template giữ `Button` semantics và system focus visual; motion chỉ dùng opacity/transform ngắn. Window Mica hiện hữu tiếp tục là top-level backdrop, còn acrylic chỉ là shared panel brush để giới hạn overdraw.
+
+Chi tiết token/component usage nằm trong `docs/DESIGN_SYSTEM.md`. PLAN 40 không tạo navigation, page layout, dashboard/sidebar, texture grid/editor, view model hay workflow binding; toàn bộ App Shell thuộc PLAN 41.

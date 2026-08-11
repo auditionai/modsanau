@@ -349,3 +349,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Mỗi recovery/cleanup revalidate containment, marker version/grammar, full tree reparse points và lock ngay tại thời điểm action. Lock race hoặc access ambiguity trả `ActiveOrInaccessible`; invalid/missing marker trả `Unsafe` và giữ nguyên dữ liệu.
 - Explicit cleanup giữ exclusive delete-sharing handle trong lúc xóa đúng workspace root. Nó không traverse ra ngoài, không nhận arbitrary path và không chạm Projects, SecureTemplateCache, fixture, pristine archive hoặc workspace active khác.
 - Marker không chứa secret; process ID/session ID không phải authentication token. Recovery vẫn phải đi qua project/template validation PLAN 33 khi orchestration mở project; workspace recovery riêng không nâng trust cho `.audproj` hay archive bytes.
+
+## Design System boundary từ PLAN 40
+
+- Tất cả XAML/resource là code-owned và compile cùng ứng dụng; không load remote font/image/dictionary, user-controlled URI, WebView content hoặc dynamic XAML.
+- Component dùng semantic `ThemeResource`; raw colors chỉ tồn tại trong primitive layer. Default/Light/HighContrast có cùng key contract, focus indicator luôn explicit và trạng thái không được chỉ dựa vào màu.
+- Shared acrylic/gradient/shadow được giới hạn ở component resource; motion chỉ dùng opacity/transform ngắn để giảm overdraw/layout churn. Clarity và system accessibility behavior thắng decoration.
+- Design token/style không chứa secret, filesystem path, executable path, entitlement hay business/security decision. PLAN 40 không thêm UI workflow hoặc App Shell.

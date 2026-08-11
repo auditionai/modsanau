@@ -8,9 +8,11 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
+                <ResourceDictionary Source="DesignSystem/PrimitiveTokens.xaml" />
+                <ResourceDictionary Source="DesignSystem/SemanticTokens.xaml" />
+                <ResourceDictionary Source="DesignSystem/ComponentTokens.xaml" />
+                <ResourceDictionary Source="DesignSystem/Components.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Default">
+            <Color x:Key="AmsBackgroundColor">{StaticResource AmsSlate950}</Color>
+            <Color x:Key="AmsSurfaceColor">{StaticResource AmsSlate900}</Color>
+            <Color x:Key="AmsSurfaceRaisedColor">{StaticResource AmsSlate800}</Color>
+            <Color x:Key="AmsBorderColor">{StaticResource AmsSlate700}</Color>
+            <Color x:Key="AmsTextPrimaryColor">{StaticResource AmsSlate100}</Color>
+            <Color x:Key="AmsTextSecondaryColor">{StaticResource AmsSlate400}</Color>
+            <Color x:Key="AmsTextOnAccentColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsAccentColor">{StaticResource AmsIndigo500}</Color>
+            <Color x:Key="AmsAccentHoverColor">{StaticResource AmsIndigo400}</Color>
+            <Color x:Key="AmsAccentDepthColor">{StaticResource AmsIndigo600}</Color>
+            <Color x:Key="AmsAccentSecondaryColor">{StaticResource AmsCyan400}</Color>
+            <Color x:Key="AmsFocusColor">{StaticResource AmsCyan400}</Color>
+            <Color x:Key="AmsSuccessColor">{StaticResource AmsGreen400}</Color>
+            <Color x:Key="AmsWarningColor">{StaticResource AmsAmber400}</Color>
+            <Color x:Key="AmsErrorColor">{StaticResource AmsRed400}</Color>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <Color x:Key="AmsBackgroundColor">{StaticResource AmsSlate100}</Color>
+            <Color x:Key="AmsSurfaceColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsSurfaceRaisedColor">{StaticResource AmsSlate200}</Color>
+            <Color x:Key="AmsBorderColor">{StaticResource AmsSlate400}</Color>
+            <Color x:Key="AmsTextPrimaryColor">{StaticResource AmsSlate950}</Color>
+            <Color x:Key="AmsTextSecondaryColor">{StaticResource AmsSlate700}</Color>
+            <Color x:Key="AmsTextOnAccentColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsAccentColor">{StaticResource AmsIndigo600}</Color>
+            <Color x:Key="AmsAccentHoverColor">{StaticResource AmsIndigo500}</Color>
+            <Color x:Key="AmsAccentDepthColor">{StaticResource AmsSlate700}</Color>
+            <Color x:Key="AmsAccentSecondaryColor">{StaticResource AmsCyan400}</Color>
+            <Color x:Key="AmsFocusColor">{StaticResource AmsIndigo600}</Color>
+            <Color x:Key="AmsSuccessColor">{StaticResource AmsGreen400}</Color>
+            <Color x:Key="AmsWarningColor">{StaticResource AmsAmber400}</Color>
+            <Color x:Key="AmsErrorColor">{StaticResource AmsRed400}</Color>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="HighContrast">
+            <Color x:Key="AmsBackgroundColor">{StaticResource AmsBlack}</Color>
+            <Color x:Key="AmsSurfaceColor">{StaticResource AmsBlack}</Color>
+            <Color x:Key="AmsSurfaceRaisedColor">{StaticResource AmsBlack}</Color>
+            <Color x:Key="AmsBorderColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsTextPrimaryColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsTextSecondaryColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsTextOnAccentColor">{StaticResource AmsBlack}</Color>
+            <Color x:Key="AmsAccentColor">{StaticResource AmsAmber400}</Color>
+            <Color x:Key="AmsAccentHoverColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsAccentDepthColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsAccentSecondaryColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsFocusColor">{StaticResource AmsAmber400}</Color>
+            <Color x:Key="AmsSuccessColor">{StaticResource AmsWhite}</Color>
+            <Color x:Key="AmsWarningColor">{StaticResource AmsAmber400}</Color>
+            <Color x:Key="AmsErrorColor">{StaticResource AmsWhite}</Color>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <StaticResource x:Key="AmsControlPadding" ResourceKey="AmsPrimitiveControlPadding" />
+    <StaticResource x:Key="AmsCardPadding" ResourceKey="AmsPrimitiveCardPadding" />
+    <StaticResource x:Key="AmsBadgePadding" ResourceKey="AmsPrimitiveBadgePadding" />
+    <StaticResource x:Key="AmsFocusThickness" ResourceKey="AmsPrimitiveFocusThickness" />
+</ResourceDictionary>

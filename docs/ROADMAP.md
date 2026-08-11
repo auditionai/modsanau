@@ -82,7 +82,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 38: bounded central channel cho Extract/Scan/Thumbnail/Resize/Convert/Build/Download/AI; configurable workers; immutable queued/running/progress/terminal snapshots; cancel queued/running; notifications; structured failure và bounded in-memory history.
 - PLAN đã hoàn thành: PLAN 39 — Temp Cleanup & Crash Recovery.
 - Phạm vi PLAN 39: versioned lock/session metadata cho managed workspace; startup discovery không phá hủy; typed Active/StaleRecoverable/StaleCleanupOnly/Unsafe inventory; explicit exact-ID recovery hoặc cleanup với lock/reparse revalidation tại thời điểm action.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 40 — Design System; không tự động bắt đầu ngoài batch đã được phê duyệt.
+- PLAN đã hoàn thành: PLAN 40 — Design System.
+- Phạm vi PLAN 40: WinUI three-layer design tokens; dark/light/high-contrast semantic contract; shared acrylic panel, rounded/gradient cards, depth hover/pressed buttons, badge và typography styles; keyboard focus/accessibility/performance rules.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 41 — App Shell; chưa được triển khai.
 
 ## Stage Gates
 

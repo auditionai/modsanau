@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Panel and card component tokens. -->
+    <AcrylicBrush
+        x:Key="AmsPanelBrush"
+        FallbackColor="{ThemeResource AmsSurfaceColor}"
+        TintColor="{ThemeResource AmsSurfaceColor}"
+        TintLuminosityOpacity="0.82"
+        TintOpacity="0.72" />
+    <SolidColorBrush x:Key="AmsCardBrush" Color="{ThemeResource AmsSurfaceRaisedColor}" Opacity="0.88" />
+    <SolidColorBrush x:Key="AmsCardBorderBrush" Color="{ThemeResource AmsBorderColor}" Opacity="0.72" />
+    <SolidColorBrush x:Key="AmsTextPrimaryBrush" Color="{ThemeResource AmsTextPrimaryColor}" />
+    <SolidColorBrush x:Key="AmsTextSecondaryBrush" Color="{ThemeResource AmsTextSecondaryColor}" />
+    <SolidColorBrush x:Key="AmsFocusBrush" Color="{ThemeResource AmsFocusColor}" />
+
+    <!-- Button component tokens. BorderBrush intentionally represents the depth layer. -->
+    <SolidColorBrush x:Key="AmsButtonPrimaryBrush" Color="{ThemeResource AmsAccentColor}" />
+    <SolidColorBrush x:Key="AmsButtonPrimaryDepthBrush" Color="{ThemeResource AmsAccentDepthColor}" />
+    <SolidColorBrush x:Key="AmsButtonSecondaryBrush" Color="{ThemeResource AmsSurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="AmsButtonSecondaryDepthBrush" Color="{ThemeResource AmsBorderColor}" />
+    <SolidColorBrush x:Key="AmsButtonHoverOverlayBrush" Color="{ThemeResource AmsAccentHoverColor}" />
+    <SolidColorBrush x:Key="AmsButtonContentBrush" Color="{ThemeResource AmsTextOnAccentColor}" />
+
+    <!-- Status and accent component tokens. -->
+    <SolidColorBrush x:Key="AmsSuccessBrush" Color="{ThemeResource AmsSuccessColor}" />
+    <SolidColorBrush x:Key="AmsWarningBrush" Color="{ThemeResource AmsWarningColor}" />
+    <SolidColorBrush x:Key="AmsErrorBrush" Color="{ThemeResource AmsErrorColor}" />
+    <LinearGradientBrush x:Key="AmsAccentGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Offset="0" Color="{ThemeResource AmsAccentColor}" />
+        <GradientStop Offset="1" Color="{ThemeResource AmsAccentSecondaryColor}" />
+    </LinearGradientBrush>
+
+    <StaticResource x:Key="AmsButtonPadding" ResourceKey="AmsControlPadding" />
+    <StaticResource x:Key="AmsPanelPadding" ResourceKey="AmsCardPadding" />
+    <StaticResource x:Key="AmsStatusBadgePadding" ResourceKey="AmsBadgePadding" />
+</ResourceDictionary>
