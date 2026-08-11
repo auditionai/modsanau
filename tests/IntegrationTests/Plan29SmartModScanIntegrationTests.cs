@@ -81,15 +81,20 @@ public sealed class Plan29SmartModScanIntegrationTests
         var games = GameCatalog.CreateBuiltIn();
         var mods = ModCatalog.Create([CreateMod(template)], games, regions).Catalog!;
         var manifests = TextureManifestCatalog.Create([], mods).Catalog!;
+        var thumbnailCache = new ThumbnailCache(
+            appPaths,
+            pathSecurity,
+            new SyntheticPreviewService(),
+            new SyntheticMemoryImageImportService(),
+            new ImageResizeService(ImageImportResourcePolicy.Default),
+            ThumbnailCacheOptions.Default);
         var service = new SmartModScanService(
             games,
             mods,
             manifests,
             new ArchiveAssetScanner(pathSecurity),
             new DdsMetadataReader(),
-            new SyntheticPreviewService(),
-            new SyntheticMemoryImageImportService(),
-            new ImageResizeService(ImageImportResourcePolicy.Default),
+            thumbnailCache,
             pathSecurity);
 
         var result = await service.ScanAsync(new(new("audition"), new("fixture_mod"), workspace, 64));

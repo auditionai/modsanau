@@ -244,9 +244,7 @@ public sealed class SmartModScanServiceTests
                 new StubManifestCatalog(manifest, ambiguousManifestResolver),
                 _scanner,
                 _metadata,
-                new StubPreviewService(),
-                new StubImageImportService(),
-                new StubImageResizeService(),
+                new StubThumbnailCache(),
                 new PathSecurity());
         }
 
@@ -344,24 +342,14 @@ public sealed class SmartModScanServiceTests
                 : DdsMetadataReadResult.Success(Metadata));
     }
 
-    private sealed class StubPreviewService : IDdsPreviewService
+    private sealed class StubThumbnailCache : IThumbnailCache
     {
-        public Task<DdsPreviewResult> CreateAsync(DdsPreviewRequest request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(DdsPreviewResult.Success(Metadata, new(128, 64, new byte[] { 1 })));
-    }
-
-    private sealed class StubImageImportService : IImageImportService
-    {
-        public Task<ImageImportResult> ImportAsync(ImageImportRequest request, CancellationToken cancellationToken = default) =>
-            throw new NotSupportedException();
-        public Task<ImageImportResult> ImportMemoryAsync(ImageImportMemoryRequest request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(ImageImportResult.Success(Image(128, 64)));
-    }
-
-    private sealed class StubImageResizeService : IImageResizeService
-    {
-        public Task<ImageResizeResult> ResizeAsync(ImageResizeRequest request, CancellationToken cancellationToken = default) =>
-            Task.FromResult(ImageResizeResult.Success(Image(request.TargetWidth, request.TargetHeight)));
+        public Task<ThumbnailCacheResult> GetOrCreateAsync(
+            ThumbnailCacheRequest request,
+            CancellationToken cancellationToken = default) => Task.FromResult(
+            ThumbnailCacheResult.Success(
+                Image(request.MaximumDimension, Math.Max(1, request.MaximumDimension / 2)),
+                ThumbnailCacheSource.Generated));
     }
 
     private static InternalImage Image(int width, int height) => new(

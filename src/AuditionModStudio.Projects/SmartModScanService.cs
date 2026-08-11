@@ -5,6 +5,7 @@ using AuditionModStudio.Core.Games;
 using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Core.Paths;
+using AuditionModStudio.Core.Projects;
 
 namespace AuditionModStudio.Projects;
 
@@ -14,9 +15,7 @@ public sealed class SmartModScanService(
     ITextureManifestCatalog manifestCatalog,
     IArchiveAssetScanner assetScanner,
     IDdsMetadataReader metadataReader,
-    IDdsPreviewService previewService,
-    IImageImportService imageImportService,
-    IImageResizeService imageResizeService,
+    IThumbnailCache thumbnailCache,
     IPathSecurity pathSecurity) : ISmartModScanService
 {
     public async Task<SmartModScanResult> ScanAsync(
@@ -85,10 +84,9 @@ public sealed class SmartModScanService(
                 }
 
                 progress?.Report(new(SmartModScanPhase.GeneratingThumbnail, textures.Length, index, asset.RelativePath));
-                var thumbnail = await CreateThumbnailAsync(
-                    request,
-                    fullPath,
-                    request.MaximumThumbnailDimension,
+                var thumbnail = await thumbnailCache.GetOrCreateAsync(
+                    new(request.Workspace, new(asset.RelativePath), new(asset.Sha256),
+                        request.MaximumThumbnailDimension),
                     cancellationToken).ConfigureAwait(false);
                 if (!thumbnail.Succeeded)
                 {
@@ -143,47 +141,6 @@ public sealed class SmartModScanService(
             workspace.ExtractDirectoryRelativePath);
         pathSecurity.EnsureNoReparsePoints(workspace.SecureWorkspace.Paths.ExtractedDirectory, root);
         return root;
-    }
-
-    private async Task<(bool Succeeded, bool Cancelled, string? DiagnosticCode, InternalImage? Image)> CreateThumbnailAsync(
-        SmartModScanRequest request,
-        string fullPath,
-        int maximumDimension,
-        CancellationToken cancellationToken)
-    {
-        var root = request.Workspace.ArchiveWorkspace.SecureWorkspace.Paths.RootDirectory;
-        var sourceRelativePath = Path.GetRelativePath(root, fullPath).Replace('\\', '/');
-        var preview = await previewService.CreateAsync(
-            new(request.Workspace.ArchiveWorkspace.SecureWorkspace, sourceRelativePath),
-            cancellationToken).ConfigureAwait(false);
-        if (!preview.Succeeded)
-        {
-            return (false, preview.Cancelled, preview.DiagnosticCode ?? "SMART_SCAN_PREVIEW_FAILED", null);
-        }
-
-        var imported = await imageImportService.ImportMemoryAsync(
-            new ImageImportMemoryRequest(preview.Image!.EncodedPng),
-            cancellationToken).ConfigureAwait(false);
-        if (!imported.Succeeded)
-        {
-            return (false, imported.Cancelled, imported.DiagnosticCode ?? "SMART_SCAN_THUMBNAIL_IMPORT_FAILED", null);
-        }
-
-        var image = imported.Image!;
-        if (image.Width <= maximumDimension && image.Height <= maximumDimension)
-        {
-            return (true, false, null, image);
-        }
-
-        var scale = Math.Min((double)maximumDimension / image.Width, (double)maximumDimension / image.Height);
-        var width = Math.Max(1, (int)Math.Round(image.Width * scale, MidpointRounding.AwayFromZero));
-        var height = Math.Max(1, (int)Math.Round(image.Height * scale, MidpointRounding.AwayFromZero));
-        var resized = await imageResizeService.ResizeAsync(
-            new(image, width, height, new(ImageResizeMode.Stretch, ImageInterpolationMode.Linear)),
-            cancellationToken).ConfigureAwait(false);
-        return resized.Succeeded
-            ? (true, false, null, resized.Image)
-            : (false, resized.Cancelled, resized.DiagnosticCode ?? "SMART_SCAN_THUMBNAIL_RESIZE_FAILED", null);
     }
 
     private static SmartModScanResult Failure(

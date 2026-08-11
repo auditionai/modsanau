@@ -319,3 +319,11 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Bản gốc texture chỉ đến từ extracted tree của regenerated workspace được tạo bằng exact trusted template. Source/global archive không mở ghi; target chỉ nằm trong current project workspace. Restore transaction dùng backup nội bộ, atomic replace và rollback khi scan/model/save fail.
 - Full reset commit workspace mới trước khi xóa workspace cũ. Explicit removal chỉ chấp nhận active owned lease exact-reference; bỏ retention rồi xóa direct managed workspace, không nhận raw directory. Cleanup failure sau commit được report để retry, không xóa global template hay workspace khác.
 - Workflow không tự tạo process arguments, không network/secret, không infer engine/region/version và không triển khai thumbnail cache.
+
+## Thumbnail Cache boundary từ PLAN 36
+
+- Thumbnail là derived local data, không phải nguồn sự thật cho DDS metadata hoặc content trust. Cache miss, stale key, malformed header, truncated/oversized payload hay enum không hợp lệ đều không được publish; entry hỏng được xóa best-effort và tái tạo từ DDS qua các service PLAN 15/20/21.
+- Disk path chỉ nằm dưới managed `Cache/Thumbnails/v1`; filename là lowercase SHA-256 do service tự sinh. Caller không cung cấp cache path. Việc tạo/mở thư mục kiểm tra containment và reparse point qua `IPathSecurity`; source DDS vẫn được resolve bởi workspace/path-security boundary hiện có và chỉ mở read-only.
+- Ghi cache dùng file tạm ngẫu nhiên trong cùng managed directory, flush rồi atomic move. Cancellation/failure dọn file tạm; lỗi ghi cache không biến thumbnail hợp lệ trong memory thành thất bại giả và không sửa source/archive/project.
+- Giới hạn dimension, số entry memory/disk và tổng byte disk ngăn cache tăng không giới hạn. Single-flight chỉ khóa theo content key, có cancellation và không chạy network/process mới; lời gọi DirectXTex nếu cache miss vẫn đi qua `IDdsPreviewService` cùng executable allowlist/hash đã có.
+- Cache không chứa secret, entitlement, executable path, raw command argument hay authoritative manifest metadata. PLAN 36 không cho local settings/user input override tool trust hoặc cache root.

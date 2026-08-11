@@ -587,3 +587,19 @@ Reset operations được serialize qua async cancellation-aware gate của sing
 Reset một texture dùng `IProjectTextureRestoreService` copy exact normalized relative asset từ extracted tree của disposable pristine workspace sang current project workspace. Copy dùng temp + durable flush + atomic move và giữ backup transaction; scan/model/save fail thì rollback bytes cũ. Khi commit, edit/history của texture đó bị loại, asset không còn reference bị prune, revision tăng và build state thành `Dirty`.
 
 Reset Project tạo fresh workspace cùng `ProjectId`, extract + Smart Scan, tạo project snapshot rỗng edits/assets/history và `NotBuilt`. Fresh workspace được retain trước atomic `.audproj` save; save fail thì explicit removal fresh workspace, save thành công mới remove exact previous workspace. Cache, old-workspace cleanup hoặc temporary-backup cleanup fail sau commit được trả bằng recovery flags, không hạ success thành failure giả sau khi project đã commit. PLAN 35 không có thumbnail cache/UI và không triển khai PLAN 36.
+
+## Thumbnail Cache từ PLAN 36
+
+`IThumbnailCache` là boundary duy nhất để Smart Scan lấy thumbnail. Cache key được dẫn xuất deterministic từ schema cache, SHA-256 nội dung DDS nguồn và `MaximumDimension`; đường dẫn, filename, display metadata và timestamp không tham gia identity. Do đó cùng nội dung và cùng kích thước có thể dùng chung thumbnail, còn thay đổi bytes hoặc kích thước luôn tạo key mới.
+
+```text
+Smart Scan observed DDS + content SHA-256
+  → IThumbnailCache
+      ├─ bounded immutable memory cache
+      ├─ managed Cache/Thumbnails/v1 disk cache
+      └─ miss/corrupt → IDdsPreviewService → IImageImportService → IImageResizeService
+```
+
+Disk entry dùng schema/version và tự mô tả source hash, requested dimension cùng immutable RGBA image metadata. Đọc entry phải kiểm tra đầy đủ header, enum, dimensions, stride, pixel length và exact file length. Entry hỏng là derived data: bị loại và tạo lại, không làm thay đổi DDS nguồn. Publish dùng temporary file cùng thư mục, durable flush rồi atomic move; cancellation không publish partial entry. Memory/disk có giới hạn cấu hình, disk eviction deterministic theo lần truy cập và chỉ chạm file cache do ứng dụng quản lý.
+
+Các request đồng thời cùng key được gộp bằng async single-flight per-key; key khác không bị global serialization. `ThumbnailCache` đăng ký singleton để memory tier được chia sẻ và mọi collection công khai vẫn immutable. PLAN 36 không triển khai metadata-first UI, lazy full-texture load, background queue, crash recovery hoặc App Shell.

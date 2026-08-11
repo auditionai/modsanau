@@ -74,7 +74,9 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 34: pure immutable state evaluation cho `Original`, `Modified`, `AiGenerated`, `Pending`, `Invalid`, `Missing`; reuse project edited/image/AI asset references và explicit runtime observation; deterministic priority, typed failure và transition reporting, không filesystem mutation.
 - PLAN đã hoàn thành: PLAN 35 — Reset Texture / Reset Project.
 - Phạm vi PLAN 35: transactional single-texture restore từ regenerated exact-template workspace; project model/edit/history/cache update; full-project fresh working-copy swap; rollback trước commit; explicit post-commit cache/cleanup recovery flags; global pristine template không bị mutate.
-- PLAN kế tiếp theo đặc tả gốc: PLAN 36 — Thumbnail Cache; không tự động bắt đầu.
+- PLAN đã hoàn thành: PLAN 36 — Thumbnail Cache.
+- Phạm vi PLAN 36: thumbnail được định danh bằng SHA-256 nội dung nguồn + kích thước yêu cầu + schema cache; cache hai tầng memory/disk có giới hạn; async single-flight theo key; ghi disk atomic; entry thiếu/hỏng được tạo lại qua pipeline preview/import/resize hiện có.
+- PLAN kế tiếp theo đặc tả gốc: PLAN 37 — Lazy Loading; không tự động bắt đầu ngoài batch đã được phê duyệt.
 
 ## Stage Gates
 
