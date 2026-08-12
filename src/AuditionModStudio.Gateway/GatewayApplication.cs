@@ -38,6 +38,9 @@ public static class GatewayApplication
                 ? providerCatalog!
                 : new TrustedAiProviderCatalog([]));
         services.AddSingleton<ITrustedTemplateEntitlementService, UnavailableTrustedTemplateEntitlementService>();
+        services.AddSingleton<IEntitlementRecordService, UnavailableEntitlementRecordService>();
+        services.AddSingleton<IEntitlementNonceStore, UnavailableEntitlementNonceStore>();
+        services.AddSingleton<IEntitlementGrantService, UnavailableEntitlementGrantService>();
         services.AddSingleton(TimeProvider.System);
         if (AiPricingCatalog.TryFromConfiguration(configuration, out var pricingCatalog))
         {

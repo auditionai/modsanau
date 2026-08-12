@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using System.Security.Claims;
 using AuditionModStudio.Core.Archives;
+using AuditionModStudio.Core.Games;
+using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Gateway.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +20,12 @@ public sealed record TemplateEntitlementRequest(
     string? Version,
     string? Sha256,
     string? CompatibleGameBuild);
+
+public sealed record EntitlementGrantRequest(
+    PremiumEntitlementScope Scope,
+    TemplateEntitlementRequest? Template,
+    string? GameId,
+    string? ModId);
 
 public sealed record AiPricingQuoteRequest(
     TrustedAiOperation Operation,
@@ -155,6 +163,33 @@ public static class TrustedGatewayEndpoints
                 var result = await service.CheckAsync(User(principal), identity!, cancellationToken)
                     .ConfigureAwait(false);
                 return MapEntitlementResult(result);
+            })
+            .RequireAuthorization()
+            .WithMetadata(new RequestSizeLimitAttribute(MaximumEntitlementRequestBytes));
+
+        endpoints.MapPost("/v1/entitlements/grants", async (ClaimsPrincipal principal,
+                EntitlementGrantRequest? request,
+                IEntitlementGrantService service,
+                CancellationToken cancellationToken) =>
+            {
+                if (!TryCreateGrantDescriptor(request, out var descriptor))
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    { ["request"] = ["Entitlement grant request is invalid."] });
+                var result = await service.IssueAsync(User(principal), descriptor!, cancellationToken)
+                    .ConfigureAwait(false);
+                if (!IsSafeDiagnosticCode(result.DiagnosticCode)) return InvalidTrustedResponse();
+                return result.Status switch
+                {
+                    TrustedServiceStatus.Succeeded when IsSafeGrant(result.Grant) => Results.Ok(new
+                    {
+                        result.DiagnosticCode,
+                        result.Grant,
+                    }),
+                    TrustedServiceStatus.Rejected => Results.Json(
+                        new GatewayErrorResponse(result.DiagnosticCode), statusCode: StatusCodes.Status403Forbidden),
+                    _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
+                        "Entitlement grant service is unavailable.", result.DiagnosticCode),
+                };
             })
             .RequireAuthorization()
             .WithMetadata(new RequestSizeLimitAttribute(MaximumEntitlementRequestBytes));
@@ -450,6 +485,14 @@ public static class TrustedGatewayEndpoints
                                            || character is '-' or '_' or '.'));
     }
 
+    private static bool IsSafeGrant(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > 8_192) return false;
+        var segments = value.Split('.');
+        return segments.Length == 3 && segments.All(segment => segment.Length > 0
+            && segment.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_'));
+    }
+
     private static bool TryCreateAiRequest(
         TrustedAiOperation operation,
         AiGatewayRequest request,
@@ -489,6 +532,25 @@ public static class TrustedGatewayEndpoints
         trustedRequest = new(operation, hasPrompt ? prompt : null,
             hasSize ? request.TargetWidth : null, hasSize ? request.TargetHeight : null, image, mask);
         return true;
+    }
+
+    private static bool TryCreateGrantDescriptor(EntitlementGrantRequest? request,
+        out EntitlementGrantDescriptor? descriptor)
+    {
+        descriptor = null;
+        if (request is null || !Enum.IsDefined(request.Scope)) return false;
+        if (request.Scope == PremiumEntitlementScope.PremiumAi)
+        {
+            if (request.Template is not null || request.GameId is not null || request.ModId is not null) return false;
+            descriptor = new(request.Scope, EntitlementGrantDescriptor.PremiumAiAudience, null, null, null);
+            return true;
+        }
+        if (request.Template is null || !TryCreateTemplateIdentity(request.Template, out var template)
+            || !GameId.TryCreate(request.GameId, out var gameId) || !ModId.TryCreate(request.ModId, out var modId))
+            return false;
+        descriptor = new(request.Scope, EntitlementGrantDescriptor.TemplateAudience,
+            template, gameId, modId);
+        return descriptor.IsValid;
     }
 
     private static bool TryDecode(string? value, out ImmutableArray<byte> bytes)

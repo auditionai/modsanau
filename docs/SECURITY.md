@@ -698,3 +698,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Credential payload schema-v1 cấm unknown field và future schema. Legacy PLAN 58 payload không có schema được decode strict rồi rewrite vào cùng credential target trước khi Load trả success; migration write failure fail closed. Không có plaintext migration file.
 - Một process-wide semaphore serialize read/write/delete của target duy nhất qua mọi store instance. Rotation overwrite credential, delete not-found idempotent, token/blob bounded; managed serialization/read buffers và unmanaged write buffer được zero.
 - Release scan PLAN 68 kiểm tra binary/PDB/log/crash. Token không được persist trong settings/project/preset/log. Credential Manager bảo vệ theo Windows user context nhưng không chống Administrator/fully compromised account hoặc process-memory dump.
+
+## Server-authoritative entitlement boundary từ PLAN 70
+
+- Entitlement record service tại Gateway là authority. Client không gửi/chọn user, expiry, nonce, audience, decision, cost hoặc `IsPremium`; verified Supabase principal là identity duy nhất.
+- Grant schema-v1 ký ES256/P-256, sống đúng năm phút và bind user + closed scope + code-owned audience + exact template/game/mod khi applicable. Signature, owner, scope, audience, issued/expiry và resource grammar đều được validate trước atomic one-time nonce consume.
+- Private signing PEM chỉ thuộc deployed server secret store; không có private key trong desktop/repo/log. Grant không được persist vào settings/project/preset. Invalid/tampered/expired/cross-user/wrong-audience/replay đều fail closed.
+- Default record/signing/replay services unavailable; vì vậy premium AI không hoạt động offline hoặc khi backend/config/nonce store lỗi. Nonce store production phải durable/distributed; in-memory fake chỉ dùng test. Template catalog/download/package/cache thuộc PLAN 71 và chưa được triển khai.

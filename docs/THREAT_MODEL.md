@@ -141,7 +141,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | # | Abuse case | L | I | Score | Priority | Control chính/trạng thái | Residual |
 |---:|---|---:|---:|---:|---|---|---|
 | 1 | Steal provider/service-role/payment/signing secret từ client/repo/log | 4 | 5 | 20 | Critical | Secret separation, redaction, server config **Implemented**; CI scan/managed secret/signing **Planned/Operational** | High cho compromised backend/operator |
-| 2 | Patch local license/credit/`IsPremium` check để lấy premium/AI | 5 | 4 | 20 | Critical | Server pricing/credit/identity **Implemented**; server-authoritative grants thuộc PLAN 70 | High đến khi PLAN 70/deploy hoàn tất |
+| 2 | Patch local license/credit/`IsPremium` check để lấy premium/AI | 5 | 4 | 20 | Critical | Server pricing/credit/identity và signed scoped grant **Implemented** | Medium; durable record/nonce deployment còn thiếu |
 | 3 | Concurrent/replayed spend gây double charge/spend | 4 | 5 | 20 | Critical | SQL transaction, advisory/row locks, idempotency, lease **Implemented offline-tested** | Medium; live PostgreSQL chưa verified |
 | 4 | Fake payment callback cấp credits | 4 | 5 | 20 | Critical | Không có client mutation route **Implemented**; verified webhook/idempotency **Planned** | High vì payment flow chưa triển khai |
 | 5 | Cross-user content/job/preset/template access | 4 | 5 | 20 | Critical | Verified UUID, owner filters/content kind **Implemented**; cloud preset/template storage **Planned** | Medium/High tùy deployment/RLS test |
@@ -175,7 +175,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Update tampering | Release Engineering | Signed/timestamped package and manifest, hash, freshness | Updater unit tests where present | Production signing key/HSM and E2E gate |
 | Dependency compromise | Release Engineering | Lock/pin, vulnerability audit, provenance/SBOM | `dotnet list package --vulnerable` gate | SBOM/license/provenance pipeline |
 | Prompt/preset authority escalation | AI Desktop + Gateway | Typed allowlist, schema/version bounds, selection-only behavior | `PromptPresetTests`, `LocalPromptPresetStoreTests`, `AiStudioViewModelTests` | Authenticated cloud preset adapter/store |
-| Premium bypass | Entitlement Backend | Signed scoped expiring grant, replay defense | Existing endpoint fails closed | PLAN 70 implementation/tests |
+| Premium bypass | Entitlement Backend | Signed scoped expiring ES256 grant, replay defense | `EntitlementGrantTests`, authenticated endpoint tests | Durable entitlement record/nonce deployment |
 | Secret/log/crash leak | Security + SRE | Structured diagnostics, redacted types, artifact scans | architecture tests and manual scan | PLAN 68 automated source/build/log/crash scan |
 | DoS/rate abuse | Gateway Ops | Bounds/timeouts/cancellation; per-user distributed limits | request size/schema tests | Rate-limit deployment design |
 
@@ -196,7 +196,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 3. SHA-256 xác nhận identity/integrity kỳ vọng nhưng không thay chữ ký publisher và không tự chứng minh runtime compatibility.
 4. External AI provider adapter, provider network, private content store deployment và live PostgreSQL concurrency chưa verified; provider-neutral/fake tests không phải production evidence.
 5. TLS termination, WAF/rate limiting, secret manager, monitoring, backup/restore và incident response là operational controls chưa được repository chứng minh.
-6. Payment webhook, premium package distribution và signed entitlement grant chưa triển khai tại PLAN 67.
+6. Payment webhook và premium package distribution chưa triển khai. Signed entitlement grant đã có contract/implementation nhưng durable record/nonce deployment chưa verified.
 7. Parser/native/tool zero-day và supply-chain compromise vẫn có thể tồn tại dù input bounds/hash pin.
 8. App binary/IP có thể bị decompile. Bảo vệ business authority bằng server boundary quan trọng hơn cố giữ client code bí mật.
 9. Prompt và AI output có thể chứa sensitive user content; retention/deletion policy phải được deployment/product owner chốt trước production.

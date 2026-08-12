@@ -16,6 +16,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 68: scanner CI cho source/build/log/crash artifacts, negative tests trên từng artifact class và rotation/incident runbook; privileged credentials vẫn chỉ thuộc deployed secret store, không chuyển sang obfuscation/hidden client configuration.
 - PLAN đã hoàn thành: PLAN 69 — Secure Local Session Storage Audit.
 - Phạm vi PLAN 69: harden store PLAN 58 bằng schema-v1 strict, in-place legacy Credential Manager migration, process-wide target serialization, bounded token/blob và buffer zeroing; test rotation/delete/corruption/migration/concurrency và release plaintext scan, không tạo store thứ hai.
+- PLAN đã hoàn thành: PLAN 70 — Server-Authoritative License/Entitlement.
+- Phạm vi PLAN 70: authenticated server entitlement-record boundary và short-lived ES256 grants bind verified user/scope/audience/template/game/mod/expiry/nonce; atomic nonce consume chống replay, premium AI offline fail closed, không local `IsPremium`, không template distribution hoặc game-install coupling.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

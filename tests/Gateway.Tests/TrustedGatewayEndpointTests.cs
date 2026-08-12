@@ -27,6 +27,8 @@ public sealed class TrustedGatewayEndpointTests
         var responses = await Task.WhenAll(
             client.GetAsync("/v1/credits"),
             client.PostAsJsonAsync("/v1/templates/entitlement", ValidTemplate()),
+            client.PostAsJsonAsync("/v1/entitlements/grants", new EntitlementGrantRequest(
+                PremiumEntitlementScope.PremiumAi, null, null, null)),
             client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)),
             PricingQuoteAsync(client),
             JobEnqueueAsync(client),
@@ -36,6 +38,7 @@ public sealed class TrustedGatewayEndpointTests
         Assert.Equal(0, factory.Ai.CallCount);
         Assert.Equal(0, factory.Credits.CallCount);
         Assert.Equal(0, factory.Entitlement.CallCount);
+        Assert.Equal(0, factory.Grants.CallCount);
         Assert.Equal(0, factory.Pricing.CallCount);
         Assert.Equal(0, factory.Jobs.EnqueueCallCount);
     }
@@ -285,6 +288,24 @@ public sealed class TrustedGatewayEndpointTests
     }
 
     [Fact]
+    public async Task Grant_issuance_uses_verified_user_and_server_selected_scope_audience()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+
+        var response = await client.PostAsync("/v1/entitlements/grants", new StringContent(
+            "{\"scope\":\"PremiumTemplate\",\"template\":{\"templateId\":\"pointer\",\"version\":\"v1\","
+            + $"\"sha256\":\"{new string('A', 64)}\",\"compatibleGameBuild\":\"build-1\"}},"
+            + "\"gameId\":\"audition\",\"modId\":\"pointer_mod\"}",
+            System.Text.Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(UserId, factory.Grants.LastUser!.UserId);
+        Assert.Equal(EntitlementGrantDescriptor.TemplateAudience, factory.Grants.LastDescriptor!.Audience);
+        Assert.Equal("pointer_mod", factory.Grants.LastDescriptor.ModId!.Value.Value);
+    }
+
+    [Fact]
     public async Task Client_cannot_mutate_credit_or_send_client_authority_fields()
     {
         await using var factory = new GatewayFactory();
@@ -403,6 +424,7 @@ public sealed class TrustedGatewayEndpointTests
         public StubAiGateway Ai { get; } = new();
         public StubCreditService Credits { get; } = new();
         public StubEntitlementService Entitlement { get; } = new();
+        public StubGrantService Grants { get; } = new();
         public StubPricingService Pricing { get; } = new();
         public StubJobService Jobs { get; } = new();
         public StubContentStore Content { get; } = new();
@@ -421,6 +443,7 @@ public sealed class TrustedGatewayEndpointTests
                     services.RemoveAll<ITrustedAiGateway>();
                     services.RemoveAll<ITrustedCreditQueryService>();
                     services.RemoveAll<ITrustedTemplateEntitlementService>();
+                    services.RemoveAll<IEntitlementGrantService>();
                     services.RemoveAll<IAiPricingService>();
                     services.RemoveAll<IAiJobService>();
                     services.RemoveAll<IAiContentStore>();
@@ -428,6 +451,7 @@ public sealed class TrustedGatewayEndpointTests
                     services.AddSingleton<ITrustedAiGateway>(Ai);
                     services.AddSingleton<ITrustedCreditQueryService>(Credits);
                     services.AddSingleton<ITrustedTemplateEntitlementService>(Entitlement);
+                    services.AddSingleton<IEntitlementGrantService>(Grants);
                     services.AddSingleton<IAiPricingService>(Pricing);
                     services.AddSingleton<IAiJobService>(Jobs);
                     services.AddSingleton<IAiContentStore>(Content);
@@ -605,6 +629,23 @@ public sealed class TrustedGatewayEndpointTests
             return Task.FromResult(new TrustedTemplateEntitlementResult(TrustedServiceStatus.Succeeded,
                 "ENTITLEMENT_CHECKED", true));
         }
+    }
+
+    private sealed class StubGrantService : IEntitlementGrantService
+    {
+        public int CallCount { get; private set; }
+        public AuthenticatedGatewayUser? LastUser { get; private set; }
+        public EntitlementGrantDescriptor? LastDescriptor { get; private set; }
+        public Task<EntitlementGrantResult> IssueAsync(AuthenticatedGatewayUser user,
+            EntitlementGrantDescriptor descriptor, CancellationToken cancellationToken = default)
+        {
+            CallCount++; LastUser = user; LastDescriptor = descriptor;
+            return Task.FromResult(new EntitlementGrantResult(TrustedServiceStatus.Succeeded,
+                "ENTITLEMENT_GRANT_ISSUED", "header.payload.signature"));
+        }
+        public Task<EntitlementGrantResult> ValidateAndConsumeAsync(string grant,
+            AuthenticatedGatewayUser expectedUser, EntitlementGrantDescriptor expectedDescriptor,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed class CapturingLoggerProvider : ILoggerProvider

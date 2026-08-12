@@ -42,11 +42,16 @@ public sealed class GatewayArchitectureTests
             "Refund",
             "PaymentSucceeded",
             "Granted",
+            "IsPremium",
+            "Expiry",
+            "Nonce",
+            "Audience",
+            "Grant",
         };
         var requestProperties = new[]
         {
             typeof(AiGatewayRequest), typeof(AiPricingQuoteRequest), typeof(AiJobEnqueueRequest),
-            typeof(TemplateEntitlementRequest),
+            typeof(TemplateEntitlementRequest), typeof(EntitlementGrantRequest),
         }
             .SelectMany(type => type.GetProperties())
             .Select(property => property.Name)

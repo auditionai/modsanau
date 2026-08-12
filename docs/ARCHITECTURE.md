@@ -1060,3 +1060,11 @@ Save current project
 `LocalPromptPresetStore` lưu catalog schema-v1 dưới managed Settings/PromptPresets bằng write-through temporary file và atomic replace. JSON cấm unknown member, enum số, dữ liệu quá giới hạn và schema khác; không silent migration. Import/export dùng bounded stream để caller tự chọn UI/file destination mà không đưa arbitrary path vào store.
 
 Merge local/cloud chọn version cao nhất theo ID, sắp thứ tự ordinal. Hai nội dung khác nhau có cùng ID+version bị loại khỏi catalog và trả diagnostic conflict; cloud unavailable chỉ để lại local catalog. `ICloudPromptPresetService.ListOwnedAsync` là boundary cho adapter authenticated tương lai; default implementation fail closed, không giả cloud success. AI Studio chỉ nạp prompt/negative prompt khi operation tương thích; selection không gọi AI, job, pricing, credit, mask, Apply hoặc build.
+
+## Server-authoritative entitlement grants từ PLAN 70
+
+`IEntitlementRecordService` là authority server-side cho premium entitlement. Authenticated endpoint `/v1/entitlements/grants` lấy user duy nhất từ verified Gateway principal; request không có UserId, expiry, nonce, audience, grant decision hoặc local premium boolean. Scope `PremiumTemplate` gắn exact template + `(GameId, ModId)`; `PremiumAi` là user-scoped và không mang resource claim.
+
+`SignedEntitlementGrantService` chỉ issue sau record check thành công. Grant ES256/P-256 schema-v1 chứa verified user, closed scope, code-owned audience, exact resource claims khi applicable, server issued/expiry năm phút và random nonce. Validation xác minh signature/claims/owner/scope/audience/expiry trước khi gọi atomic `IEntitlementNonceStore`; nonce chỉ consume một lần nên replay bị reject.
+
+Private signing key chỉ được import trong Gateway từ deployed secret authority và object rendering luôn redacted. Default record, nonce và grant services đều unavailable, nên offline/missing config không cấp premium capability; premium AI không chạy offline. Durable/distributed entitlement record và nonce-store adapter là deployment requirement trước multi-instance production. PLAN 70 không download template/package, không gọi AI provider/payment, không lưu grant vào project/settings và không liên quan game install/runtime.
