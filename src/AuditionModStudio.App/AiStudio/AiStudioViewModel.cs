@@ -18,6 +18,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private readonly IWorkspaceTextureSelection _selection;
     private readonly ITextureApplyService? _applyService;
     private readonly IApplicationProjectSession? _projectSession;
+    private readonly ILocalPromptPresetStore? _localPresets;
+    private readonly ICloudPromptPresetService? _cloudPresets;
     private AiStudioOperationOption _selectedOperation = AiStudioOptions.Operations[0];
     private AiStudioOption _selectedModel = AiStudioOptions.Models[0];
     private AiStudioOption _selectedQuality = AiStudioOptions.Qualities[0];
@@ -30,6 +32,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private string _quoteText = "Price unavailable";
     private string _historyMessage = "Loading server job history…";
     private IReadOnlyList<AiStudioJobSummary> _history = [];
+    private IReadOnlyList<PromptPreset> _presets = [];
+    private PromptPreset? _selectedPreset;
     private InternalImage? _previewImage;
     private bool _isBusy;
     private bool _isLoading;
@@ -43,7 +47,9 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         IBackgroundTaskManager taskManager,
         IWorkspaceTextureSelection selection,
         ITextureApplyService? applyService = null,
-        IApplicationProjectSession? projectSession = null)
+        IApplicationProjectSession? projectSession = null,
+        ILocalPromptPresetStore? localPresets = null,
+        ICloudPromptPresetService? cloudPresets = null)
     {
         _aiService = aiService ?? throw new ArgumentNullException(nameof(aiService));
         _studioService = studioService ?? throw new ArgumentNullException(nameof(studioService));
@@ -51,6 +57,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         _selection = selection ?? throw new ArgumentNullException(nameof(selection));
         _applyService = applyService;
         _projectSession = projectSession;
+        _localPresets = localPresets;
+        _cloudPresets = cloudPresets;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -59,6 +67,23 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public IReadOnlyList<AiStudioOption> Models => AiStudioOptions.Models;
     public IReadOnlyList<AiStudioOption> Qualities => AiStudioOptions.Qualities;
     public IReadOnlyList<AiStudioAspectOption> Aspects => AiStudioOptions.Aspects;
+    public IReadOnlyList<PromptPreset> Presets { get => _presets; private set => Set(ref _presets, value); }
+    public PromptPreset? SelectedPreset
+    {
+        get => _selectedPreset;
+        set
+        {
+            if (!Set(ref _selectedPreset, value) || value is null) return;
+            if (!value.ApplicableOperations.Contains(SelectedOperation.Operation))
+            {
+                StatusMessage = "This preset is not compatible with the selected operation.";
+                return;
+            }
+            Prompt = value.Prompt.Value;
+            NegativePrompt = value.NegativePrompt?.Value ?? string.Empty;
+            StatusMessage = "Preset text loaded. Review it before submitting; no AI job or credits were used.";
+        }
+    }
 
     public AiStudioOperationOption SelectedOperation
     {
@@ -169,12 +194,27 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         {
             await Task.WhenAll(
                 RefreshQuoteAsync(_activationCancellation.Token),
-                RefreshHistoryAsync(_activationCancellation.Token));
+                RefreshHistoryAsync(_activationCancellation.Token),
+                RefreshPresetsAsync(_activationCancellation.Token));
         }
         finally
         {
             IsLoading = false;
         }
+    }
+
+    public async Task RefreshPresetsAsync(CancellationToken cancellationToken = default)
+    {
+        var localTask = _localPresets?.LoadAsync(cancellationToken)
+            ?? Task.FromResult(new PromptPresetCollectionResult(true, "PROMPT_PRESETS_EMPTY", [], []));
+        var cloudTask = _cloudPresets?.ListOwnedAsync(cancellationToken)
+            ?? Task.FromResult(new PromptPresetCollectionResult(false, "PROMPT_PRESET_CLOUD_UNAVAILABLE", [], []));
+        await Task.WhenAll(localTask, cloudTask);
+        var local = await localTask;
+        var cloud = await cloudTask;
+        var merged = PromptPresetMerge.Merge(local.Succeeded ? local.Presets : [], cloud.Succeeded ? cloud.Presets : []);
+        Presets = merged.Presets;
+        if (!local.Succeeded) StatusMessage = "Local prompt presets are corrupt and were isolated.";
     }
 
     public void Deactivate()

@@ -686,3 +686,8 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Desktop output dùng bounded streaming và existing `IImageImportService`, chỉ publish immutable `InternalImage` preview.
   Explicit Approve mới gọi existing atomic Apply/Match Original/DDS validation/history. Backend failure không ảnh hưởng
   local project editor, DDS, build hoặc export; không có code game install/launch/runtime.
+# Prompt preset boundary từ PLAN 66
+
+- Prompt/preset là untrusted bounded user text, không executable và không được chứa hay điều khiển provider credential/endpoint, trusted model, price/credit, entitlement, user identity hoặc private content reference.
+- Local JSON schema-v1 cấm unknown fields/numeric enums, có 2 MiB/1.000-entry limits, ghi atomic và cô lập malformed/unsupported schema; không silent migration. Same ID+version khác nội dung bị isolate thay vì chọn ngầm.
+- Cloud catalog chỉ được nhận qua `ICloudPromptPresetService.ListOwnedAsync`; production adapter chưa cấu hình nên fail closed. Việc chọn preset chỉ sửa UI text, không submit job, reserve/capture credit, mutate mask/image/project/archive hoặc tự Apply/build.

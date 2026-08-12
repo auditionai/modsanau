@@ -176,6 +176,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton(ProjectBuildOptions.Default);
         builder.Services.AddSingleton<IProjectBuildService, ProjectBuildService>();
         builder.Services.AddSingleton<ITextureBatchBuildSummaryService, TextureBatchBuildSummaryService>();
+        builder.Services.AddSingleton<ILocalPromptPresetStore, LocalPromptPresetStore>();
+        builder.Services.AddSingleton<ICloudPromptPresetService, UnavailableCloudPromptPresetService>();
         builder.Services.AddSingleton<IAiService, UnavailableAiService>();
         builder.Services.AddSingleton<ISecureSessionStore, WindowsCredentialSessionStore>();
         builder.Services.AddSingleton(new HttpClient(new HttpClientHandler

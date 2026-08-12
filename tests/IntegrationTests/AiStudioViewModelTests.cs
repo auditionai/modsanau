@@ -15,6 +15,25 @@ namespace IntegrationTests;
 public sealed class AiStudioViewModelTests
 {
     [Fact]
+    public async Task Preset_selection_only_populates_prompt_and_never_submits_or_reserves_credit()
+    {
+        var ai = new RecordingAiService(AiImageResult.Success(Image(1, 1)));
+        var preset = new PromptPreset(new("neon"), 1, "Neon", "", new("neon logo"), new AiPrompt("blur"),
+            [AiStudioOperation.Generate], new("audition"), new("ui"), new("logo"), [], PromptPresetOrigin.Local);
+        var viewModel = new AiStudioViewModel(ai, new StubStudioService(), new ImmediateTaskManager(),
+            new StubSelection(null, null), localPresets: new StubLocalPresetStore(preset),
+            cloudPresets: new StubCloudPresetService());
+
+        await viewModel.ActivateAsync();
+        viewModel.SelectedPreset = Assert.Single(viewModel.Presets);
+
+        Assert.Equal("neon logo", viewModel.Prompt);
+        Assert.Equal("blur", viewModel.NegativePrompt);
+        Assert.Null(ai.GenerateRequest);
+        Assert.Contains("no AI job or credits", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Activation_presents_server_quote_and_history_authority()
     {
         var studio = new StubStudioService
@@ -356,6 +375,22 @@ public sealed class AiStudioViewModelTests
             IProgress<AiOperationProgress>? progress = null, CancellationToken cancellationToken = default) => Task.FromResult(result);
         public Task<AiImageResult> UpscaleAsync(AiUpscaleRequest request,
             IProgress<AiOperationProgress>? progress = null, CancellationToken cancellationToken = default) => Task.FromResult(result);
+    }
+
+    private sealed class StubLocalPresetStore(PromptPreset preset) : ILocalPromptPresetStore
+    {
+        public Task<PromptPresetCollectionResult> LoadAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PromptPresetCollectionResult(true, "PROMPT_PRESETS_LOADED", [preset], []));
+        public Task<PromptPresetMutationResult> SaveAsync(PromptPreset value, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PromptPresetMutationResult> DeleteAsync(PromptPresetId id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PromptPresetCollectionResult> ImportAsync(Stream input, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<PromptPresetMutationResult> ExportAsync(Stream output, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class StubCloudPresetService : ICloudPromptPresetService
+    {
+        public Task<PromptPresetCollectionResult> ListOwnedAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PromptPresetCollectionResult(false, "PROMPT_PRESET_CLOUD_UNAVAILABLE", [], []));
     }
 
     private sealed class CancellableAiService : IAiService

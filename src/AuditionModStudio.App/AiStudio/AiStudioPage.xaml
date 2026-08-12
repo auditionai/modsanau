@@ -124,6 +124,15 @@
                             MinHeight="44"
                             SelectedItem="{x:Bind ViewModel.SelectedOperation, Mode=TwoWay}" />
                         <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.OperationDescription, Mode=OneWay}" />
+                        <ComboBox
+                            AutomationProperties.HelpText="Selecting a preset only fills editable prompt fields"
+                            AutomationProperties.Name="Prompt preset"
+                            DisplayMemberPath="Name"
+                            Header="Prompt preset (optional)"
+                            ItemsSource="{x:Bind ViewModel.Presets, Mode=OneWay}"
+                            MinHeight="44"
+                            PlaceholderText="Choose a local or owned cloud preset"
+                            SelectedItem="{x:Bind ViewModel.SelectedPreset, Mode=TwoWay}" />
                         <TextBox
                             AcceptsReturn="True"
                             Header="Prompt"

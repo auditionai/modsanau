@@ -8,6 +8,9 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 
 ## Trạng thái hiện tại
 
+- PLAN đã hoàn thành: PLAN 66 — Prompt Presets.
+- Phạm vi PLAN 66: preset provider-neutral có immutable ID/version, operation và exact `(GameId, ModId, texture semantic type)`; local user store schema-v1 atomic với strict/bounded import/export; deterministic local/cloud merge cô lập conflict; cloud fail-closed/offline local fallback; selector trong AI Studio chỉ điền prompt và không submit job, reserve credit, sửa mask hay Apply.
+
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.
 - Phạm vi PLAN 02: Generic Host/DI lifecycle, LocalAppData paths, file logging, startup validation, global exception handling, graceful shutdown và UAC manifest.

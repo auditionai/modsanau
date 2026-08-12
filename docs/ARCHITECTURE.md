@@ -1053,3 +1053,10 @@ Save current project
   DDS validation, rollback, thumbnail, Modified state và project edit history vẫn thuộc một pipeline hiện hữu.
 - PLAN 65 không auto Apply/build/export/install, không thêm game path/detection/launch/runtime QA và không triển khai
   PLAN 66 Prompt Presets.
+# Prompt Presets từ PLAN 66
+
+`PromptPreset` là user-content/editor convenience thuộc Core, không phải commercial authority. Identity là stable preset ID cộng positive version; applicability là tập `AiStudioOperation` cùng exact `(GameId, ModId, TextureSlotId)`. Model không có provider endpoint/key, trusted model ID, credit, user identity, storage path hoặc raw provider payload.
+
+`LocalPromptPresetStore` lưu catalog schema-v1 dưới managed Settings/PromptPresets bằng write-through temporary file và atomic replace. JSON cấm unknown member, enum số, dữ liệu quá giới hạn và schema khác; không silent migration. Import/export dùng bounded stream để caller tự chọn UI/file destination mà không đưa arbitrary path vào store.
+
+Merge local/cloud chọn version cao nhất theo ID, sắp thứ tự ordinal. Hai nội dung khác nhau có cùng ID+version bị loại khỏi catalog và trả diagnostic conflict; cloud unavailable chỉ để lại local catalog. `ICloudPromptPresetService.ListOwnedAsync` là boundary cho adapter authenticated tương lai; default implementation fail closed, không giả cloud success. AI Studio chỉ nạp prompt/negative prompt khi operation tương thích; selection không gọi AI, job, pricing, credit, mask, Apply hoặc build.
