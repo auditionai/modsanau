@@ -1,4 +1,5 @@
 using AuditionModStudio.App.Shell;
+using AuditionModStudio.App.AiStudio;
 using AuditionModStudio.App.Editor;
 using AuditionModStudio.App.Home;
 using AuditionModStudio.App.Workspace;
@@ -13,21 +14,25 @@ public sealed partial class MainPage : Page
     private readonly HomePage _homePage;
     private readonly ProjectWorkspacePage _workspacePage;
     private readonly ImageEditorPage _imageEditorPage;
+    private readonly AiStudioPage _aiStudioPage;
 
     public MainPage(
         AppShellViewModel viewModel,
         HomePage homePage,
         ProjectWorkspacePage workspacePage,
+        AiStudioPage aiStudioPage,
         ImageEditorPage imageEditorPage)
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         _homePage = homePage ?? throw new ArgumentNullException(nameof(homePage));
         _workspacePage = workspacePage ?? throw new ArgumentNullException(nameof(workspacePage));
+        _aiStudioPage = aiStudioPage ?? throw new ArgumentNullException(nameof(aiStudioPage));
         _imageEditorPage = imageEditorPage ?? throw new ArgumentNullException(nameof(imageEditorPage));
         InitializeComponent();
         PopulateNavigationItems();
         HomeContent.Content = _homePage;
         WorkspaceContent.Content = _workspacePage;
+        AiStudioContent.Content = _aiStudioPage;
         ImageEditorContent.Content = _imageEditorPage;
         UpdateRouteContent();
     }
@@ -67,6 +72,10 @@ public sealed partial class MainPage : Page
             {
                 _imageEditorPage.Deactivate();
             }
+            if (route != AppRoute.AiStudio)
+            {
+                _aiStudioPage.Deactivate();
+            }
 
             UpdateRouteContent();
             if (route == AppRoute.Home)
@@ -83,6 +92,11 @@ public sealed partial class MainPage : Page
                 _imageEditorPage.FocusPrimaryHeading();
                 await _imageEditorPage.ActivateAsync();
             }
+            else if (route == AppRoute.AiStudio)
+            {
+                _aiStudioPage.FocusPrimaryHeading();
+                await _aiStudioPage.ActivateAsync();
+            }
             else
             {
                 ContentHeading.Focus(FocusState.Programmatic);
@@ -95,10 +109,12 @@ public sealed partial class MainPage : Page
         var isHome = ViewModel.CurrentRoute == AppRoute.Home;
         var isWorkspace = ViewModel.CurrentRoute == AppRoute.Projects;
         var isImageEditor = ViewModel.CurrentRoute == AppRoute.ImageEditor;
+        var isAiStudio = ViewModel.CurrentRoute == AppRoute.AiStudio;
         HomeContent.Visibility = isHome ? Visibility.Visible : Visibility.Collapsed;
         WorkspaceContent.Visibility = isWorkspace ? Visibility.Visible : Visibility.Collapsed;
         ImageEditorContent.Visibility = isImageEditor ? Visibility.Visible : Visibility.Collapsed;
-        PlaceholderContent.Visibility = isHome || isWorkspace || isImageEditor
+        AiStudioContent.Visibility = isAiStudio ? Visibility.Visible : Visibility.Collapsed;
+        PlaceholderContent.Visibility = isHome || isWorkspace || isImageEditor || isAiStudio
             ? Visibility.Collapsed
             : Visibility.Visible;
     }

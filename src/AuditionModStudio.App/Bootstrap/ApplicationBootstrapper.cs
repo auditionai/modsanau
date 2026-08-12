@@ -32,6 +32,7 @@ using AuditionModStudio.App.Shell;
 using AuditionModStudio.App.Home;
 using AuditionModStudio.App.Editor;
 using AuditionModStudio.App.Workspace;
+using AuditionModStudio.App.AiStudio;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -177,7 +178,10 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton(new HttpClient(new HttpClientHandler
         {
             AllowAutoRedirect = false,
-        }));
+        })
+        {
+            Timeout = TimeSpan.FromSeconds(15),
+        });
         builder.Services.AddSingleton<IAuthenticationService>(services =>
         {
             var url = Environment.GetEnvironmentVariable("AUDITION_SUPABASE_URL");
@@ -195,6 +199,22 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<ISecureSessionStore>(),
                     options)
                 : new UnavailableAuthenticationService();
+        });
+        builder.Services.AddSingleton<IAiStudioService>(services =>
+        {
+            var url = Environment.GetEnvironmentVariable("AUDITION_GATEWAY_URL");
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var gatewayUri))
+            {
+                return new UnavailableAiStudioService();
+            }
+            var gatewayOptions = new GatewayAiStudioOptions(gatewayUri);
+            return gatewayOptions.IsValid
+                ? new GatewayAiStudioService(
+                    services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(),
+                    services.GetRequiredService<IAuthenticationService>(),
+                    gatewayOptions)
+                : new UnavailableAiStudioService();
         });
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
@@ -219,6 +239,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddTransient<ProjectWorkspacePage>();
         builder.Services.AddSingleton<ImageEditorViewModel>();
         builder.Services.AddTransient<ImageEditorPage>();
+        builder.Services.AddSingleton<AiStudioViewModel>();
+        builder.Services.AddTransient<AiStudioPage>();
         builder.Services.AddSingleton<AppShellViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddSingleton<MainWindow>();

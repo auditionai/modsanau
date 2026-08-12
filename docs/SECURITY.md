@@ -644,3 +644,16 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Chưa chạy migration trên live/staging PostgreSQL, nên chưa tuyên bố concurrency/rollback thực tế. Contract SQL và
   integration shape được kiểm thử offline; PLAN 85 vẫn là real PostgreSQL concurrency gate. Rate limiting và provider
   worker vận hành vẫn là technical debt/deployment concern.
+
+## AI Studio client boundary từ PLAN 63
+
+- Page/ViewModel không nhận hoặc log bearer/refresh token. Cloud adapter lấy session từ `ISecureSessionStore`, yêu cầu
+  refresh qua `IAuthenticationService` khi gần hết hạn và chỉ đặt token trong Authorization header tới exact HTTPS
+  Gateway root. Redirect bị tắt và timeout 15 giây từ composition root; credentials không nằm trong URL/body/settings.
+- Gateway response được đọc streaming với hard cap 256 KiB; operation/state/UUID/credit/version/timestamp đều parse typed
+  và invalid payload fail closed. Provider request ID, lease token, database data và raw server exception không được hiển thị.
+- Prompt/negative prompt tối đa 4.000 ký tự; model/quality chỉ nhận closed UI choices và không mang charge authority.
+  AI work qua cancellable background manager. Offline/auth/storage/network failure chỉ vô hiệu commercial feature;
+  project/local build/export không bị mutate hay block.
+- Completed output chỉ trở thành immutable `InternalImage` preview trong memory. Không có code path từ AI Studio tới
+  `ITextureApplyService`, DDS conversion, project save, archive pack/export hoặc game filesystem. Apply thuộc PLAN 65.

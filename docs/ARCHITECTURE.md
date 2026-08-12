@@ -1002,3 +1002,20 @@ Save current project
   client roles không có schema/table/function quyền; service role chỉ SELECT history và EXECUTE exact functions.
 - PLAN 62 không thêm provider executor, raw input/output storage, desktop UI, image Apply, payment hoặc gameplay.
   Migration/locking hiện có offline contract evidence; chưa có live PostgreSQL execution evidence.
+
+## AI Studio UI từ PLAN 63
+
+- `AiStudioPage` là WinUI surface thật trong shell, dùng `AiStudioViewModel`: operation, bounded prompt/negative prompt,
+  model/quality hint, aspect, selected project reference, server quote, progress, cancel, preview và server history.
+  Layout dùng native controls, semantic theme resources, adaptive stacked/wide state, visible labels, heading levels,
+  live status và interaction targets tối thiểu 44 px.
+- Long AI execution chạy qua PLAN 38 `IBackgroundTaskManager` với `BackgroundTaskKind.Ai`, cancellation và typed progress.
+  `IAiService` trả `InternalImage`; ViewModel chỉ giữ image trong memory làm preview. Không gọi project apply/state machine,
+  DDS/archive service hoặc filesystem write. Reference image chỉ được đọc qua `IWorkspaceTextureSelection`.
+- `IAiStudioService` là client presentation boundary cho quote/history/cancel. `GatewayAiStudioService` chỉ bật khi
+  `AUDITION_GATEWAY_URL` là HTTPS root; bearer token được load/refresh qua secure session/auth services bên trong Cloud,
+  không đi qua Page/ViewModel. Response body giới hạn 256 KiB và schema giá/job được validate trước khi hiển thị.
+- Price và history vẫn là server authority; model/quality là bounded client preference, không phải provider/cost authority.
+  Thiếu config/auth/network bind `UnavailableAiStudioService` và hiện offline rõ, không ảnh hưởng local editor/build/export.
+- PLAN 63 không thêm DB migration, mask, Apply/DDS replacement, provider key, raw token persistence hay game integration.
+  Chưa có production provider adapter cho `IAiService`; configured Gateway chỉ cung cấp quote/history/cancel hiện tại.

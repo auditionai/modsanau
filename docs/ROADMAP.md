@@ -159,7 +159,11 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 62: private PostgreSQL durable job state machine, atomic enqueue/reserve, owner-scoped history/cancel,
   idempotent transition functions, worker leases/retry recovery và capture/release lifecycle dùng lại PLAN 60.
   Gateway không nhận client charge, không persist raw image/secret và fail closed khi DB chưa cấu hình.
-- PLAN kế tiếp: PLAN 63 — AI Studio UI.
+- PLAN đã hoàn thành kiểm chứng: PLAN 63 — AI Studio UI.
+- Phạm vi PLAN 63: accessible adaptive WinUI/MVVM form, server quote/history/cancel adapter, PLAN 38 background execution,
+  bounded inputs và cancellable `InternalImage` preview. Không Apply/project/DDS mutation; offline backend không ảnh hưởng
+  local editing/build/export.
+- PLAN kế tiếp: PLAN 64 — AI Mask Editor.
 - Milestone hiện tại: Milestone 4 — AI Workflow & Commercial Backend.
 
 ## Stage Gates

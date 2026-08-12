@@ -45,6 +45,8 @@
     <Compile Include="..\..\src\AuditionModStudio.App\Workspace\BuildExportViewModel.cs" Link="Workspace\BuildExportViewModel.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\Editor\ImageEditorPresentationModels.cs" Link="Editor\ImageEditorPresentationModels.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\Editor\ImageEditorViewModel.cs" Link="Editor\ImageEditorViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\AiStudio\AiStudioPresentationModels.cs" Link="AiStudio\AiStudioPresentationModels.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\AiStudio\AiStudioViewModel.cs" Link="AiStudio\AiStudioViewModel.cs" />
   </ItemGroup>
 
 </Project>
