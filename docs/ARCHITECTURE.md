@@ -47,6 +47,7 @@ GameId, ModId, template, region hoặc archive-engine authority.
 | `AuditionModStudio.Mods` | Game, Mod Definition, Texture Manifest | `Core` |
 | `AuditionModStudio.AI` | AI abstraction | `Core` |
 | `AuditionModStudio.Cloud` | Supabase và trusted backend client | `Core` |
+| `AuditionModStudio.Gateway` | Trusted ASP.NET Core backend endpoints | `Core` |
 | `AuditionModStudio.Security` | Secure storage và integrity abstraction | `Core` |
 | `AuditionModStudio.Updater` | Update abstraction | `Core` |
 | `AuditionModStudio.App` | WinUI composition root | Tất cả module trên |
@@ -65,6 +66,8 @@ AuditionModStudio.App
   ├─ Cloud ──────────┤
   ├─ Security ───────┤
   └─ Updater ────────┘
+
+AuditionModStudio.Gateway ────────────────────────────────> Core
 ```
 
 `Core` không tham chiếu WinUI, Cloud hoặc implementation cụ thể. Cross-module dependency mới chỉ được thêm khi PLAN tương ứng chứng minh là cần thiết; không tạo vòng tham chiếu.
@@ -918,3 +921,22 @@ Save current project
 - Desktop composition đọc `AUDITION_SUPABASE_URL` và `AUDITION_SUPABASE_PUBLISHABLE_KEY`; cấu hình thiếu/sai bind
   `UnavailableAuthenticationService`. Publishable key chỉ định danh public client; service-role/provider/payment
   secret không thuộc desktop. PLAN 58 không thêm UI, `.audproj` schema, gateway endpoint hoặc credit operation.
+
+## Backend Trusted Gateway từ PLAN 59
+
+- `AuditionModStudio.Gateway` là ASP.NET Core server host riêng, chỉ phụ thuộc Core. Desktop/App không reference
+  Gateway và Gateway không reference WinUI, Cloud client, archive/DDS/image/project implementation hoặc game path.
+- Fallback authorization policy yêu cầu authenticated principal cho mọi route trừ `/health`. Custom bearer handler
+  gọi Supabase Auth `GET /auth/v1/user` bằng exact HTTPS project origin, publishable key và bearer access token;
+  redirect bị tắt, timeout 15 giây, response giới hạn 64 KiB. UserId duy nhất truyền vào trusted service đến từ
+  verified response, không từ route/body/header tùy ý của client.
+- Endpoint surface gồm bảy route `/v1/ai/*`, read-only `/v1/credits` và
+  `/v1/templates/entitlement`. AI request được validate theo operation, bounded prompt/dimensions/base64 bytes và
+  signature PNG/JPEG/WebP/BMP; unknown JSON member, null body, field thừa/sai operation và oversized body bị reject
+  trước service. Entitlement reuse exact `TemplateIdentity` của Core.
+- `ITrustedAiGateway`, `ITrustedCreditQueryService` và `ITrustedTemplateEntitlementService` là server application
+  boundaries. Default implementations trả unavailable; không gọi provider hoặc mô phỏng commercial success khi
+  cấu hình/storage chưa tồn tại. Provider endpoint/key chỉ đọc từ server configuration `Gateway:*` và không có
+  trong desktop/request/response contract.
+- PLAN 59 không tạo persistence/table, wallet mutation, ledger, reservation, refund, pricing, job system, RLS hay
+  payment state. Credit transaction semantics thuộc PLAN 60; AI pricing/job orchestration thuộc PLAN sau.

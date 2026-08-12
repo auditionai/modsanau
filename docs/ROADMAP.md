@@ -137,7 +137,12 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
   Supabase Auth transport chỉ nhận HTTPS project URL + publishable key, refresh được serialize và token rotation
   được ghi lại qua `ISecureSessionStore`. Desktop dùng Windows Credential Manager, không lưu session secret trong
   JSON/settings và fail closed khi chưa có cấu hình. Không có gateway/provider credential/credit logic.
-- PLAN kế tiếp: PLAN 59 — Backend Trusted Gateway.
+- PLAN đã hoàn thành kiểm chứng: PLAN 59 — Backend Trusted Gateway.
+- Phạm vi PLAN 59: ASP.NET Core server host độc lập với authenticated endpoints cho bảy AI operation, credit
+  snapshot read và exact template entitlement. Gateway introspect bearer token qua Supabase Auth, lấy UserId duy
+  nhất từ verified principal, validate request/response bounded và giữ provider configuration phía server. Trusted
+  capability mặc định fail closed; chưa có wallet/ledger/reservation/refund hoặc client-supplied commercial state.
+- PLAN kế tiếp: PLAN 60 — Credit Ledger.
 
 ## Stage Gates
 

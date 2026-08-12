@@ -566,3 +566,24 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Access token vẫn là bearer credential và Windows user context vẫn là trust boundary cục bộ; Credential Manager
   không biến client thành trusted authority. PLAN 59 phải validate access token/schema tại backend và giữ toàn bộ
   provider credentials/server authority ngoài desktop.
+
+## Backend Trusted Gateway boundary từ PLAN 59
+
+- Gateway là process/server deployment boundary riêng. Fallback authorization bảo vệ mọi endpoint mới; health là
+  anonymous exception duy nhất. Thiếu/sai bearer token trả 401, Supabase validation outage/config thiếu trả 503 và
+  không chạy business handler. Token/header/body không được log bởi code gateway.
+- Token không được decode hoặc tin cậy cục bộ từ payload. Gateway gửi token tới exact Supabase Auth `/auth/v1/user`;
+  Supabase xác minh signature, expiration và session trước khi trả user. Outbound auth client không follow redirect,
+  có timeout/cancellation, bounded response và không gửi service-role key. User identity đến duy nhất từ returned
+  UUID; client không gửi UserId cho endpoint.
+- JSON unknown member bị cấm. AI body tối đa 12 MiB, mỗi decoded image/mask tối đa 4 MiB, entitlement body tối đa
+  16 KiB; prompt/dimensions/template identity và operation-specific presence/absence được validate. Signature check
+  chỉ là schema preflight, không thay thế full decoder/content safety trong provider implementation tương lai.
+- Client không có request để set balance, cost, refund, successful payment hoặc entitlement result. Credit route là
+  GET-only. PLAN 59 không tạo ledger mutation; PLAN 60 phải giữ transaction/idempotency/server authority.
+- Provider endpoint/API key chỉ nằm trong server configuration object có redacted string representation. Default
+  AI/credit/entitlement services fail closed. Trusted service diagnostic/output vẫn được grammar/length validate
+  trước response để raw provider error, signed URL hoặc secret không bị phản chiếu tới client.
+- Gateway chưa cấu hình TLS termination, rate limiting, provider adapter, database/RLS, audit persistence hoặc
+  distributed abuse controls; các concern này phải được hoàn tất ở deployment/security PLAN tương ứng. ASP.NET
+  production deployment phải terminate TLS và cấp secrets qua secret store/environment, không appsettings Git.
