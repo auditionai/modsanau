@@ -733,3 +733,18 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - ADR-0002 chọn migration future sang `asInvoker`; PLAN 75 không đổi manifest hiện tại, không implement broker và không silent self-elevate. Một PLAN compatibility riêng phải chạy standard-user real-tool/file pipeline trước khi thay manifest.
 - Nếu privileged app install/update thật sự cần broker, protocol phải closed/versioned, operation/path/signature allowlisted, explicit UAC và atomic failure; không arbitrary command/copy/delete, credential hopping hoặc game path/install authority.
 - Existing same-user project/settings/cache/session giữ schema và profile. Alternate-admin-profile data không auto-scan/copy/take ownership; recovery chỉ explicit user-selected theo PLAN riêng.
+
+## App code signing boundary từ PLAN 76
+
+- Production signing chỉ chạy ở protected manual release job trên approved Windows signing runner; PR/untrusted workflow
+  không có environment secret hoặc certificate authority. Missing configuration, sign, timestamp hay post-sign verify lỗi
+  đều fail release, không publish unsigned fallback.
+- Private key không vào repo, environment variable, build workspace hay artifact. Script chỉ select certificate store/HSM
+  key bằng exact public thumbprint và xác minh exact subject. `.pfx/.p12/.pem/.key` được ignore và scanner có rule cho
+  private-key marker, encoded PKCS#12 assignment, signing password và cloud-signing credential.
+- Chỉ app-owned `.exe/.dll/.msix/.msixbundle/.msi` explicit dưới artifact root được ký. `.ab/.acv`, template, entitlement
+  grant và premium manifest không dùng app code-signing authority.
+- RFC 3161 HTTPS timestamp SHA-256 là bắt buộc. SignTool Authenticode policy và PowerShell đều phải xác minh signature;
+  exact signer thumbprint/subject và timestamp certificate phải tồn tại trước upload.
+- Debug/dev mặc định unsigned. Production certificate, timestamp endpoint và live release hiện chưa VERIFIED; test
+  negative/fake không được đổi nhãn thành production evidence. Rotation/revocation theo `docs/APP_CODE_SIGNING.md`.

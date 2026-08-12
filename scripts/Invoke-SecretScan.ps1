@@ -14,6 +14,9 @@ $allowedExtensions = [System.Collections.Generic.HashSet[string]]::new([System.S
 $privateKeyMarker = '-----BEGIN ' + '(?:RSA |EC |OPENSSH )?PRIVATE KEY-----'
 $rules = @(
     @{ Name = 'PRIVATE_KEY'; Pattern = $privateKeyMarker },
+    @{ Name = 'PKCS12_PRIVATE_MATERIAL'; Pattern = '(?i)\b(?:pfx|p12)(?:Base64|Bytes|Content)?\b\s*[:=]\s*["''][A-Za-z0-9+/=]{40,}["'']' },
+    @{ Name = 'SIGNING_PASSWORD'; Pattern = '(?i)\b(?:signing|certificate|pfx)(?:Password|Passphrase)\b\s*[:=]\s*["''](?!\s*(?:redacted|placeholder|example|fake|test|string\.empty)\b)[^"''\r\n]{8,}["'']' },
+    @{ Name = 'CLOUD_SIGNING_TOKEN'; Pattern = '(?i)\b(?:codeSigning|trustedSigning|signingService)(?:Token|Secret|Credential)\b\s*[:=]\s*["''](?!\s*(?:redacted|placeholder|example|fake|test|string\.empty)\b)[^"''\r\n]{12,}["'']' },
     @{ Name = 'OPENAI_STYLE_KEY'; Pattern = '\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b' },
     @{ Name = 'GITHUB_TOKEN'; Pattern = '\bgh[pousr]_[A-Za-z0-9]{30,}\b' },
     @{ Name = 'GOOGLE_API_KEY'; Pattern = '\bAIza[A-Za-z0-9_-]{30,}\b' },

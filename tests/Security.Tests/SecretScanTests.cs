@@ -31,6 +31,9 @@ public sealed class SecretScanTests : IDisposable
             ("release.dll", string.Concat("sk-", new string('a', 32))),
             ("session.log", string.Join('.', jwtSegment, new string('b', 24), new string('c', 24))),
             ("failure.dmp", string.Concat("-----BEGIN ", "PRIVATE KEY-----")),
+            ("signing.json", string.Concat("pfxBase64 = \"", new string('A', 48), "\"")),
+            ("release.yml", string.Concat("signingPassword = \"", "must-not-be-committed", "\"")),
+            ("cloud.log", string.Concat("trustedSigningToken = \"", "must-not-be-logged", "\"")),
         ];
 
         foreach (var (fileName, content) in fixtures)

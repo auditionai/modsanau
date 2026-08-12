@@ -28,6 +28,10 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 74: random managed workspace được harden bằng exact protected NTFS DACL owner/SYSTEM/Administrators, reparse/read-back gates, fail-safe partial cleanup và existing crash/concurrency ownership semantics; không plaintext global cache, raw-key logging hoặc secure-delete claim.
 - PLAN đã hoàn thành: PLAN 75 — Privilege Model Review.
 - Quyết định ADR-0002: runtime file-only không chứng minh nhu cầu app-wide elevation; thiết kế migration future sang unelevated `asInvoker`, broker chỉ khi có privileged operation thật với closed protocol/path allowlist. PLAN 75 không đổi manifest hoặc implement broker/UAC.
+- PLAN đã hoàn thành: PLAN 76 — App Code Signing.
+- Phạm vi PLAN 76: protected release signing workflow và fail-closed Authenticode/timestamp verification cho explicit
+  app-owned EXE/DLL/package/installer artifact; private key chỉ ở certificate store/HSM/service ngoài repository.
+  Debug vẫn unsigned, installer production chưa tồn tại, production certificate/timestamp/live signing chưa VERIFIED.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

@@ -1102,3 +1102,16 @@ Open/recovery xác minh no-reparse tree rồi re-apply/read-back policy trước
 [ADR-0002](ADR/0002-privilege-model.md) kết luận runtime file-only không có operation chứng minh cần Administrator toàn ứng dụng và chọn migration future sang unelevated `asInvoker`. PLAN 75 là review/ADR nên manifest vẫn `requireAdministrator`, `uiAccess=false`; không có broker hoặc self-elevation implementation.
 
 LocalApplicationData, Credential Manager/DPAPI, owned workspace ACL, ACV Tool 5/DirectXTex trong isolated workspace và writable user-selected export đều thuộc user context. Nếu future installer/update có privileged operation thật, broker phải separate/signed, explicit UAC, closed versioned protocol và exact canonical path/operation allowlist; không arbitrary command/path và không game authority. Migration phải giữ schema/data cùng identity, fail safely với alternate-admin profile và chạy standard-user/real-tool compatibility matrix trước manifest change.
+
+## App code signing từ PLAN 76
+
+App code signing là release trust boundary độc lập, không nằm trong Core/runtime editor. Protected release workflow
+publish exact self-contained x64 app, rồi script signing nhận danh sách app-owned artifact explicit, ký Authenticode
+SHA-256 với RFC 3161 timestamp SHA-256 và verify lại signature, exact publisher subject/thumbprint cùng timestamp trước
+khi upload. Script đã sẵn sàng cho `.exe/.dll/.msix/.msixbundle/.msi`; installer thực tế vẫn thuộc PLAN 95.
+
+Private key chỉ thuộc certificate store/HSM/managed signing service trên protected runner; repository/workspace/CI
+artifact không nhận PFX/PEM/password. PR/push test workflow không tham chiếu production signing environment hoặc secret.
+Debug/local build unsigned vẫn hợp lệ; production workflow thiếu identity/tool/timestamp hoặc verify lỗi thì fail closed.
+`Package.appxmanifest` vẫn có publisher placeholder development và manifest runtime vẫn `requireAdministrator`; PLAN 76
+không đổi packaging/privilege. Xem `docs/APP_CODE_SIGNING.md` cho vận hành, rotation/revocation và trạng thái verification.

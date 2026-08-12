@@ -1,0 +1,78 @@
+name: Protected release signing
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Four-part Windows release version (for example 1.2.3.4)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-signing
+  cancel-in-progress: false
+
+jobs:
+  sign-release:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+    environment: production-signing
+    runs-on: [self-hosted, Windows, X64, audition-signing]
+    timeout-minutes: 45
+    env:
+      SIGNTOOL_PATH: ${{ vars.AUDITION_SIGNTOOL_PATH }}
+      SIGNING_PUBLISHER_SUBJECT: ${{ vars.AUDITION_SIGNING_PUBLISHER_SUBJECT }}
+      TIMESTAMP_URL: ${{ vars.AUDITION_TIMESTAMP_URL }}
+      SIGNING_CERTIFICATE_SHA1: ${{ secrets.AUDITION_SIGNING_CERTIFICATE_SHA1 }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Validate protected release configuration
+        shell: pwsh
+        run: |
+          if ('${{ inputs.version }}' -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw 'RELEASE_VERSION_INVALID' }
+          if (-not [IO.Path]::IsPathRooted($env:SIGNTOOL_PATH)) { throw 'SIGNTOOL_ABSOLUTE_PATH_REQUIRED' }
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_PUBLISHER_SUBJECT)) { throw 'PUBLISHER_REQUIRED' }
+          if ($env:TIMESTAMP_URL -notmatch '^https://') { throw 'HTTPS_TIMESTAMP_URL_REQUIRED' }
+          if ($env:SIGNING_CERTIFICATE_SHA1 -notmatch '^[A-Fa-f0-9]{40}$') { throw 'CERTIFICATE_THUMBPRINT_INVALID' }
+      - name: Publish exact unpackaged x64 release
+        shell: pwsh
+        run: >-
+          dotnet publish src/AuditionModStudio.App/AuditionModStudio.App.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:WindowsPackageType=None
+          -p:Version=${{ inputs.version }}
+          -p:FileVersion=${{ inputs.version }}
+          -p:AssemblyVersion=${{ inputs.version }}
+          -o artifacts/release/win-x64
+          --nologo
+      - name: Sign and verify app-owned artifacts
+        shell: pwsh
+        run: |
+          $root = (Resolve-Path -LiteralPath 'artifacts/release/win-x64').Path
+          $files = @(Get-ChildItem -LiteralPath $root -File | Where-Object {
+            $_.Name -eq 'AuditionModStudio.App.exe' -or $_.Name -like 'AuditionModStudio.*.dll'
+          } | ForEach-Object FullName)
+          ./scripts/Invoke-AppCodeSigning.ps1 -Mode Sign -ArtifactRoot $root -Artifacts $files `
+            -SignToolPath $env:SIGNTOOL_PATH `
+            -CertificateThumbprint $env:SIGNING_CERTIFICATE_SHA1 `
+            -ExpectedPublisherSubject $env:SIGNING_PUBLISHER_SUBJECT `
+            -TimestampUrl $env:TIMESTAMP_URL -RequireSignTool |
+            Set-Content -LiteralPath 'artifacts/release/signing-report.json' -Encoding utf8
+      - name: Scan signed release artifacts
+        shell: pwsh
+        run: ./scripts/Invoke-SecretScan.ps1 -Paths artifacts/release
+      - name: Upload signed release candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: audition-mod-studio-${{ inputs.version }}-${{ github.sha }}-signed
+          path: artifacts/release
+          if-no-files-found: error
+          retention-days: 14
