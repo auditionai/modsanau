@@ -2,6 +2,10 @@
 
 Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audition_AI_Mod_Studio_MASTER_ROADMAP_V3.md`. Không sao chép hoặc làm yếu acceptance criteria tại đây.
 
+`PRODUCT DIRECTION LOCK — FILE-ONLY ARCHIVE EDITOR` gần đầu master roadmap thắng mọi wording lịch sử/future
+xung đột. Audit tại `docs/ROADMAP_DIRECTION_AUDIT.md` đã review 40 PLAN cũ 61–100, thêm PLAN 75 — Privilege
+Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game install/launch/runtime nào được giữ lại.
+
 ## Trạng thái hiện tại
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
@@ -148,6 +152,8 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
   Gateway dùng pooled Npgsql data source với TLS, parameterized commands, explicit transaction/cancellation và fail-closed
   khi database chưa cấu hình. HTTP vẫn chỉ cho đọc snapshot; không có client mutation hoặc client-supplied balance/cost/refund/payment state.
 - PLAN kế tiếp: PLAN 61 — AI Pricing.
+- Milestone hiện tại: Milestone 4 — AI Workflow & Commercial Backend.
+- PLAN 61 chưa được triển khai bởi roadmap direction audit; cần product owner approval riêng.
 
 ## Stage Gates
 

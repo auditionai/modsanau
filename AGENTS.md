@@ -22,6 +22,9 @@ Trước mỗi PLAN, phải đọc:
 
 ## Ranh giới kiến trúc bắt buộc
 
+- Sản phẩm là file-only editor/archive builder/export tool; pipeline kết thúc ở standalone `.ab`/`.acv`.
+- Không detect/discover/mutate Audition installation, registry, launcher, game folder/process; không install mod,
+  backup/restore/patch/launch/login/control game hoặc thêm runtime/in-game automation/validation.
 - `AuditionModStudio.Core` không phụ thuộc UI, cloud hoặc implementation hạ tầng.
 - UI không gọi `acv.exe` trực tiếp.
 - Archive operation nằm sau `IAuditionArchiveService`/`IArchiveToolRunner`.

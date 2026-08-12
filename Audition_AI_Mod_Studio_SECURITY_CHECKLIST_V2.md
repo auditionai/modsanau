@@ -31,7 +31,7 @@
 - [ ] Pack success validates output archive and `Packing:` progress where applicable.
 
 ## Templates / Archives
-- [ ] Prefer deriving pristine archive from the user's installed Audition files when technically/legal appropriate; otherwise use authorized cloud template distribution.
+- [ ] Template/archive input chỉ đến từ explicit user-selected file hoặc authorized cloud distribution; không discover hay derive từ Audition installation.
 - [ ] Raw premium templates not openly bundled in installer.
 - [ ] Template catalog server-authorized.
 - [ ] Short-lived download authorization.

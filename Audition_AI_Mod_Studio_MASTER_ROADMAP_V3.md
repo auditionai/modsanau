@@ -20,6 +20,66 @@
 
 ---
 
+## PRODUCT DIRECTION LOCK — FILE-ONLY ARCHIVE EDITOR
+
+Phần này là ràng buộc sản phẩm có thẩm quyền cao nhất cho toàn bộ roadmap. Nếu một PLAN, ví dụ, tài liệu
+phụ hoặc implementation proposal mâu thuẫn với phần này thì **PRODUCT DIRECTION LOCK thắng**. Chỉ product
+owner mới có thể thay đổi ràng buộc này bằng requirement mới explicit.
+
+### Product identity và workflow được hỗ trợ
+
+Audition AI Mod Studio là **file-based mod content editor + archive builder + export tool**. Pipeline chuẩn là:
+
+`Input archive/template/project → Create/Open Project → isolated working copy → extract → scan assets →`
+`select texture → edit/AI preview → user approval → Apply → DDS validate → build → pack → verify →`
+`export standalone .ab/.acv → END`.
+
+Ứng dụng được phép đọc archive, tạo working copy, extract, sửa asset trong workspace, repack working archive,
+verify và export final archive. Pristine source/template luôn read-only và không bao giờ là build target writable.
+
+### Absolute non-goals
+
+Không thuộc product scope: detect/discover/validate Audition installation; game path/registry/launcher/folder/
+executable/process detection; copy/install mod vào game; backup/restore/patch game file; launch/login/control game;
+gameplay automation; in-game/runtime validation; anti-cheat interaction; hooking/injection; memory editing.
+Manual in-game observation, nếu bên ngoài thực hiện, chỉ là optional external compatibility QA và không block
+application acceptance. Không PLAN tương lai nào được tái tạo các capability này nếu product owner chưa đổi
+requirement explicit.
+
+Application installer/updater, code signing và update của **Audition AI Mod Studio itself** là hợp lệ; chúng
+không phải Audition game installation hoặc mod installation.
+
+### Source-of-truth hierarchy
+
+- Game: `GameId`; Mod: `(GameId, ModId)`.
+- Template: canonical `TemplateId + TemplateVersion` cùng integrity/compatibility metadata.
+- Project: `AuditionProject` / `.audproj`.
+- Asset: normalized relative path + exact filename.
+- DDS: actual metadata đọc qua `IDdsMetadataReader`.
+- Image: `InternalImage`; texture state: Texture State Machine; history: `IEditHistoryService`.
+- Workspace: isolated managed workspace.
+- Build: Atomic Archive Build Pipeline; export: Atomic Archive Export.
+- Final deliverable: standalone `.ab`/`.acv` file.
+
+User-selected filesystem destination không được trở thành domain identity hoặc authority cho Game/Mod/Template,
+region, archive engine, entitlement hay compatibility.
+
+### Filesystem, process và future-PLAN boundary
+
+- Filesystem mutation chỉ diễn ra trong managed workspace, application-owned state hoặc exact user-selected export
+  destination sau validation. Không discover hoặc mutate game installation.
+- External process chỉ chạy sau abstraction/policy hiện hữu, bằng absolute trusted path, structured arguments,
+  redirected streams, timeout/cancellation và isolated working directory. Không process nào được launch để tìm,
+  cài, patch, chạy hoặc quan sát game.
+- AI output luôn đi qua `InternalImage → preview → user approval → Apply → DDS pipeline`; AI không bypass project
+  validation hoặc tự install output.
+- Cloud/auth/credit/payment/catalog được phép nhưng secrets và economic authority ở server; downloaded content vẫn
+  đi vào file/workspace pipeline và backend không biết/can thiệp game installation.
+- Mọi future PLAN phải nêu goal, dependencies, source of truth, acceptance criteria, persistence/security/failure
+  semantics, test gate và explicit non-scope. Thứ tự ưu tiên: local/domain capability → orchestration → UI → gate.
+
+---
+
 # 1. PRODUCT DEFINITION
 
 Xây dựng **Audition AI Mod Studio** cho Windows với workflow:
@@ -65,7 +125,7 @@ Target baseline cho code mới:
 Image/DDS strategy:
 - Không tự viết BC compressor từ đầu nếu không cần.
 - Ưu tiên Microsoft DirectXTex/texconv hoặc native wrapper quanh DirectXTex cho DDS decode/encode.
-- Phải kiểm chứng output bằng DDS mẫu Audition thật và test trong game.
+- Phải kiểm chứng output bằng DDS mẫu Audition thật và file-pipeline roundtrip; quan sát trong game chỉ là optional external QA.
 
 Backend:
 - Supabase PostgreSQL/Auth/Storage.
@@ -1013,29 +1073,95 @@ Tables/services for wallets + immutable-ish transaction ledger + reservations + 
 
 Client cannot set balance, cost, refund or successful payment state.
 
+## FUTURE PLAN EXECUTION CONTRACT
+
+Áp dụng bắt buộc cho mọi PLAN chưa triển khai từ PLAN 61 trở đi, ngoài acceptance riêng của từng PLAN:
+
+- **Dependencies/source of truth:** chỉ reuse contract/service đã nêu; không tạo source of truth thứ hai.
+- **Persistence:** mọi schema change phải explicit, có migration/backward-compatibility và server/local ownership rõ.
+- **Security:** validate input/ownership/size/path; secrets và commercial authority ở server; log được redaction.
+- **Failure semantics:** typed failure, fail closed tại trust boundary, không partial success; mutation phải atomic/
+  transactional, tác vụ dài phải async/cancellable/progress-reporting.
+- **Test gate:** targeted + affected + full regression; Debug/Release x64, XAML nếu có UI, format, dependency/
+  secret/artifact scans. Integration cần fixture thật thì phải báo limitation, không đổi assertion thành skip.
+- **Absolute non-scope:** toàn bộ game-installation/launch/runtime non-goals trong PRODUCT DIRECTION LOCK.
+
 ## PLAN 61 — AI Pricing
 
-Server-hosted pricing rules; client fetches display price. Actual charged cost is resolved server-side.
+**Goal:** server-hosted, versioned pricing rules cho từng AI operation; client chỉ fetch display estimate.
+
+**Dependencies/source:** PLAN 57 AI operations, PLAN 59 Gateway, PLAN 60 ledger; server rule version là authority.
+
+**Acceptance:** bounded authenticated price-query contract; actual capture cost luôn resolve lại server-side theo
+rule version; client amount bị ignore/reject; deterministic rounding/currency-credit units, cache/version semantics,
+tests cho stale estimate và rule change.
+
+**Persistence/security/failure:** pricing schema/config chỉ server writable; unavailable/invalid rule fail closed và
+không reserve/charge. **Non-scope:** AI job execution, payment, pricing UI ngoài response display model.
 
 ## PLAN 62 — AI Job System
 
-States: Pending/Queued/Processing/Completed/Failed/Cancelled. Persist owner, input metadata, output reference, reserved/final credits, timestamps, provider request id.
+**Goal:** durable server job state machine `Pending/Queued/Processing/Completed/Failed/Cancelled`.
+
+**Dependencies/source:** PLAN 57, 59–61; persisted job row là state authority, ledger là credit authority.
+
+**Acceptance:** persist verified owner, bounded input metadata, opaque output reference, reserved/final credits,
+timestamps và provider request ID; transactional enqueue/reserve, idempotent transitions, retry/lease recovery,
+cancel semantics và guaranteed release/refund on terminal provider failure.
+
+**Persistence/security/failure:** DB migration + ownership/RLS; no raw image/secret in logs. **Non-scope:** desktop UI,
+image Apply, client-selected charge, gameplay/runtime work.
 
 ## PLAN 63 — AI Studio UI
 
-Prompt, optional negative prompt, model/quality/aspect/reference controls, price preview, generation history.
+**Goal:** WinUI/MVVM surface cho prompt, optional negative prompt, model/quality/aspect/reference, price estimate và history.
+
+**Dependencies/source:** PLAN 38 task manager, PLAN 57 client abstraction, PLAN 58 auth, PLAN 61–62 server APIs;
+server job/history và pricing response là authority.
+
+**Acceptance:** accessible loading/empty/error/offline states, cancellation, bounded input, no UI-thread blocking;
+completed result chỉ thành `InternalImage` preview và chưa mutate project.
+
+**Persistence/security/failure:** chỉ non-secret presentation preference local; token qua secure auth service.
+**Non-scope:** mask editor, Apply/DDS replacement, local provider key, auto-install output.
 
 ## PLAN 64 — AI Mask Editor
 
-Brush/erase/size/hardness/opacity/clear/invert/show-hide. Preserve mask accurately relative to source image.
+**Goal:** non-destructive mask editor cho brush/erase/size/hardness/opacity/clear/invert/show-hide.
+
+**Dependencies/source:** `InternalImage`, PLAN 24 history và PLAN 63 selected preview; mask pixels ở source-image
+coordinate space là authority.
+
+**Acceptance:** exact dimension/alignment under zoom/pan, deterministic strokes, undo/redo, bounded memory,
+accessible controls và cancellation cho expensive composition; serialization chỉ khi job request cần.
+
+**Persistence/security/failure:** mask asset nằm trong project workspace, atomic save; invalid/missing source fail
+without mutation. **Non-scope:** provider operation orchestration, DDS Apply, game/runtime interaction.
 
 ## PLAN 65 — Inpaint / Outpaint / Remove / Replace / Upscale
 
-Implement one operation at a time. Results are previews until Apply. Applied AI edits become project history operations.
+**Goal:** nối từng AI operation vào job system và editor pipeline, triển khai/test độc lập từng operation.
+
+**Dependencies/source:** PLAN 47 Apply, PLAN 57, PLAN 62–64; provider result chỉ là preview `InternalImage`, project
+history sau Apply mới là local edit authority.
+
+**Acceptance:** operation-specific schema/mask/dimension validation; preview→explicit approval→existing Apply→Match
+Original→DDS validation; cancellation/failure không charge sai hoặc mutate project; applied result có undo/history.
+
+**Persistence/security/failure:** reuse job/ledger/project stores, không raw provider error. **Non-scope:** bypass
+validator, silent Apply, auto-build/export/install.
 
 ## PLAN 66 — Prompt Presets
 
-Local + cloud presets, versioned and tagged by operation/mod/texture type.
+**Goal:** preset local/cloud versioned, tagged theo operation, `(GameId, ModId)` và texture semantic type.
+
+**Dependencies/source:** PLAN 28 manifest, PLAN 57 operation types, PLAN 63 UI; immutable preset ID+version là authority.
+
+**Acceptance:** deterministic merge precedence, schema validation, safe import/export, cloud ownership/entitlement,
+offline local fallback và no silent migration.
+
+**Persistence/security/failure:** local presets atomic/versioned; cloud presets authenticated. Corrupt/conflicting
+preset bị isolate. **Non-scope:** executable prompt action, provider secret, automatic Apply/build.
 
 ---
 
@@ -1044,6 +1170,8 @@ Local + cloud presets, versioned and tagged by operation/mod/texture type.
 > **Security principle:** Desktop anti-crack measures are delay/hardening layers, not a perfect security boundary. Anything that must remain truly secret or economically authoritative belongs server-side.
 
 ## PLAN 67 — Threat Model
+
+**Dependencies/source:** PRODUCT DIRECTION LOCK, implemented PLAN 01–66 architecture and real deployment design.
 
 Create `docs/THREAT_MODEL.md` with assets and attackers.
 
@@ -1076,7 +1204,12 @@ Threats:
 
 Rank risks and mitigations.
 
+**Acceptance:** trust/data-flow diagrams, ranked abuse cases, owner/mitigation/test mapping và explicit residual risk.
+Không coi game process, anti-cheat hoặc mod installation là asset/workflow của application.
+
 ## PLAN 68 — Secret Separation
+
+**Dependencies/source:** PLAN 58–62 auth/gateway/job boundaries; deployed secret store là authority.
 
 Audit entire solution. Enforce:
 - no AI provider key in client;
@@ -1087,13 +1220,22 @@ Audit entire solution. Enforce:
 
 Add automated secret scanning to CI.
 
-## PLAN 69 — Secure Local Token Storage
+**Acceptance:** scan source/build/log/crash artifacts; negative tests; rotation/runbook; client contains no privileged
+credential. Không thay bằng obfuscation hoặc local hidden configuration.
 
-Implement `ISecureStorage` using Windows DPAPI/Credential Manager appropriate to design. Store refresh/session material only when necessary. Never store plaintext tokens in settings JSON.
+## PLAN 69 — Secure Local Session Storage Audit
+
+Audit và harden implementation PLAN 58 (`ISecureSessionStore`/Windows Credential Manager); không tạo secure store
+thứ hai. Store refresh/session material only when necessary; never plaintext token in settings/project/log.
 
 Threat-model an Administrator-level local attacker separately; DPAPI is not magic against a fully compromised/elevated account.
 
+**Dependencies/source:** PLAN 58 là implementation authority, PLAN 67 threat model. **Acceptance:** migration/
+compatibility behavior, rotation/delete/corruption/concurrency tests và release plaintext scan. Failure fail closed.
+
 ## PLAN 70 — Server-Authoritative License/Entitlement
+
+**Dependencies/source:** PLAN 58–59 verified identity/Gateway; server entitlement record là authority.
 
 Premium capabilities require server entitlement. Use short-lived signed server grants/tokens containing user, scope, template/mod ids, expiry, nonce/audience as appropriate.
 
@@ -1101,7 +1243,12 @@ Never rely only on a local `IsPremium=true` boolean.
 
 Define offline behavior explicitly; premium AI must not work offline.
 
+**Acceptance:** signed/scoped/expiring grants, ownership/audience/replay tests và fail-closed offline semantics.
+Không local `IsPremium` authority hoặc game-install coupling.
+
 ## PLAN 71 — Premium Template Distribution Model
+
+**Dependencies/source:** PLAN 30 exact template identity, PLAN 59 entitlement, PLAN 70 grant.
 
 Do **not** bundle raw premium `.ab/.acv` templates openly in installer.
 
@@ -1113,9 +1260,15 @@ Implement template packages:
 - encryption at rest/in transit;
 - version + manifest metadata.
 
-Important: document that if the client must ultimately obtain/build a complete playable archive, a determined authorized user can potentially recover its contents. The goal is to prevent casual harvesting and unauthorized download, not claim impossible secrecy.
+Important: document that if the client must ultimately obtain/build a complete exported archive, a determined authorized user can potentially recover its contents. The goal is to prevent casual harvesting and unauthorized download, not claim impossible secrecy.
+
+Ở đây “complete archive” chỉ là standalone exported file; không hàm ý app cài/chạy game. **Acceptance:** authenticated
+catalog/download, short-lived URL, signed/hash-verified package, exact version and revocation tests. Failure không
+publish package vào cache/workspace.
 
 ## PLAN 72 — Encrypted Local Template Cache
+
+**Dependencies/source:** PLAN 03 managed paths, PLAN 30 identity, PLAN 71 package format.
 
 If local cache is required:
 - store encrypted package, not raw global template;
@@ -1127,7 +1280,10 @@ If local cache is required:
 
 On use, decrypt only when needed into controlled workspace and clean up promptly.
 
-## PLAN 73 — Raw Template Exposure Analysis
+**Acceptance:** authenticated encryption/key wrapping, atomic cache write, corruption/key-loss cleanup/recovery,
+concurrent access tests. Cache không phải DRM và không chứa game-install path.
+
+## PLAN 73 — Template Exposure & Build-Location Decision
 
 Codex must explicitly analyze the workflow limitation:
 - ACV Tool 5 requires a file/folder accessible on disk;
@@ -1139,9 +1295,12 @@ A. client-side build — easier/faster, weaker template secrecy;
 B. server-side build worker — stronger control over pristine template delivery but final output may still be extractable;
 C. hybrid — metadata/template package controlled server-side, build local.
 
-Produce a written decision before commercial release.
+Produce a written ADR trước commercial release, chọn local/server/hybrid theo legal, latency, offline và exposure.
+Final output vẫn đi qua export boundary; server build không được install output hoặc biết game path.
 
 ## PLAN 74 — Protected Workspace Hardening
+
+**Dependencies/source:** PLAN 03/09/39 managed workspace, PLAN 72 cache, PLAN 67 threats.
 
 For local archive processing:
 - random working directory name;
@@ -1154,15 +1313,29 @@ For local archive processing:
 
 Do not promise secure deletion on SSD; cleanup is best-effort exposure reduction.
 
-## PLAN 75 — App Code Signing
+**Acceptance:** ACL/reparse/cleanup/crash/concurrency tests; failure giữ evidence an toàn và không mutate pristine.
+
+## PLAN 75 — Privilege Model Review
+
+**Goal:** review `requireAdministrator` từ PLAN 02 trong bối cảnh file-only editor và user-selected export.
+
+**Dependencies/source:** PLAN 02 bootstrap, PLAN 03 paths, PLAN 67 threat model, PLAN 74 workspace hardening.
+
+**Acceptance:** inventory mọi privileged operation; chứng minh nhu cầu elevation hoặc thiết kế migration sang
+unelevated app/least-privilege broker; protocol/path allowlist, UAC, upgrade/backward-compatibility và test plan rõ.
+
+**Persistence/security/failure:** đây là review/ADR; không đổi manifest/elevation trong PLAN này. **Non-scope:** game
+installation authority, silent self-elevation hoặc implementation broker chưa được PLAN riêng phê duyệt.
+
+## PLAN 76 — App Code Signing
 
 Sign release EXE/DLL/installer with Authenticode certificate and timestamp signatures. CI verifies signatures before publish. Private signing key must live in secure CI secret store/HSM/certificate service, never repository.
 
-## PLAN 76 — Update Signing & Verification
+## PLAN 77 — App Update Signing & Verification
 
 Updater accepts only releases with expected publisher/signature plus signed manifest/hash. Download to temp, verify, then install. Prevent downgrade unless explicitly supported. Protect against replacement of update metadata.
 
-## PLAN 77 — Binary Obfuscation Strategy
+## PLAN 78 — Binary Obfuscation Strategy
 
 Evaluate a reputable .NET obfuscator for Release builds:
 - symbol renaming;
@@ -1173,13 +1346,13 @@ Do not obfuscate Debug/dev builds. Keep mapping files private for crash symboliz
 
 Obfuscation is a cost-increasing layer, not where secrets are stored.
 
-## PLAN 78 — Native AOT / Native Core Evaluation
+## PLAN 79 — Native AOT / Native Core Evaluation
 
 Evaluate WinUI/.NET Native AOT support for Release and/or move selected sensitive pure-compute libraries into AOT/native code if compatible. Measure compatibility with WinUI, DirectXTex interop, Supabase client, serializers and plugins.
 
 Do not adopt AOT solely as “uncrackable DRM.” Use it only if stable and beneficial.
 
-## PLAN 79 — Client Integrity / Anti-Tamper Checks
+## PLAN 80 — Client Integrity / Anti-Tamper Checks
 
 Add moderate integrity checks:
 - signed executable verification where appropriate;
@@ -1189,11 +1362,11 @@ Add moderate integrity checks:
 
 Failure should disable risky operations and produce diagnostics. Avoid aggressive anti-debug tricks that cause false positives or malware-like behavior.
 
-## PLAN 80 — DLL Hijacking / Process Launch Hardening
+## PLAN 81 — DLL Hijacking / Process Launch Hardening
 
 Use absolute paths for native libraries/tools. Control DLL search paths. Do not execute files from user-controlled folders. Validate archive/tool paths. Avoid `cmd.exe /c` when direct process invocation is possible. Quote arguments and prevent command injection.
 
-## PLAN 81 — API Replay / Abuse Protection
+## PLAN 82 — API Replay / Abuse Protection
 
 Backend:
 - TLS;
@@ -1206,19 +1379,23 @@ Backend:
 - ownership checks;
 - audit logs.
 
-## PLAN 82 — Supabase RLS Hardening
+## PLAN 83 — Supabase RLS Hardening
 
-Every user-owned table requires RLS. Users can read only permitted rows. Wallet/transaction mutation must not be open to arbitrary client writes. Privileged functions execute server-side with strict validation.
+Audit every user-owned table after PLAN 60 migrations. Users read only permitted rows; wallet/ledger mutation remains
+through exact server functions. Add migration privilege/RLS tests and cross-user negative integration tests; do not
+create a second wallet schema.
 
-## PLAN 83 — Payment Security
+## PLAN 84 — Payment Security
 
 Credit is granted only after server verifies payment provider callback/webhook. Make processing idempotent. Client “payment success” screen is never proof of payment.
 
-## PLAN 84 — Credit Concurrency Security
+## PLAN 85 — Credit Concurrency Integration Gate
 
-Use transactional reservation/charge/refund to stop two simultaneous AI jobs from overspending. Add integration tests for race conditions and duplicate requests.
+Verify PLAN 60 transactional reservation/capture/release/refund against a real PostgreSQL test instance. Add parallel
+race, duplicate key, conflicting payload, capture-vs-release and over-refund tests. Fix the existing ledger/functions
+if evidence fails; do not create another credit service or let client set amounts.
 
-## PLAN 85 — Device Sessions / Abuse Controls
+## PLAN 86 — Device Sessions / Abuse Controls
 
 Optional commercial controls:
 - device registration count;
@@ -1228,7 +1405,7 @@ Optional commercial controls:
 
 Avoid brittle invasive hardware fingerprint DRM in V1 unless business need is proven.
 
-## PLAN 86 — Privacy & Logging Security
+## PLAN 87 — Privacy & Logging Security
 
 Redact:
 - passwords;
@@ -1239,11 +1416,11 @@ Redact:
 
 Diagnostic export excludes user images/templates by default.
 
-## PLAN 87 — Dependency / Supply-Chain Security
+## PLAN 88 — Dependency / Supply-Chain Security
 
 Pin/lock dependency versions appropriately, scan vulnerabilities, maintain SBOM, verify third-party/native tool provenance, document licenses, and review redistribution rights for `acv.exe`, templates and game assets before commercial distribution.
 
-## PLAN 88 — Security Test Matrix
+## PLAN 89 — Security Test Matrix
 
 Tests must include:
 - modified `acv.exe` rejected;
@@ -1259,7 +1436,7 @@ Tests must include:
 - tampered template package rejected;
 - app survives malformed DDS/archive inputs safely.
 
-## PLAN 89 — Release Penetration / Crack-Resistance Review
+## PLAN 90 — Release Penetration / Crack-Resistance Review
 
 Before paid beta, commission/manual review focused on:
 - decompilation exposure;
@@ -1277,52 +1454,70 @@ Fix architectural weaknesses first; do not rely on adding more obfuscation to hi
 
 # PHASE M — COMMERCIAL PLATFORM
 
-## PLAN 90 — Remote Game/Mod Catalog
+## PLAN 91 — Remote Product Catalog (Game/Mod/Template Taxonomy)
 
-Backend-managed catalog of games, mod types, manifests, template versions, compatibility and entitlement requirements. Cache signed/validated catalog locally.
+Backend-managed catalog of semantic `GameId`, `(GameId, ModId)`, manifests, exact template versions, file-format/
+build compatibility và entitlement requirements. Cache signed/validated catalog locally.
 
-## PLAN 91 — Template Admin Tool
+**Dependencies/source:** PLAN 26–30 local catalogs, PLAN 59/70 entitlement, PLAN 71 packages. Remote signed version is
+distribution authority; local cache is derived. **Acceptance:** schema/signature/version/rollback/offline-cache tests,
+exact identity mapping and atomic cache. **Non-scope:** install path, executable/launcher/registry/game discovery.
+
+## PLAN 92 — File-Only Template Admin Tool
 
 Admin-only workflow:
 archive upload → engine select → extract test → DDS scan → label textures → version → compatibility → publish encrypted/signed template package metadata.
 
-## PLAN 92 — Account/Profile/Credit History UI
+**Dependencies/source:** PLAN 11/13/28/30, PLAN 71 distribution; uploaded archive is explicit admin input and
+published exact template version is authority. **Acceptance:** role authorization, isolated scan, validation,
+immutable version, audit trail and atomic publish. **Non-scope:** game installation discovery/mutation or mod install.
 
-Server-sourced profile, wallet, usage and transaction history.
+## PLAN 93 — Account/Profile/Credit History UI
 
-## PLAN 93 — Payment Abstraction
+Server-sourced profile, wallet, usage and transaction history. Reuse PLAN 58 auth/PLAN 60 ledger; UI is read-only
+for balances/transactions, has accessible loading/error/empty states and never treats cached/client values as authority.
 
-Backend payment provider abstraction; verified webhook → ledger credit transaction.
+## PLAN 94 — Payment Abstraction
 
-## PLAN 94 — Installer
+Backend payment provider abstraction; verified idempotent webhook → PLAN 60 ledger grant transaction. Payment
+provider event is source of payment truth; client success page cannot grant credit. Add signature/replay/order/
+duplicate/refund tests; provider outage leaves typed pending/retriable state, not fabricated success.
 
-Signed installer, clean uninstall, preserve user projects unless explicitly deleted. Verify prerequisites and application files.
+## PLAN 95 — Audition AI Mod Studio Application Installer
 
-## PLAN 95 — Updater
+Signed installer for **Audition AI Mod Studio itself**, clean uninstall, preserve user projects unless explicitly
+deleted, verify prerequisites/application files and follow PLAN 75 privilege decision. It must not detect/install/
+patch Audition game or copy an exported mod into game directories.
 
-Signed release channel, staged rollout, rollback strategy, update deferral while project build/export is active.
+## PLAN 96 — Audition AI Mod Studio Application Updater
+
+Signed release channel for **Audition AI Mod Studio itself**, staged rollout, rollback strategy and update deferral
+while project build/export is active. Reuse PLAN 77 signature verification; never launch/update Audition game.
 
 ---
 
 # PHASE N — QUALITY / RELEASE
 
-## PLAN 96 — Archive Integration Test Suite
+## PLAN 97 — Archive File-Pipeline Integration Test Suite
 
 Use copies of real Audition fixtures. Extract → scan → replace → pack. Original fixture hashes remain unchanged.
 
-## PLAN 97 — DDS Compatibility Matrix
+Add build/verify/export/re-extract coverage, Unicode paths, corruption/cancellation and non-target integrity. Test
+ends at standalone archive; no installation or runtime game dependency.
 
-Build a growing corpus of real DDS samples from each Mod Type. Record width/height/format/mips/alpha/header and file-pipeline compatibility status. External in-game observations, nếu có, là non-blocking external QA.
+## PLAN 98 — DDS File-Pipeline Compatibility Matrix
 
-## PLAN 98 — Crash/Recovery Tests
+Build a growing corpus of real DDS samples from each Mod Type. Record width/height/format/mips/alpha/header and file-pipeline compatibility status through decode/encode/validate/archive roundtrip evidence.
+
+## PLAN 99 — Crash/Recovery Tests
 
 Kill app during extract, edit, encode, pack, export, download. Verify workspace, export destination và temporary transaction recover safely.
 
-## PLAN 99 — Performance Tests
+## PLAN 100 — Performance Tests
 
 Measure archive scan, thumbnail generation, 6000×1801 resize/BC3 encode, memory usage, large batch operations and UI responsiveness.
 
-## PLAN 100 — V1 Release Gate
+## PLAN 101 — V1 File-Only Product Release Gate
 
 Release only when:
 - Gate A/B/C pass on real Audition data;
@@ -1334,6 +1529,10 @@ Release only when:
 - template distribution policy legally reviewed;
 - security test matrix pass;
 - paid AI failure/refund paths verified.
+
+- PLAN 75 privilege decision resolved before packaging;
+- no game-install/detect/launch/runtime capability or dependency exists in product acceptance pipeline;
+- final deliverable remains standalone `.ab`/`.acv` and application install/update affects only this application.
 
 ---
 
@@ -1349,18 +1548,18 @@ Plans 20–35 + 48–50.
 
 Deliverable: choose one Mod Type → edit one real texture → build → verify/export standalone archive.
 
-## MILESTONE 3 — Usable Desktop Product
+## MILESTONE 3 — Editor Completion
 Plans 36–56.
 
 Deliverable: project browser, professional editor UX, build/export/batch.
 
-## MILESTONE 4 — Commercial AI
-Plans 57–66 + core security 67–84.
+## MILESTONE 4 — AI Workflow & Commercial Backend
+Plans 57–66 + core security 67–85.
 
 Deliverable: accounts, AI, credits, server authority.
 
-## MILESTONE 5 — Public Paid Beta
-Plans 85–100.
+## MILESTONE 5 — Application Hardening, Distribution & Public Paid Beta
+Plans 86–101.
 
 Deliverable: signed, hardened, updateable commercial application.
 
@@ -1399,6 +1598,8 @@ Before coding:
 23. Run relevant tests.
 24. Fix regressions introduced by this task.
 25. At completion report: files changed, design decisions, tests/build results, security implications, known limitations, and recommended next PLAN.
+26. PRODUCT DIRECTION LOCK thắng mọi conflicting wording: không detect/install/backup/restore/launch/login/control
+    Audition game, không runtime/in-game automation/validation; pipeline kết thúc tại exported `.ab`/`.acv`.
 
 Current task:
 [PASTE ONE PLAN HERE]

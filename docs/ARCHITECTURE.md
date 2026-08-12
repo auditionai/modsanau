@@ -34,6 +34,10 @@ ghi/backup/restore game archive, không launch/login/automate game và không d�
 acceptance criterion. Export destination là arbitrary user-selected filesystem location và không phải nguồn
 GameId, ModId, template, region hoặc archive-engine authority.
 
+Ràng buộc này là architecture lock cho mọi module/PLAN tương lai. Chỉ explicit product-owner requirement mới
+được thay đổi. App installer/updater chỉ cài hoặc cập nhật Audition AI Mod Studio itself và không cấp quyền tìm,
+cài hoặc sửa Audition game. AI/cloud/catalog output luôn trở về managed file/workspace pipeline trước Apply/build.
+
 ## Module
 
 | Project | Trách nhiệm | Dependency trực tiếp tại PLAN 01 |

@@ -31,6 +31,8 @@ Token người dùng cần lưu về sau phải đi qua Windows secure storage a
   mutate, backup hoặc restore Audition installation/game directory.
 - Không đọc registry/launcher config để tìm game, không launch/login/automate game và không coi in-game
   observation là security/release gate.
+- Boundary này thắng mọi legacy/future wording xung đột. App distribution/update là hợp lệ nhưng không được dùng
+  làm đường vòng để discover, install, patch hoặc launch Audition game/mod.
 - Export path là machine-local untrusted input. Nó không cấp authority cho game/mod/template/region/engine và
   phải được canonicalize, kiểm tra filename/extension/collision/access/reparse trước mọi write.
 - Existing export chỉ được thay với explicit overwrite policy và transactional promotion; failure phải giữ bytes
