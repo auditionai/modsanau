@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\AuditionModStudio.AI\AuditionModStudio.AI.csproj" />
     <ProjectReference Include="..\..\src\AuditionModStudio.Archives\AuditionModStudio.Archives.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Cloud\AuditionModStudio.Cloud.csproj" />
     <ProjectReference Include="..\..\src\AuditionModStudio.Core\AuditionModStudio.Core.csproj" />
     <ProjectReference Include="..\..\src\AuditionModStudio.Dds\AuditionModStudio.Dds.csproj" />
     <ProjectReference Include="..\..\src\AuditionModStudio.Imaging\AuditionModStudio.Imaging.csproj" />

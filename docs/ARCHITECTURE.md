@@ -903,3 +903,18 @@ Save current project
   closed với `AI_TRUSTED_BACKEND_UNAVAILABLE`, hoặc typed cancellation nếu token đã cancel.
 - PLAN 57 không có UI, persistence, project schema, provider selection hoặc backend transport. Trusted gateway sẽ
   thuộc PLAN 59; auth thuộc PLAN 58 và chưa được giả lập trong abstraction này.
+
+## Supabase Auth từ PLAN 58
+
+- `IAuthenticationService` và `ISecureSessionStore` nằm trong Core, chỉ expose value/result typed cho sign up,
+  sign in, sign out, refresh, password reset và profile. Contract không expose `HttpClient`, Supabase DTO, raw
+  authorization header, filesystem path hoặc Windows native handle.
+- `SupabaseAuthService` nằm trong Cloud và gọi duy nhất Supabase Auth `auth/v1` qua HTTPS với publishable key.
+  Password grant/session refresh được gửi async với cancellation; refresh được serialize để request sau đọc token
+  mới nhất sau rotation. Sign-up chờ email confirmation có thể trả profile mà không giả lập session.
+- `WindowsCredentialSessionStore` nằm trong Security và lưu access token, refresh token, expiry thành một Generic
+  Credential giới hạn kích thước trong Windows Credential Manager. Store không nhận JSON path và không ghi vào
+  settings/project. Native buffer tạm được zero sau serialize/copy; native errors được chuẩn hóa thành I/O failure.
+- Desktop composition đọc `AUDITION_SUPABASE_URL` và `AUDITION_SUPABASE_PUBLISHABLE_KEY`; cấu hình thiếu/sai bind
+  `UnavailableAuthenticationService`. Publishable key chỉ định danh public client; service-role/provider/payment
+  secret không thuộc desktop. PLAN 58 không thêm UI, `.audproj` schema, gateway endpoint hoặc credit operation.

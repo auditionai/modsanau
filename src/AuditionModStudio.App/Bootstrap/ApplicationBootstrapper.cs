@@ -2,6 +2,7 @@ using AuditionModStudio.Archives;
 using AuditionModStudio.AI;
 using AuditionModStudio.Core.AI;
 using AuditionModStudio.Core.Archives;
+using AuditionModStudio.Core.Auth;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Exports;
@@ -24,6 +25,8 @@ using AuditionModStudio.Infrastructure.Workspaces;
 using AuditionModStudio.Imaging;
 using AuditionModStudio.Mods;
 using AuditionModStudio.Projects;
+using AuditionModStudio.Cloud;
+using AuditionModStudio.Security;
 using AuditionModStudio.Dds;
 using AuditionModStudio.App.Shell;
 using AuditionModStudio.App.Home;
@@ -170,6 +173,29 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IProjectBuildService, ProjectBuildService>();
         builder.Services.AddSingleton<ITextureBatchBuildSummaryService, TextureBatchBuildSummaryService>();
         builder.Services.AddSingleton<IAiService, UnavailableAiService>();
+        builder.Services.AddSingleton<ISecureSessionStore, WindowsCredentialSessionStore>();
+        builder.Services.AddSingleton(new HttpClient(new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+        }));
+        builder.Services.AddSingleton<IAuthenticationService>(services =>
+        {
+            var url = Environment.GetEnvironmentVariable("AUDITION_SUPABASE_URL");
+            var publishableKey = Environment.GetEnvironmentVariable("AUDITION_SUPABASE_PUBLISHABLE_KEY");
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri)
+                || string.IsNullOrWhiteSpace(publishableKey))
+            {
+                return new UnavailableAuthenticationService();
+            }
+
+            var options = new SupabaseAuthOptions(projectUri, publishableKey);
+            return options.IsValid
+                ? new SupabaseAuthService(
+                    services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(),
+                    options)
+                : new UnavailableAuthenticationService();
+        });
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
         builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();

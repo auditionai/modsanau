@@ -547,3 +547,22 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   percentage và stable diagnostic code, không chứa prompt, image, credential hoặc provider response.
 - PLAN 57 chưa tạo auth, gateway, credit hoặc provider transport. Các trust checks server-side không được mô phỏng
   trong client và chỉ được triển khai ở PLAN tương ứng.
+
+## Supabase Auth boundary từ PLAN 58
+
+- Desktop chỉ được cấu hình Supabase project HTTPS URL không có user-info và publishable key bounded. Không có
+  service-role key, AI provider credential, payment secret, master encryption key hoặc private signing key trong
+  contract, source, settings hay request API.
+- Password và session secret có string representation redacted; auth transport không log request/response/token.
+  Email/password/token/config đều bounded và reject control characters phù hợp. Remote reject, network failure,
+  protocol error, secure-store failure và cancellation trả diagnostic code typed, không trả raw provider body.
+- Production HTTP client không tự follow redirect, nên credential request không được chuyển tiếp sang origin khác.
+- Session secret chỉ qua `ISecureSessionStore`; production store dùng Windows Credential Manager Generic Credential,
+  không plain JSON. Credential payload có hard size limit, malformed content bị reject, managed serialization buffer
+  được zero, và local session chỉ bị xóa sau khi remote sign-out thành công.
+- Refresh token rotation được bảo vệ bằng semaphore: mỗi refresh load token trong critical section và persist cặp
+  token mới trước khi request kế tiếp chạy. Lỗi persist không được báo success. Stored token malformed không được
+  đưa vào HTTP authorization header.
+- Access token vẫn là bearer credential và Windows user context vẫn là trust boundary cục bộ; Credential Manager
+  không biến client thành trusted authority. PLAN 59 phải validate access token/schema tại backend và giữ toàn bộ
+  provider credentials/server authority ngoài desktop.

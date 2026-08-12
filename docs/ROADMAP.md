@@ -132,7 +132,12 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 57: `IAiService` async typed cho Generate/Edit/Inpaint/Outpaint/RemoveObject/ReplaceObject/Upscale,
   reuse `InternalImage`, bounded prompt/target size và typed progress/result/cancellation. Desktop DI mặc định dùng
   fail-closed `UnavailableAiService`; không có provider credential, endpoint hoặc network call.
-- PLAN kế tiếp: PLAN 58 — Supabase Auth.
+- PLAN đã hoàn thành kiểm chứng: PLAN 58 — Supabase Auth.
+- Phạm vi PLAN 58: contract auth typed cho sign up/sign in/sign out/session refresh/password reset/profile;
+  Supabase Auth transport chỉ nhận HTTPS project URL + publishable key, refresh được serialize và token rotation
+  được ghi lại qua `ISecureSessionStore`. Desktop dùng Windows Credential Manager, không lưu session secret trong
+  JSON/settings và fail closed khi chưa có cấu hình. Không có gateway/provider credential/credit logic.
+- PLAN kế tiếp: PLAN 59 — Backend Trusted Gateway.
 
 ## Stage Gates
 
