@@ -691,3 +691,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Prompt/preset là untrusted bounded user text, không executable và không được chứa hay điều khiển provider credential/endpoint, trusted model, price/credit, entitlement, user identity hoặc private content reference.
 - Local JSON schema-v1 cấm unknown fields/numeric enums, có 2 MiB/1.000-entry limits, ghi atomic và cô lập malformed/unsupported schema; không silent migration. Same ID+version khác nội dung bị isolate thay vì chọn ngầm.
 - Cloud catalog chỉ được nhận qua `ICloudPromptPresetService.ListOwnedAsync`; production adapter chưa cấu hình nên fail closed. Việc chọn preset chỉ sửa UI text, không submit job, reserve/capture credit, mutate mask/image/project/archive hoặc tự Apply/build.
+
+## Secure local session storage audit từ PLAN 69
+
+- `WindowsCredentialSessionStore` vẫn là production store duy nhất và vẫn dùng Windows Credential Manager Generic Credential. Backend Win32 nội bộ chỉ là test seam, không phải persistence implementation thứ hai; public constructor/`ISecureSessionStore` không nhận file/path/config.
+- Credential payload schema-v1 cấm unknown field và future schema. Legacy PLAN 58 payload không có schema được decode strict rồi rewrite vào cùng credential target trước khi Load trả success; migration write failure fail closed. Không có plaintext migration file.
+- Một process-wide semaphore serialize read/write/delete của target duy nhất qua mọi store instance. Rotation overwrite credential, delete not-found idempotent, token/blob bounded; managed serialization/read buffers và unmanaged write buffer được zero.
+- Release scan PLAN 68 kiểm tra binary/PDB/log/crash. Token không được persist trong settings/project/preset/log. Credential Manager bảo vệ theo Windows user context nhưng không chống Administrator/fully compromised account hoặc process-memory dump.

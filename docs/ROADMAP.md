@@ -14,6 +14,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 67: threat model cho kiến trúc PLAN 01–66 với assets/attackers, trust và data-flow diagrams, ranked abuse cases, owner/mitigation/test mapping, control status và explicit residual risk; không coi game process/install/runtime là application workflow.
 - PLAN đã hoàn thành: PLAN 68 — Secret Separation.
 - Phạm vi PLAN 68: scanner CI cho source/build/log/crash artifacts, negative tests trên từng artifact class và rotation/incident runbook; privileged credentials vẫn chỉ thuộc deployed secret store, không chuyển sang obfuscation/hidden client configuration.
+- PLAN đã hoàn thành: PLAN 69 — Secure Local Session Storage Audit.
+- Phạm vi PLAN 69: harden store PLAN 58 bằng schema-v1 strict, in-place legacy Credential Manager migration, process-wide target serialization, bounded token/blob và buffer zeroing; test rotation/delete/corruption/migration/concurrency và release plaintext scan, không tạo store thứ hai.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.
