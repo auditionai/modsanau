@@ -23,6 +23,12 @@ public sealed record AiPricingQuoteRequest(
     TrustedAiOperation Operation,
     string? ExpectedPricingVersion);
 
+public sealed record AiJobEnqueueRequest(
+    TrustedAiOperation Operation,
+    AiJobInputMetadata? InputMetadata,
+    string? IdempotencyKey,
+    string? ExpectedPricingVersion);
+
 public static class TrustedGatewayEndpoints
 {
     private const int MaximumPromptLength = 4_000;
@@ -31,6 +37,7 @@ public static class TrustedGatewayEndpoints
     private const long MaximumAiRequestBytes = 12 * 1_024 * 1_024;
     private const long MaximumEntitlementRequestBytes = 16 * 1_024;
     private const long MaximumPricingRequestBytes = 4 * 1_024;
+    private const long MaximumJobRequestBytes = 20 * 1_024;
 
     public static void MapTrustedGatewayEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -72,6 +79,50 @@ public static class TrustedGatewayEndpoints
             })
             .RequireAuthorization()
             .WithMetadata(new RequestSizeLimitAttribute(MaximumPricingRequestBytes));
+
+        endpoints.MapPost("/v1/ai/jobs", async (ClaimsPrincipal principal,
+                AiJobEnqueueRequest? request,
+                IAiJobService service,
+                CancellationToken cancellationToken) =>
+            {
+                if (request is null || request.InputMetadata is null
+                    || !Enum.IsDefined(request.Operation) || !request.InputMetadata.IsValid
+                    || !TryCreateJobIdempotencyKey(request.IdempotencyKey, out var idempotencyKey)
+                    || !TryCreatePricingVersion(request.ExpectedPricingVersion, out var expectedVersion))
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["request"] = ["AI job request is invalid."],
+                    });
+                }
+                return MapJobResult(await service.EnqueueAsync(User(principal), request.Operation,
+                    request.InputMetadata, idempotencyKey!.Value, expectedVersion, cancellationToken)
+                    .ConfigureAwait(false));
+            })
+            .RequireAuthorization()
+            .WithMetadata(new RequestSizeLimitAttribute(MaximumJobRequestBytes));
+
+        endpoints.MapGet("/v1/ai/jobs", async (ClaimsPrincipal principal,
+                IAiJobService service,
+                CancellationToken cancellationToken) =>
+            MapJobListResult(await service.ListAsync(User(principal), cancellationToken).ConfigureAwait(false)))
+            .RequireAuthorization();
+
+        endpoints.MapGet("/v1/ai/jobs/{jobId:guid}", async (ClaimsPrincipal principal,
+                Guid jobId,
+                IAiJobService service,
+                CancellationToken cancellationToken) =>
+            MapJobResult(await service.GetAsync(User(principal), jobId, cancellationToken).ConfigureAwait(false)))
+            .RequireAuthorization();
+
+        endpoints.MapPost("/v1/ai/jobs/{jobId:guid}/cancel", async (ClaimsPrincipal principal,
+                Guid jobId,
+                IAiJobService service,
+                CancellationToken cancellationToken) =>
+            MapJobResult(await service.CancelAsync(User(principal), jobId, cancellationToken)
+                .ConfigureAwait(false)))
+            .RequireAuthorization()
+            .WithMetadata(new RequestSizeLimitAttribute(0));
 
         endpoints.MapPost("/v1/templates/entitlement", async (ClaimsPrincipal principal,
                 TemplateEntitlementRequest? request,
@@ -194,6 +245,71 @@ public static class TrustedGatewayEndpoints
                 "Template entitlement service is unavailable.", result.DiagnosticCode),
         };
     }
+
+    private static IResult MapJobResult(AiJobOperationResult result)
+    {
+        if (!Enum.IsDefined(result.Status) || !IsSafeDiagnosticCode(result.DiagnosticCode)
+            || result.Status == AiJobOperationStatus.Succeeded && !IsValidJob(result.Job)
+            || result.Status == AiJobOperationStatus.PriceChanged && !IsValidQuote(result.CurrentQuote))
+        {
+            return InvalidTrustedResponse();
+        }
+        return result.Status switch
+        {
+            AiJobOperationStatus.Succeeded => Results.Ok(JobResponse(result.Job!)),
+            AiJobOperationStatus.PriceChanged => Results.Conflict(new
+            {
+                result.DiagnosticCode,
+                Operation = result.CurrentQuote!.Operation,
+                CreditCost = result.CurrentQuote.CreditCost.Value,
+                PricingVersion = result.CurrentQuote.PricingVersion.Value,
+                result.CurrentQuote.EffectiveAt,
+            }),
+            AiJobOperationStatus.Rejected => Results.UnprocessableEntity(
+                new GatewayErrorResponse(result.DiagnosticCode)),
+            AiJobOperationStatus.NotFound => Results.NotFound(new GatewayErrorResponse(result.DiagnosticCode)),
+            _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
+                "AI job service is unavailable.", result.DiagnosticCode),
+        };
+    }
+
+    private static IResult MapJobListResult(AiJobListResult result)
+    {
+        if (!Enum.IsDefined(result.Status) || !IsSafeDiagnosticCode(result.DiagnosticCode)
+            || result.Status == AiJobOperationStatus.Succeeded && result.Jobs.Any(job => !IsValidJob(job)))
+        {
+            return InvalidTrustedResponse();
+        }
+        return result.Status switch
+        {
+            AiJobOperationStatus.Succeeded => Results.Ok(new
+            {
+                result.DiagnosticCode,
+                Jobs = result.Jobs.Select(JobResponse),
+            }),
+            AiJobOperationStatus.Rejected => Results.UnprocessableEntity(
+                new GatewayErrorResponse(result.DiagnosticCode)),
+            _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
+                "AI job service is unavailable.", result.DiagnosticCode),
+        };
+    }
+
+    private static object JobResponse(AiJobSnapshot job) => new
+    {
+        job.JobId,
+        job.Operation,
+        job.Status,
+        job.InputMetadata,
+        job.ReservedCredits,
+        job.FinalCredits,
+        job.PricingVersion,
+        job.OutputReference,
+        job.ErrorCode,
+        job.AttemptCount,
+        job.CancelRequested,
+        job.CreatedAt,
+        job.UpdatedAt,
+    };
 
     private static IResult SafeProblem(int statusCode, string title, string code) =>
         Results.Problem(statusCode: statusCode, title: title, extensions: new Dictionary<string, object?>
@@ -323,12 +439,39 @@ public static class TrustedGatewayEndpoints
         }
     }
 
+    private static bool TryCreateJobIdempotencyKey(string? value, out AiJobIdempotencyKey? key)
+    {
+        key = null;
+        try
+        {
+            key = new AiJobIdempotencyKey(value!);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
     private static bool IsValidQuote(AiPricingQuote? quote) =>
         quote is not null
         && Enum.IsDefined(quote.Operation)
         && quote.CreditCost.Value is > 0 and <= AiCreditPrice.MaximumCredits
         && !string.IsNullOrEmpty(quote.PricingVersion.Value)
         && quote.EffectiveAt.Offset == TimeSpan.Zero;
+
+    private static bool IsValidJob(AiJobSnapshot? job) =>
+        job is not null
+        && job.JobId != Guid.Empty
+        && Enum.IsDefined(job.Operation)
+        && Enum.IsDefined(job.Status)
+        && job.InputMetadata.IsValid
+        && job.ReservedCredits > 0
+        && job.FinalCredits is null or > 0
+        && (job.FinalCredits is null || job.FinalCredits <= job.ReservedCredits)
+        && !string.IsNullOrWhiteSpace(job.PricingVersion)
+        && (job.OutputReference is null || IsSafeOutputReference(job.OutputReference))
+        && (job.ErrorCode is null || IsSafeDiagnosticCode(job.ErrorCode));
 
     private static AuthenticatedGatewayUser User(ClaimsPrincipal principal)
     {

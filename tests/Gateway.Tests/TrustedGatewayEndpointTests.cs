@@ -26,13 +26,47 @@ public sealed class TrustedGatewayEndpointTests
             client.GetAsync("/v1/credits"),
             client.PostAsJsonAsync("/v1/templates/entitlement", ValidTemplate()),
             client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)),
-            PricingQuoteAsync(client));
+            PricingQuoteAsync(client),
+            JobEnqueueAsync(client));
 
         Assert.All(responses, response => Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode));
         Assert.Equal(0, factory.Ai.CallCount);
         Assert.Equal(0, factory.Credits.CallCount);
         Assert.Equal(0, factory.Entitlement.CallCount);
         Assert.Equal(0, factory.Pricing.CallCount);
+        Assert.Equal(0, factory.Jobs.EnqueueCallCount);
+    }
+
+    [Fact]
+    public async Task Job_enqueue_uses_verified_owner_and_has_no_client_charge_authority()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+
+        var response = await JobEnqueueAsync(client);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(UserId, factory.Jobs.LastUser!.UserId);
+        Assert.Equal(TrustedAiOperation.Generate, factory.Jobs.LastOperation);
+        Assert.Equal("request-1", factory.Jobs.LastIdempotencyKey!.Value.Value);
+        Assert.DoesNotContain("providerRequestId", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("{\"operation\":\"Generate\",\"inputMetadata\":{\"inputReference\":\"inputs/1\",\"promptLength\":1,\"inputBytes\":0},\"idempotencyKey\":\"one\",\"cost\":1}")]
+    [InlineData("{\"operation\":\"Generate\",\"inputMetadata\":{\"inputReference\":\"../secret\",\"promptLength\":1,\"inputBytes\":0},\"idempotencyKey\":\"one\"}")]
+    [InlineData("{\"operation\":0,\"inputMetadata\":{\"inputReference\":\"inputs/1\",\"promptLength\":1,\"inputBytes\":0},\"idempotencyKey\":\"one\"}")]
+    public async Task Job_enqueue_rejects_client_cost_unsafe_metadata_and_numeric_operation(string payload)
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+        using var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync("/v1/ai/jobs", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(0, factory.Jobs.EnqueueCallCount);
     }
 
     [Fact]
@@ -252,7 +286,8 @@ public sealed class TrustedGatewayEndpointTests
             client.GetAsync("/v1/credits"),
             client.PostAsJsonAsync("/v1/templates/entitlement", ValidTemplate()),
             client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)),
-            PricingQuoteAsync(client));
+            PricingQuoteAsync(client),
+            JobEnqueueAsync(client));
 
         Assert.All(responses, response => Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode));
     }
@@ -308,6 +343,14 @@ public sealed class TrustedGatewayEndpointTests
         return client.PostAsync("/v1/ai/pricing/quote", content);
     }
 
+    private static Task<HttpResponseMessage> JobEnqueueAsync(HttpClient client)
+    {
+        var content = new StringContent(
+            "{\"operation\":\"Generate\",\"inputMetadata\":{\"inputReference\":\"inputs/request-1\",\"promptLength\":6,\"targetWidth\":512,\"targetHeight\":512,\"inputBytes\":0},\"idempotencyKey\":\"request-1\"}",
+            System.Text.Encoding.UTF8, "application/json");
+        return client.PostAsync("/v1/ai/jobs", content);
+    }
+
     private static TemplateEntitlementRequest ValidTemplate() => new(
         "pointer",
         "v1",
@@ -322,6 +365,7 @@ public sealed class TrustedGatewayEndpointTests
         public StubCreditService Credits { get; } = new();
         public StubEntitlementService Entitlement { get; } = new();
         public StubPricingService Pricing { get; } = new();
+        public StubJobService Jobs { get; } = new();
         public CapturingLoggerProvider Logs { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -338,13 +382,53 @@ public sealed class TrustedGatewayEndpointTests
                     services.RemoveAll<ITrustedCreditQueryService>();
                     services.RemoveAll<ITrustedTemplateEntitlementService>();
                     services.RemoveAll<IAiPricingService>();
+                    services.RemoveAll<IAiJobService>();
                     services.AddSingleton<ITrustedAiGateway>(Ai);
                     services.AddSingleton<ITrustedCreditQueryService>(Credits);
                     services.AddSingleton<ITrustedTemplateEntitlementService>(Entitlement);
                     services.AddSingleton<IAiPricingService>(Pricing);
+                    services.AddSingleton<IAiJobService>(Jobs);
                 }
             });
         }
+    }
+
+    private sealed class StubJobService : IAiJobService
+    {
+        private static readonly AiJobSnapshot Job = new(Guid.Parse("7f1ded48-8a4a-44e9-914d-8bfbf260d69d"),
+            TrustedAiOperation.Generate, AiJobStatus.Queued,
+            new("inputs/request-1", 6, 512, 512, 0), 7, null, "2026.08.12", null,
+            "provider-internal", null, 0, false, DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch);
+        public int EnqueueCallCount { get; private set; }
+        public AuthenticatedGatewayUser? LastUser { get; private set; }
+        public TrustedAiOperation? LastOperation { get; private set; }
+        public AiJobIdempotencyKey? LastIdempotencyKey { get; private set; }
+
+        public Task<AiJobOperationResult> EnqueueAsync(
+            AuthenticatedGatewayUser user, TrustedAiOperation operation, AiJobInputMetadata metadata,
+            AiJobIdempotencyKey idempotencyKey, AiPricingVersion? expectedPricingVersion = null,
+            CancellationToken cancellationToken = default)
+        {
+            EnqueueCallCount++;
+            LastUser = user;
+            LastOperation = operation;
+            LastIdempotencyKey = idempotencyKey;
+            return Task.FromResult(new AiJobOperationResult(AiJobOperationStatus.Succeeded,
+                "AI_JOB_QUEUED", Job));
+        }
+
+        public Task<AiJobOperationResult> GetAsync(
+            AuthenticatedGatewayUser user, Guid jobId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AiJobOperationResult(AiJobOperationStatus.Succeeded, "AI_JOB_READ", Job));
+
+        public Task<AiJobListResult> ListAsync(
+            AuthenticatedGatewayUser user, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AiJobListResult(AiJobOperationStatus.Succeeded, "AI_JOB_LISTED", [Job]));
+
+        public Task<AiJobOperationResult> CancelAsync(
+            AuthenticatedGatewayUser user, Guid jobId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AiJobOperationResult(AiJobOperationStatus.Succeeded,
+                "AI_JOB_CANCELLED", Job with { Status = AiJobStatus.Cancelled }));
     }
 
     private sealed class StubPricingService : IAiPricingService

@@ -626,3 +626,21 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - PLAN 62 phải resolve giá hiện hành ở server tại transactional job enqueue/capture boundary. Không được dùng amount
   từ request hoặc quote cache phía client làm final charge. PLAN 61 không chứa provider call, job state, payment flow,
   database schema mới hay secret mới; live pricing config/reload/audit là trách nhiệm deployment vận hành.
+
+## AI job authority boundary từ PLAN 62
+
+- Enqueue/cancel/history đều cần authenticated Gateway principal; request không có UserId, price, balance, provider/model
+  credential hoặc final charge. Job metadata giới hạn 16 KiB tại DB và typed input reference/dimensions/byte count tại
+  Gateway; không persist raw image, token hay secret trong job row/log.
+- Enqueue và credit reserve là một SQL function transaction, có advisory lock cùng unique owner/idempotency key.
+  Payload conflict bị reject; replay trả row hiện có nên không double-reserve. Capture/release dùng deterministic internal
+  keys và PLAN 60 row/advisory locking, không thực hiện wallet arithmetic trong C#.
+- Lease token là worker-only capability. Claim dùng row lock + `SKIP LOCKED`; stale worker không thể complete nếu lease
+  hết hạn/sai token. Retryable failure chỉ requeue; terminal failure/cancel/lease exhaustion release open reservation.
+  Complete validate final cost không vượt reserve, output reference và provider request ID trước capture.
+- RLS được bật và mọi quyền trực tiếp bị revoke khỏi `PUBLIC/anon/authenticated`. `service_role` chỉ đọc job history và
+  execute năm exact job functions; không được direct INSERT/UPDATE/DELETE. API history luôn filter verified owner và
+  không trả lease/provider request ID.
+- Chưa chạy migration trên live/staging PostgreSQL, nên chưa tuyên bố concurrency/rollback thực tế. Contract SQL và
+  integration shape được kiểm thử offline; PLAN 85 vẫn là real PostgreSQL concurrency gate. Rate limiting và provider
+  worker vận hành vẫn là technical debt/deployment concern.

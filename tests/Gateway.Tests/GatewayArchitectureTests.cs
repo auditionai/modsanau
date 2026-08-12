@@ -45,7 +45,8 @@ public sealed class GatewayArchitectureTests
         };
         var requestProperties = new[]
         {
-            typeof(AiGatewayRequest), typeof(AiPricingQuoteRequest), typeof(TemplateEntitlementRequest),
+            typeof(AiGatewayRequest), typeof(AiPricingQuoteRequest), typeof(AiJobEnqueueRequest),
+            typeof(TemplateEntitlementRequest),
         }
             .SelectMany(type => type.GetProperties())
             .Select(property => property.Name)

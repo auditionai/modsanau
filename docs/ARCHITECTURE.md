@@ -985,3 +985,20 @@ Save current project
 - Quote không gọi ledger và không reserve/charge. PLAN 62 phải resolve lại giá qua server pricing authority khi tạo job
   và chỉ truyền server-resolved cost vào internal ledger contract; giá hiển thị hoặc amount từ client không có authority.
   PLAN 61 không thêm database migration, AI job/provider execution, payment, admin pricing UI hoặc desktop UI.
+
+## AI Job System từ PLAN 62
+
+- `private.ai_jobs` là durable state authority cho `Pending/Queued/Processing/Completed/Failed/Cancelled`; mỗi row
+  giữ verified owner, bounded JSON metadata (không raw image), pricing version, reservation/final credits, opaque output,
+  provider request ID, retry/lease state và timestamps. `(user_id, idempotency_key)` là unique request identity.
+- `private.ai_job_enqueue` gọi `private.credit_reserve` rồi insert/chuyển Pending→Queued trong cùng PostgreSQL
+  transaction. Client không truyền cost; `PostgresAiJobService` resolve current `IAiPricingService` quote, validate lại
+  trusted output và truyền integer server price vào function. Conflict/stale version không chạm DB/credit.
+- Worker claim dùng `FOR UPDATE SKIP LOCKED`, lease token/expiry và bounded retry. Complete chỉ với live lease rồi gọi
+  `credit_capture`; failure terminal/cancel trước capture gọi `credit_release`. Retry chỉ requeue, không reserve lại.
+  Expired lease được reclaim; hết retry hoặc cancel-requested được terminal hóa và release bằng deterministic key.
+- Public Gateway cung cấp authenticated enqueue/get/list/cancel. Owner luôn từ verified principal; history query có
+  owner predicate, tối đa 100 rows. Provider request ID/lease token không được phản chiếu ra client. Table bật RLS,
+  client roles không có schema/table/function quyền; service role chỉ SELECT history và EXECUTE exact functions.
+- PLAN 62 không thêm provider executor, raw input/output storage, desktop UI, image Apply, payment hoặc gameplay.
+  Migration/locking hiện có offline contract evidence; chưa có live PostgreSQL execution evidence.

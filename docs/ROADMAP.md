@@ -155,7 +155,11 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 61: immutable server-hosted catalog có version/effective time và integer credit price cho đủ bảy AI
   operations; authenticated bounded quote endpoint trả display estimate, stale version trả 409 kèm current quote,
   invalid/unavailable catalog fail closed. Client không gửi cost/provider và quote không reserve/charge ledger.
-- PLAN kế tiếp: PLAN 62 — AI Job System.
+- PLAN đã hoàn thành kiểm chứng: PLAN 62 — AI Job System.
+- Phạm vi PLAN 62: private PostgreSQL durable job state machine, atomic enqueue/reserve, owner-scoped history/cancel,
+  idempotent transition functions, worker leases/retry recovery và capture/release lifecycle dùng lại PLAN 60.
+  Gateway không nhận client charge, không persist raw image/secret và fail closed khi DB chưa cấu hình.
+- PLAN kế tiếp: PLAN 63 — AI Studio UI.
 - Milestone hiện tại: Milestone 4 — AI Workflow & Commercial Backend.
 
 ## Stage Gates
