@@ -726,3 +726,10 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - Windows root dùng protected inheritable DACL chỉ cho owner, SYSTEM và Built-in Administrators. ACL được apply/read-back trước nội dung mới và khi open/recover; không thể harden thì fail closed và cleanup partial root.
 - Path/reparse validation chạy trước khi tin existing workspace; exclusive lock marker thắng PID/timestamp trong quyết định active/stale. Startup chỉ phát hiện recovery candidate, không auto-delete retained/unsafe evidence.
 - Cleanup success/failure/explicit recovery chỉ tác động exact owned workspace; project, encrypted cache và pristine source không bị mutate. Không log raw key và không hứa secure deletion trên SSD.
+
+## Privilege model review từ PLAN 75
+
+- Inventory không tìm thấy runtime operation cần high integrity: managed user paths, Credential Manager/DPAPI, owned ACL, archive/DDS child tools và writable export đều có thể chạy current-user. App-wide elevation tăng blast radius và alternate-admin UAC có thể đổi profile/data context.
+- ADR-0002 chọn migration future sang `asInvoker`; PLAN 75 không đổi manifest hiện tại, không implement broker và không silent self-elevate. Một PLAN compatibility riêng phải chạy standard-user real-tool/file pipeline trước khi thay manifest.
+- Nếu privileged app install/update thật sự cần broker, protocol phải closed/versioned, operation/path/signature allowlisted, explicit UAC và atomic failure; không arbitrary command/copy/delete, credential hopping hoặc game path/install authority.
+- Existing same-user project/settings/cache/session giữ schema và profile. Alternate-admin-profile data không auto-scan/copy/take ownership; recovery chỉ explicit user-selected theo PLAN riêng.

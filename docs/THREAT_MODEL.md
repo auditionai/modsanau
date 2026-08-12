@@ -200,6 +200,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 7. Parser/native/tool zero-day và supply-chain compromise vẫn có thể tồn tại dù input bounds/hash pin.
 8. App binary/IP có thể bị decompile. Bảo vệ business authority bằng server boundary quan trọng hơn cố giữ client code bí mật.
 9. Prompt và AI output có thể chứa sensitive user content; retention/deletion policy phải được deployment/product owner chốt trước production.
+10. Runtime hiện vẫn `requireAdministrator` theo PLAN 02 cho đến migration gate sau PLAN 75; app-wide elevation làm tăng blast radius và có thể đổi profile khi UAC dùng alternate credential. ADR-0002 đã chọn future `asInvoker`, nhưng chưa triển khai.
 
 ## Security gates tối thiểu trước production
 

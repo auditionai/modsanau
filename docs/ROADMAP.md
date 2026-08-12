@@ -26,6 +26,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Quyết định ADR-0001: hybrid — server-controlled acquisition + encrypted local cache + client-side local build/export. Server worker không được chọn cho V1; authorized user vẫn có thể recover final archive, nên legal evidence và residual-risk disclosure là release gate.
 - PLAN đã hoàn thành: PLAN 74 — Protected Workspace Hardening.
 - Phạm vi PLAN 74: random managed workspace được harden bằng exact protected NTFS DACL owner/SYSTEM/Administrators, reparse/read-back gates, fail-safe partial cleanup và existing crash/concurrency ownership semantics; không plaintext global cache, raw-key logging hoặc secure-delete claim.
+- PLAN đã hoàn thành: PLAN 75 — Privilege Model Review.
+- Quyết định ADR-0002: runtime file-only không chứng minh nhu cầu app-wide elevation; thiết kế migration future sang unelevated `asInvoker`, broker chỉ khi có privileged operation thật với closed protocol/path allowlist. PLAN 75 không đổi manifest hoặc implement broker/UAC.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

@@ -1096,3 +1096,9 @@ Materialization chỉ được phép dưới managed `WorkspacesDirectory`, ghi 
 `SecureWorkspaceService` tiếp tục cấp random 128-bit lowercase hex identity dưới managed `Temp/Workspaces`; không dùng project/template/user/secret trong directory name. `IWorkspaceProtection` được áp dụng ngay sau root creation và trước khi tạo lock/content. Trên Windows, `WindowsWorkspaceProtection` đặt protected DACL chính xác chỉ cho Owner Rights, SYSTEM và Built-in Administrators, với container/object inheritance; create fail nếu không thể apply/read-back exact policy và cleanup root vừa tạo.
 
 Open/recovery xác minh no-reparse tree rồi re-apply/read-back policy trước khi nhận exclusive marker lock. Active/retained/unsafe candidates giữ semantics crash recovery hiện hữu: startup chỉ inventory, không auto-delete evidence; explicit cleanup cần exact 32-hex ID, valid marker, no reparse và exclusive ownership. ACL failure không mutate project/cache/pristine roots. Cleanup là best-effort exposure reduction, không secure deletion trên SSD.
+
+## Privilege model decision từ PLAN 75
+
+[ADR-0002](ADR/0002-privilege-model.md) kết luận runtime file-only không có operation chứng minh cần Administrator toàn ứng dụng và chọn migration future sang unelevated `asInvoker`. PLAN 75 là review/ADR nên manifest vẫn `requireAdministrator`, `uiAccess=false`; không có broker hoặc self-elevation implementation.
+
+LocalApplicationData, Credential Manager/DPAPI, owned workspace ACL, ACV Tool 5/DirectXTex trong isolated workspace và writable user-selected export đều thuộc user context. Nếu future installer/update có privileged operation thật, broker phải separate/signed, explicit UAC, closed versioned protocol và exact canonical path/operation allowlist; không arbitrary command/path và không game authority. Migration phải giữ schema/data cùng identity, fail safely với alternate-admin profile và chạy standard-user/real-tool compatibility matrix trước manifest change.
