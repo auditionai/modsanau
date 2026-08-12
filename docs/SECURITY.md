@@ -610,9 +610,9 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Database/Npgsql errors được collapse thành stable unavailable/rejected code; raw SQL error, connection string và
   credential không được trả/log bởi ledger code. Cancellation được truyền tới open/read/commit và rollback xảy ra
   khi transaction chưa commit.
-- Chưa có live PostgreSQL fixture trong repository, payment webhook, pricing rules, ledger retention/archive policy
-  hoặc operational reconciliation dashboard. SQL migration/contract và service gates được kiểm thử offline; deployer
-  phải apply migration bằng trusted migration role trước khi cấu hình Gateway. Pricing thuộc PLAN 61.
+- Real PostgreSQL fixture chạy isolated ngoài repository theo gate PLAN 83/85. Payment webhook contract đã có từ PLAN 84;
+  live Stripe và operational reconciliation dashboard vẫn chưa verified. Deployer phải apply migration bằng trusted
+  migration role trước khi cấu hình Gateway. Pricing thuộc PLAN 61.
 
 ## AI pricing authority boundary từ PLAN 61
 
@@ -845,3 +845,18 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
   migration owner, exposed schemas, backup/rollback và Data API chưa production-verified.
 - Gate tìm thấy lỗi sẵn có PLAN 60 `42702` trong credit function. RLS evidence dùng trusted admin seed; exact PLAN 85 sở hữu
   việc sửa và concurrency verification. Xem [SUPABASE_RLS_HARDENING.md](SUPABASE_RLS_HARDENING.md).
+
+## Payment security từ PLAN 84
+
+- Client success/redirect không có mutation route và không phải proof. Chỉ Stripe webhook raw body có HMAC-SHA256 hợp lệ,
+  signed timestamp trong 5 phút, exact live/test mode và paid one-time Checkout event mới tới fulfillment.
+- Product metadata chỉ chọn entry trong server catalog. Amount/currency phải khớp exact; số credit chỉ đến từ server
+  configuration. UUID user đến từ signed `client_reference_id`, không từ một client credit request.
+- Body tối đa 128 KiB, JSON strict/bounded, đúng một signature header và constant-time digest comparison. Secret chỉ ở
+  Gateway config, option/log redacted; audit không chứa raw body/header/payment ID.
+- PostgreSQL lưu append-only verified event, unique provider event/payment identity và request hashes. Advisory lock cùng
+  conflict detection làm retry idempotent; exact function mới được phép gọi PLAN 60 `credit_grant`.
+- Table ENABLE+FORCE RLS không có client policy. `anon`/`authenticated` không table/function privilege; `service_role` chỉ
+  có SELECT ledger payment và EXECUTE exact apply function.
+- Unit/HTTP/migration contract đã PASS nhưng live Stripe chưa verified. Lỗi PLAN 60 `42702` đã biết khiến real database
+  fulfillment chưa được tuyên bố vận hành trước khi PLAN 85 sửa/test. Chi tiết ở [PAYMENT_SECURITY.md](PAYMENT_SECURITY.md).

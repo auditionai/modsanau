@@ -143,7 +143,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | 1 | Steal provider/service-role/payment/signing secret từ client/repo/log | 4 | 5 | 20 | Critical | Secret separation, redaction, server config **Implemented**; CI scan/managed secret/signing **Planned/Operational** | High cho compromised backend/operator |
 | 2 | Patch local license/credit/`IsPremium` check để lấy premium/AI | 5 | 4 | 20 | Critical | Server pricing/credit/identity và signed scoped grant **Implemented** | Medium; durable record/nonce deployment còn thiếu |
 | 3 | Concurrent/replayed spend gây double charge/spend | 4 | 5 | 20 | Critical | SQL transaction, advisory/row locks, idempotency, lease **Implemented offline-tested** | Medium; live PostgreSQL chưa verified |
-| 4 | Fake payment callback cấp credits | 4 | 5 | 20 | Critical | Không có client mutation route **Implemented**; verified webhook/idempotency **Planned** | High vì payment flow chưa triển khai |
+| 4 | Fake payment callback cấp credits | 4 | 5 | 20 | Critical | Raw-body HMAC/timestamp, server catalog, append-only dual idempotency **Implemented contract** | Medium; live Stripe/secret/ops và PLAN 85 DB gate chưa verified |
 | 5 | Cross-user content/job/preset/template access | 4 | 5 | 20 | Critical | Verified UUID, owner filters/content kind **Implemented**; cloud preset/template storage **Planned** | Medium/High tùy deployment/RLS test |
 | 6 | Tamper update/installer/dependency để chạy code | 4 | 5 | 20 | Critical | App signing pipeline + signed manifest/hash/version/publisher verification **Implemented contract**; live signer/installer/SBOM **Operational/Planned** | Medium/High |
 | 7 | Path traversal/reparse/malicious archive or image escapes workspace | 4 | 5 | 20 | Critical | Canonical relative paths, reparse checks, bounds, atomic promotion **Implemented** | Medium; parser/tool vulnerabilities còn lại |
@@ -166,7 +166,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Token theft/rotation | Desktop Security + Auth | Credential Manager, redirects off, bounded parse, serialized refresh | `WindowsCredentialSessionStoreTests`, `SupabaseAuthServiceTests` | PLAN 69 release/plaintext/concurrency audit |
 | Forged identity/cross-user | Gateway + Data | Supabase `/auth/v1/user`, UUID from principal, owner filters/RLS | `SupabaseAccessTokenValidatorTests`, `TrustedGatewayEndpointTests`, AI job/content tests | Live RLS/storage integration |
 | Credit replay/race | Backend + Data | Transaction, advisory/row locks, request hash/idempotency | `CreditLedgerContractTests`, `AiJobContractTests` | Live PostgreSQL concurrency gate |
-| Fake payment | Payments + Backend | Verified signed webhook, idempotent event ledger | Client mutation absence tests | Payment implementation chưa tồn tại |
+| Fake payment | Payments + Backend | Raw-body HMAC/timestamp, server-priced catalog, idempotent append-only event/payment ledger | `PaymentSecurityTests`, migration contract tests | Live Stripe/secret rotation/alert và PLAN 85 DB gate |
 | Provider ambiguity | AI Backend | Durable lease, reconciliation state, no blind retry | `AiExecutionTests`, migration contract tests | Operations reconciliation tooling |
 | Malicious upload/output | Gateway + Imaging | Size/MIME/signature/dimension/hash validation | `AiExecutionTests`, imaging/import/DDS tests | Fuzzing và concrete provider verification |
 | Path traversal/reparse | Desktop Infrastructure | Central path abstraction, no follow reparse, atomic writes | `PathSecurityTests`, workspace/project/archive tests | Re-run on supported filesystems/release image |
@@ -186,6 +186,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Desktop ↔ Gateway | Forged/stolen bearer | Body/operation tamper | Missing audit correlation | Token/prompt leak | Request flood | Client asserts price/user |
 | Gateway ↔ Supabase/PostgreSQL | Forged subject/role | SQL/function misuse | Incomplete durable audit | Connection/SQL error leak | Pool/lock exhaustion | service-role overprivilege |
 | Gateway ↔ AI/content provider | Provider impersonation | Output/reference tamper | Ambiguous provider outcome | Secret/content leak | Timeout/oversized output | Raw provider controls exposed |
+| Stripe → Gateway | Forged webhook | Body/event/payment tamper | Duplicate/conflicting event | Secret/payment data leak | Webhook flood/retry storm | Provider/client chooses credit |
 | Desktop ↔ filesystem/tools | Symlink/reparse identity | Binary/archive/DDS tamper | Weak operation evidence | Temp/pristine exposure | Resource bomb/deadlock | Command/path injection |
 | Updater ↔ release channel | Fake publisher | Package/manifest rollback | Missing provenance | Signing key leak | Update outage | Arbitrary code execution |
 
@@ -196,7 +197,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 3. SHA-256 xác nhận identity/integrity kỳ vọng nhưng không thay chữ ký publisher và không tự chứng minh runtime compatibility.
 4. External AI provider adapter, provider network, private content store deployment và live PostgreSQL concurrency chưa verified; provider-neutral/fake tests không phải production evidence.
 5. TLS termination, WAF/rate limiting, secret manager, monitoring, backup/restore và incident response là operational controls chưa được repository chứng minh.
-6. Payment webhook chưa triển khai. Premium package distribution contract đã có nhưng concrete catalog/private storage/download cache và durable record/nonce deployment chưa verified.
+6. Stripe payment webhook contract đã triển khai nhưng live endpoint/secret/product, secret rotation, alert/dispute operations và real fulfillment transaction chưa verified. Premium package concrete storage/deployment cũng chưa verified.
 7. Parser/native/tool zero-day và supply-chain compromise vẫn có thể tồn tại dù input bounds/hash pin.
 8. App binary/IP có thể bị decompile. Bảo vệ business authority bằng server boundary quan trọng hơn cố giữ client code bí mật.
 9. Prompt và AI output có thể chứa sensitive user content; retention/deletion policy phải được deployment/product owner chốt trước production.
@@ -258,3 +259,14 @@ table, provider/lease capability và authority reference vẫn server-only. Real
 Residual risk nằm ở `service_role`/superuser/BYPASSRLS, Supabase exposed-schema và migration-owner configuration; leak
 service-role secret vượt qua RLS. Staging/live Supabase chưa verified. Foreign-key/unique enforcement có PostgreSQL covert
 channel semantics nhưng client không có DML. PLAN 60 function ambiguity đã được phát hiện và chuyển thành bắt buộc PLAN 85.
+
+## Payment webhook residual risk từ PLAN 84
+
+Giả callback, body tamper, stale replay, wrong environment, provider-selected credit và duplicate event/payment bị chặn bởi
+raw-body HMAC, signed timestamp, live-mode/catalog binding, advisory lock, unique identities và stored request hashes. Client
+không có success/grant authority. Payment event ledger là append-only/server-only và chỉ exact function gọi `credit_grant`.
+
+Residual risk gồm compromised Stripe/Gateway secret, endpoint flooding nhiều replica, provider account takeover, event đến
+trễ hơn tolerance nhưng được Stripe ký mới, secret rotation sai, dispute/refund/chargeback và thiếu alert/reconciliation.
+Repository chưa chứng minh TLS edge/live Stripe. PLAN 60 ambiguity làm real grant chưa production-ready cho tới PLAN 85;
+vì vậy PLAN 84 chỉ là implemented contract, không phải live payment certification.

@@ -31,6 +31,9 @@ public static class GatewayApplication
         services.AddSingleton<IAiContentStore, UnavailableAiContentStore>();
         services.AddSingleton<IAiMediaValidator, UnavailableAiMediaValidator>();
         services.AddSingleton<ITrustedAiProvider, UnavailableTrustedAiProvider>();
+        services.AddSingleton(PaymentProductCatalog.FromConfiguration(configuration));
+        services.AddSingleton(StripeWebhookOptions.FromConfiguration(configuration));
+        services.AddSingleton<IPaymentWebhookVerifier, StripePaymentWebhookVerifier>();
         var providerProfiles = configuration.GetSection("Gateway:AiProviderProfiles").GetChildren()
             .Select(section => Enum.TryParse<TrustedAiOperation>(section["Operation"], out var operation)
                 ? new TrustedAiProviderProfile(operation, section["PublicOptionId"] ?? string.Empty,
@@ -74,6 +77,7 @@ public static class GatewayApplication
                 provider.GetRequiredService<PostgresAiJobService>());
             services.AddSingleton<IAiJobWorkerService>(provider =>
                 provider.GetRequiredService<PostgresAiJobService>());
+            services.AddSingleton<IPaymentFulfillmentService, PostgresPaymentFulfillmentService>();
         }
         else
         {
@@ -84,6 +88,7 @@ public static class GatewayApplication
                 provider.GetRequiredService<UnavailableCreditLedgerService>());
             services.AddSingleton<IAiJobService, UnavailableAiJobService>();
             services.AddSingleton<IAiJobWorkerService, UnavailableAiJobWorkerService>();
+            services.AddSingleton<IPaymentFulfillmentService, UnavailablePaymentFulfillmentService>();
         }
         services.AddSingleton<IAiJobExecutionService, AiJobExecutionService>();
         services.AddHostedService<AiJobWorker>();
@@ -136,6 +141,7 @@ public static class GatewayApplication
 
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
         app.MapTrustedGatewayEndpoints();
+        app.MapPaymentWebhookEndpoints();
     }
 }
 

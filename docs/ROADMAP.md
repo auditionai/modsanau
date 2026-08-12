@@ -59,6 +59,10 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 83: audit 6 user-owned tables trong existing `private` schema; FORCE RLS; five own-row SELECT policies và
   safe column grants; idempotency/internal columns server-only; no client DML/RPC; cross-user gate PASS trên PostgreSQL
   17.6 pinned digest. Supabase staging/live chưa verified; PLAN 60 function ambiguity được ghi nhận cho exact PLAN 85.
+- PLAN đã hoàn thành contract: PLAN 84 — Payment Security.
+- Phạm vi PLAN 84: Stripe raw-body HMAC/timestamp verification, exact live/test + server product/amount/currency catalog,
+  bounded anonymous webhook ingress và append-only dual event/payment idempotency trước exact PLAN 60 `credit_grant`.
+  Client success state không có authority; live Stripe và real fulfillment chưa verified, PLAN 85 sở hữu lỗi PLAN 60 đã biết.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

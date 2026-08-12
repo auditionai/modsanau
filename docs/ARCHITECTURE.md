@@ -1221,3 +1221,19 @@ Supabase access, không thay Gateway ownership predicate hay cấp commercial mu
 
 Real PostgreSQL 17.6 gate đã apply cả bốn migration và chứng minh own/cross-user/column/DML/RPC/anon behavior. Gate đồng
 thời phát hiện PLAN 60 function ambiguity `42702`; PLAN 83 không lấn scope ledger, và exact PLAN 85 phải sửa/verify lỗi này.
+
+## Payment security từ PLAN 84
+
+`/v1/payments/webhooks/stripe` là server ingress riêng, `AllowAnonymous` chỉ ở bearer layer và được xác thực bằng Stripe
+HMAC trên exact raw body với signed timestamp tolerance 5 phút. Endpoint giữ HTTPS/type/128 KiB/IP gate của PLAN 82;
+signature, body và payment identity không đi vào audit log.
+
+Verifier chỉ chấp nhận paid one-time Checkout events đúng live/test mode. Signed product selector phải khớp exact immutable
+server catalog `product + amount_minor + currency → credits`; client redirect/success state và provider-supplied credit
+không tồn tại trong authority contract. Gateway chỉ chuyển typed verified event sang `IPaymentFulfillmentService`.
+
+PostgreSQL `private.payment_apply_verified` serialize theo provider/payment, deduplicate cả event ID lẫn payment ID, phát
+hiện conflicting payload và chỉ sau đó gọi exact PLAN 60 `private.credit_grant`. `private.payment_events` append-only,
+ENABLE+FORCE RLS và server-only. Thiếu secret/catalog/database đều fail closed. Xem
+[PAYMENT_SECURITY.md](PAYMENT_SECURITY.md); production Stripe và real transaction chỉ được tuyên bố sau evidence tương ứng,
+trong đó PLAN 85 sở hữu việc sửa lỗi PLAN 60 đã biết.
