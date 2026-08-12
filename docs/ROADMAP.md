@@ -163,7 +163,11 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 63: accessible adaptive WinUI/MVVM form, server quote/history/cancel adapter, PLAN 38 background execution,
   bounded inputs và cancellable `InternalImage` preview. Không Apply/project/DDS mutation; offline backend không ảnh hưởng
   local editing/build/export.
-- PLAN kế tiếp: PLAN 64 — AI Mask Editor.
+- PLAN đã hoàn thành kiểm chứng: PLAN 64 — AI Mask Editor.
+- Phạm vi PLAN 64: mask bất biến theo đúng tọa độ/kích thước ảnh nguồn, brush/erase deterministic, hardness/opacity,
+  clear/invert/show-hide, zoom/pan đồng bộ, undo/redo có giới hạn bộ nhớ và composition có thể hủy. Mask chỉ được lưu
+  khi người dùng yêu cầu, bằng atomic replacement trong project workspace; không Apply/DDS, gọi provider hay chạm game.
+- PLAN kế tiếp: PLAN 65 — Inpaint / Outpaint / Remove / Replace / Upscale.
 - Milestone hiện tại: Milestone 4 — AI Workflow & Commercial Backend.
 
 ## Stage Gates

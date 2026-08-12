@@ -657,3 +657,14 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   project/local build/export không bị mutate hay block.
 - Completed output chỉ trở thành immutable `InternalImage` preview trong memory. Không có code path từ AI Studio tới
   `ITextureApplyService`, DDS conversion, project save, archive pack/export hoặc game filesystem. Apply thuộc PLAN 65.
+
+## AI mask boundary từ PLAN 64
+
+- Mask là dữ liệu local không có credential, provider error, token hay charge authority. Kích thước phải khớp nguồn,
+  tổng pixel bị giới hạn và mọi brush setting/point đều được validate trước khi tạo bản mask mới.
+- Stroke, clear, invert, undo/redo và preview composition chỉ thay state trong memory. Missing/invalid source, history vượt
+  giới hạn hoặc cancellation không mutate project texture, DDS, archive hay pristine template.
+- Persistence dùng `ISecureWorkspace.ResolveRelativePath` với relative path cố định, không nhận path từ prompt/client.
+  Ghi file tạm ngẫu nhiên trong cùng thư mục, flush và replace atomically; cleanup log chỉ loại exception, không log byte mask.
+- Không serialize mask theo từng stroke và không tự gửi mask ra network. Việc dùng mask trong request, provider execution,
+  credit lifecycle và explicit Apply thuộc PLAN 65; PLAN 64 không tạo đường vòng tới game filesystem.

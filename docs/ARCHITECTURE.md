@@ -1019,3 +1019,17 @@ Save current project
   Thiếu config/auth/network bind `UnavailableAiStudioService` và hiện offline rõ, không ảnh hưởng local editor/build/export.
 - PLAN 63 không thêm DB migration, mask, Apply/DDS replacement, provider key, raw token persistence hay game integration.
   Chưa có production provider adapter cho `IAiService`; configured Gateway chỉ cung cấp quote/history/cancel hiện tại.
+
+## AI Mask Editor từ PLAN 64
+
+- `AiMask` là giá trị bất biến một byte opacity cho mỗi pixel, luôn có đúng kích thước ảnh nguồn và giới hạn 16 triệu
+  pixel. `IAiMaskEditingService` nằm ở Core; implementation Imaging thực hiện stroke source-coordinate deterministic,
+  paint/erase với size/hardness/opacity, clear, invert và composition overlay có cancellation.
+- `AiMaskEditorViewModel` chỉ khởi tạo từ `InternalImage` preview đã chọn của PLAN 63. Source và overlay dùng cùng phép
+  biến đổi Uniform/zoom/pan; pointer được chiếu ngược về tọa độ nguồn trước khi ghi mask. Các nút pan/reset/stamp-center
+  giữ toàn bộ chức năng khả dụng bằng bàn phím và screen reader.
+- Mỗi edit được mã hóa thành state của `IEditHistoryService` PLAN 24 với tối đa 64 entry và 256 MiB. Edit, undo/redo,
+  show-hide và composition không mutate source preview hay project texture.
+- `IAiMaskAssetStore` chỉ ghi khi người dùng chọn Save, vào `ai/masks/current.amsmask` bên trong secure project workspace.
+  File tạm cùng thư mục được flush rồi atomic replace; cancellation/failure trước replace giữ nguyên asset trước đó.
+- PLAN 64 không điều phối provider operation, không gọi Apply/Match Original/DDS/archive và không tương tác runtime/game.

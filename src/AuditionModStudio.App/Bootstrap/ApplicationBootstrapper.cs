@@ -134,6 +134,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IImageAdjustmentService, ImageAdjustmentService>();
         builder.Services.AddSingleton<IAlphaChannelService, AlphaChannelService>();
         builder.Services.AddSingleton<IEditHistoryService, EditHistoryService>();
+        builder.Services.AddSingleton<IAiMaskEditingService, AiMaskEditingService>();
+        builder.Services.AddSingleton<IAiMaskAssetStore, AiMaskAssetStore>();
         var gameCatalog = GameCatalog.CreateBuiltIn();
         builder.Services.AddSingleton(gameCatalog);
         builder.Services.AddSingleton<IModCatalog>(services =>
@@ -240,6 +242,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<ImageEditorViewModel>();
         builder.Services.AddTransient<ImageEditorPage>();
         builder.Services.AddSingleton<AiStudioViewModel>();
+        builder.Services.AddSingleton<AiMaskEditorViewModel>();
         builder.Services.AddTransient<AiStudioPage>();
         builder.Services.AddSingleton<AppShellViewModel>();
         builder.Services.AddTransient<MainPage>();

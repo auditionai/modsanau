@@ -14,6 +14,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <StackPanel Spacing="{StaticResource AmsSpace8}">
@@ -245,6 +246,126 @@
                         </ListView.ItemTemplate>
                     </ListView>
                 </StackPanel>
+            </Border>
+
+            <Border Grid.Row="3" Style="{StaticResource AmsGamingPanelStyle}">
+                <Grid ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace16}">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroup>
+                            <VisualState x:Name="StackedMaskState">
+                                <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
+                                <VisualState.Setters>
+                                    <Setter Target="MaskControlsColumn.Width" Value="0" />
+                                    <Setter Target="MaskControls.(Grid.Column)" Value="0" />
+                                    <Setter Target="MaskControls.(Grid.Row)" Value="1" />
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="WideMaskState">
+                                <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1000" /></VisualState.StateTriggers>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateManager.VisualStateGroups>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition x:Name="MaskControlsColumn" Width="360" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <TextBlock
+                            AutomationProperties.HeadingLevel="Level2"
+                            Style="{StaticResource AmsSectionTitleStyle}"
+                            Text="Source-aligned mask" />
+                        <Grid
+                            x:Name="MaskViewport"
+                            Grid.Row="1"
+                            MinHeight="420"
+                            Margin="0,12,0,0"
+                            Background="{ThemeResource AmsCardBrush}"
+                            IsTabStop="True"
+                            PointerMoved="OnMaskPointerMoved"
+                            PointerPressed="OnMaskPointerPressed"
+                            PointerReleased="OnMaskPointerReleased">
+                            <Image
+                                x:Name="MaskSourceImage"
+                                AutomationProperties.Name="AI mask source preview"
+                                RenderTransformOrigin="0.5,0.5"
+                                Stretch="Uniform">
+                                <Image.RenderTransform><CompositeTransform x:Name="MaskSourceTransform" /></Image.RenderTransform>
+                            </Image>
+                            <Image
+                                x:Name="MaskOverlayImage"
+                                AutomationProperties.Name="Magenta AI mask overlay"
+                                IsHitTestVisible="False"
+                                Opacity="0.72"
+                                RenderTransformOrigin="0.5,0.5"
+                                Stretch="Uniform">
+                                <Image.RenderTransform><CompositeTransform x:Name="MaskOverlayTransform" /></Image.RenderTransform>
+                            </Image>
+                        </Grid>
+                    </Grid>
+
+                    <Border x:Name="MaskControls" Grid.Column="1" Style="{StaticResource AmsCardStyle}">
+                        <StackPanel Spacing="{StaticResource AmsSpace12}">
+                            <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Mask tools" />
+                            <Button
+                                Click="OnInitializeMaskClicked"
+                                MinHeight="44"
+                                Style="{StaticResource AmsPrimaryButtonStyle}">
+                                Initialize from preview
+                            </Button>
+                            <ComboBox
+                                Header="Brush mode"
+                                ItemsSource="{x:Bind MaskViewModel.BrushModes}"
+                                MinHeight="44"
+                                SelectedItem="{x:Bind MaskViewModel.Mode, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Brush size (source pixels)" />
+                            <Slider Minimum="1" Maximum="512" Value="{x:Bind MaskViewModel.BrushSize, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Hardness" />
+                            <Slider Minimum="0" Maximum="1" StepFrequency="0.05" Value="{x:Bind MaskViewModel.Hardness, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Opacity" />
+                            <Slider Minimum="0.01" Maximum="1" StepFrequency="0.05" Value="{x:Bind MaskViewModel.Opacity, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Zoom" />
+                            <Slider Minimum="0.1" Maximum="8" Value="{x:Bind MaskViewModel.Zoom, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Pan viewport" />
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                                <Button AutomationProperties.Name="Pan mask left" Click="OnPanLeftClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">&#x2190;</Button>
+                                <Button AutomationProperties.Name="Pan mask up" Click="OnPanUpClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">&#x2191;</Button>
+                                <Button AutomationProperties.Name="Pan mask down" Click="OnPanDownClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">&#x2193;</Button>
+                                <Button AutomationProperties.Name="Pan mask right" Click="OnPanRightClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">&#x2192;</Button>
+                                <Button AutomationProperties.Name="Reset mask viewport" Click="OnResetMaskViewClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Reset</Button>
+                            </StackPanel>
+                            <ToggleSwitch
+                                Header="Mask visibility"
+                                IsOn="{x:Bind MaskViewModel.ShowMask, Mode=TwoWay}"
+                                MinHeight="44"
+                                OffContent="Hidden"
+                                OnContent="Visible" />
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                                <Button Click="OnUndoMaskClicked" IsEnabled="{x:Bind MaskViewModel.CanUndo, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Undo</Button>
+                                <Button Click="OnRedoMaskClicked" IsEnabled="{x:Bind MaskViewModel.CanRedo, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Redo</Button>
+                                <Button Click="OnClearMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Clear</Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+                                <Button Click="OnInvertMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Invert</Button>
+                                <Button
+                                    AutomationProperties.HelpText="Keyboard-accessible alternative to pointer drawing"
+                                    Click="OnStampCenterClicked"
+                                    IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}"
+                                    MinHeight="44"
+                                    Style="{StaticResource AmsSecondaryButtonStyle}">
+                                    Stamp center
+                                </Button>
+                            </StackPanel>
+                            <Button Click="OnSaveMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Save mask asset</Button>
+                            <Button Click="OnCancelMaskCompositionClicked" IsEnabled="{x:Bind MaskViewModel.IsComposing, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Cancel composition</Button>
+                            <ProgressRing AutomationProperties.Name="Mask overlay composition" IsActive="{x:Bind MaskViewModel.IsComposing, Mode=OneWay}" />
+                            <TextBlock AutomationProperties.LiveSetting="Polite" Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind MaskViewModel.StatusMessage, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind MaskViewModel.MemoryStatus, Mode=OneWay}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </Border>
         </Grid>
     </ScrollViewer>
