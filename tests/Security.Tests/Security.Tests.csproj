@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AuditionModStudio.Security\AuditionModStudio.Security.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Updater\AuditionModStudio.Updater.csproj" />
   </ItemGroup>
 
   <ItemGroup>

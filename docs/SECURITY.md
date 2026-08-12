@@ -748,3 +748,20 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
   exact signer thumbprint/subject và timestamp certificate phải tồn tại trước upload.
 - Debug/dev mặc định unsigned. Production certificate, timestamp endpoint và live release hiện chưa VERIFIED; test
   negative/fake không được đổi nhãn thành production evidence. Rotation/revocation theo `docs/APP_CODE_SIGNING.md`.
+
+## App update verification boundary từ PLAN 77
+
+- Update metadata là untrusted bytes. Envelope/payload JSON strict, bounded, cấm unknown member; ES256 signature với
+  update-specific domain được xác minh trước khi đọc URL/version/hash/publisher. Private update-manifest key không nằm
+  trong client/repo và không reuse app/entitlement/template/payment key.
+- Candidate version bắt buộc bốn phần và lớn hơn installed version theo typed comparison. Equal/downgrade fail closed;
+  không suy version/channel từ filename và chưa có rollback channel.
+- Signed URL vẫn bắt buộc HTTPS, không user-info/fragment; final response URI, declared/actual length và exact SHA-256
+  phải khớp. Candidate ghi vào random app-owned staging; partial/hash-fail/cancel không tới installer.
+- Windows Authenticode verifier chạy WinVerifyTrust trước khi extract signer certificate, rồi so exact subject và
+  normalized thumbprint từ signed manifest. Unsigned, altered, untrusted hoặc wrong publisher đều chặn install.
+- `IVerifiedAppUpdateInstaller` chỉ nhận candidate sau toàn bộ gate. Concrete app install/swap/rollback/UAC chưa triển
+  khai và thuộc PLAN 96; PLAN 77 không tự elevate, không chạy arbitrary executable và không cập nhật Audition game.
+- Live manifest signer/public-key rollout, HTTPS release server, production Authenticode certificate và updater network
+  đều `NOT VERIFIED`. Rollover phải ship old+new public verifier trước khi ngừng old key; emergency revoke phát hành
+  verifier policy qua current trusted chain, không chấp nhận unsigned metadata fallback.

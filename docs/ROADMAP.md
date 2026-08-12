@@ -32,6 +32,10 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 76: protected release signing workflow và fail-closed Authenticode/timestamp verification cho explicit
   app-owned EXE/DLL/package/installer artifact; private key chỉ ở certificate store/HSM/service ngoài repository.
   Debug vẫn unsigned, installer production chưa tồn tại, production certificate/timestamp/live signing chưa VERIFIED.
+- PLAN đã hoàn thành: PLAN 77 — App Update Signing & Verification.
+- Phạm vi PLAN 77: strict signed ES256 update manifest bind exact HTTPS URL/version/length/hash/publisher; typed downgrade
+  rejection; randomized bounded staging; WinVerifyTrust + exact Authenticode identity; installer boundary chỉ chạy sau
+  verify. Concrete install/swap/rollback/UI thuộc PLAN 96; live manifest signer/network/installer chưa VERIFIED.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

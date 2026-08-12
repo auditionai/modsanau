@@ -2,7 +2,7 @@
 
 ## Phạm vi và giả định
 
-Tài liệu này áp dụng cho kiến trúc đã triển khai đến PLAN 66. Sản phẩm là file-based content editor, archive builder và export tool có backend AI/commercial tùy chọn. Pipeline kết thúc ở standalone `.ab`/`.acv` được người dùng xuất ra.
+Tài liệu này áp dụng cho kiến trúc đã triển khai đến PLAN 77. Sản phẩm là file-based content editor, archive builder và export tool có backend AI/commercial tùy chọn. Pipeline kết thúc ở standalone `.ab`/`.acv` được người dùng xuất ra.
 
 Không coi Audition installation, game folder, game process, launcher, login, anti-cheat, gameplay, mod installation, backup/restore game archive hoặc in-game QA là asset, trust boundary hay workflow của ứng dụng.
 
@@ -145,7 +145,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | 3 | Concurrent/replayed spend gây double charge/spend | 4 | 5 | 20 | Critical | SQL transaction, advisory/row locks, idempotency, lease **Implemented offline-tested** | Medium; live PostgreSQL chưa verified |
 | 4 | Fake payment callback cấp credits | 4 | 5 | 20 | Critical | Không có client mutation route **Implemented**; verified webhook/idempotency **Planned** | High vì payment flow chưa triển khai |
 | 5 | Cross-user content/job/preset/template access | 4 | 5 | 20 | Critical | Verified UUID, owner filters/content kind **Implemented**; cloud preset/template storage **Planned** | Medium/High tùy deployment/RLS test |
-| 6 | Tamper update/installer/dependency để chạy code | 4 | 5 | 20 | Critical | Dependency pin/audit một phần; signing/freshness/SBOM **Planned/Operational** | High |
+| 6 | Tamper update/installer/dependency để chạy code | 4 | 5 | 20 | Critical | App signing pipeline + signed manifest/hash/version/publisher verification **Implemented contract**; live signer/installer/SBOM **Operational/Planned** | Medium/High |
 | 7 | Path traversal/reparse/malicious archive or image escapes workspace | 4 | 5 | 20 | Critical | Canonical relative paths, reparse checks, bounds, atomic promotion **Implemented** | Medium; parser/tool vulnerabilities còn lại |
 | 8 | Replace `acv.exe`/DLL hijack | 4 | 4 | 16 | High | Absolute path, SHA-256 manifest/copy/prelaunch verify, isolated cwd **Implemented** | Medium; TOCTOU/admin attacker |
 | 9 | MITM/redirect/replay API request | 3 | 5 | 15 | High | Exact HTTPS origin, redirects off, token validation, idempotency **Implemented**; TLS termination/rate limit **Operational/Planned** | Medium |
@@ -172,7 +172,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Path traversal/reparse | Desktop Infrastructure | Central path abstraction, no follow reparse, atomic writes | `PathSecurityTests`, workspace/project/archive tests | Re-run on supported filesystems/release image |
 | Tool replacement/DLL hijack | Archive/DDS + Release | Absolute path, pinned SHA-256, isolated cwd, prelaunch check | archive integrity/process runner tests | Signed tool package; document TOCTOU residual |
 | Temp disclosure | Desktop Infrastructure | Random workspace, protected DACL, lifecycle cleanup, crash recovery | workspace ACL/reparse/cleanup/recovery/concurrency tests | Same-account/admin/process-memory residual |
-| Update tampering | Release Engineering | Signed/timestamped package and manifest, hash, freshness | Updater unit tests where present | Production signing key/HSM and E2E gate |
+| Update tampering | Release Engineering | Signed/timestamped package; ES256 manifest, exact URL/hash/version/publisher | `AppCodeSigningPolicyTests`, `AppUpdateVerificationTests` | Production signing key/HSM, release endpoint and E2E installer gate |
 | Dependency compromise | Release Engineering | Lock/pin, vulnerability audit, provenance/SBOM | `dotnet list package --vulnerable` gate | SBOM/license/provenance pipeline |
 | Prompt/preset authority escalation | AI Desktop + Gateway | Typed allowlist, schema/version bounds, selection-only behavior | `PromptPresetTests`, `LocalPromptPresetStoreTests`, `AiStudioViewModelTests` | Authenticated cloud preset adapter/store |
 | Premium bypass/distribution | Entitlement Backend + Storage | Signed scoped expiring ES256 grant, replay defense, signed manifest, private short-lived access, encrypted derived cache | `EntitlementGrantTests`, `PremiumTemplateDistributionTests`, `EncryptedPremiumTemplateCacheTests` | Durable catalog/record/nonce/private-storage deployment và download wiring |

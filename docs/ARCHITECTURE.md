@@ -1115,3 +1115,20 @@ artifact không nhận PFX/PEM/password. PR/push test workflow không tham chi�
 Debug/local build unsigned vẫn hợp lệ; production workflow thiếu identity/tool/timestamp hoặc verify lỗi thì fail closed.
 `Package.appxmanifest` vẫn có publisher placeholder development và manifest runtime vẫn `requireAdministrator`; PLAN 76
 không đổi packaging/privilege. Xem `docs/APP_CODE_SIGNING.md` cho vận hành, rotation/revocation và trạng thái verification.
+
+## App update signing và verification từ PLAN 77
+
+`AuditionModStudio.Updater` sở hữu verification/orchestration UI-independent. Signed envelope schema-v1 chứa exact raw
+manifest payload và ES256/P-256 signature có domain `AUDITION_APP_UPDATE_MANIFEST_V1`; payload chỉ được parse/dùng sau
+signature verification. Manifest bind version bốn phần, HTTPS artifact URI, exact filename/length/SHA-256 và expected
+Authenticode subject/thumbprint. Update-manifest public key tách khỏi app signing, entitlement và template keys; bounded
+verifier set cho phép rollover tối đa ba public key trong cửa sổ được phê duyệt.
+
+Pipeline là `signed envelope → verify signature → strict manifest parse → typed newer-version gate → randomized staging
+download → exact URI/length/SHA-256 → WinVerifyTrust + exact signer → IVerifiedAppUpdateInstaller`. Mọi failure/cancel
+trước bước cuối không gọi installer và cleanup staging best-effort với stable diagnostic không chứa path. Production
+`HttpClientHandler` phải tắt redirect; service vẫn reject final response URI khác signed URI.
+
+PLAN 77 chỉ cung cấp verification và verified-installer boundary. Installer/swap, rollback, channel/staged rollout,
+deferral lúc build/export và UI thuộc PLAN 96. Chưa có live manifest key, release endpoint hoặc production installer;
+default App composition chưa wire updater nên local editor không phụ thuộc network/update availability.
