@@ -222,3 +222,12 @@ PLAN 79 không adopt Native AOT vì Release x64 publish analyzer fail trên JSON
 thể bị decompile; AOT tương lai cũng chỉ tăng chi phí phân tích, không thay server authority hoặc ngăn Administrator/runtime
 plaintext capture. Việc probe dừng trước native link có nghĩa WinUI/XAML, SkiaSharp và P/Invoke runtime vẫn chưa verified,
 không phải bằng chứng rằng các thành phần đó tương thích hay không tương thích tuyệt đối.
+
+## Client integrity control từ PLAN 80
+
+Moderate integrity gate kiểm executable signer khi production policy yêu cầu, trusted manifest SHA-256 và exact
+resource/companion length+hash. Tamper/missing/traversal/reparse đưa risky capabilities về diagnostics-only, không phản ứng
+anti-debug hoặc phá hủy dữ liệu. Control tăng khả năng phát hiện casual/local modification nhưng không chống được
+Administrator có thể patch process/memory hoặc thay đồng thời unsigned authority. Vì vậy expected manifest hash phải được
+bind vào signed release/package/update chain; production binding hiện chưa verified. Archive pre-launch hash gate vẫn là
+control gần execution nhất cho `acv.exe`, với residual TOCTOU đã được chấp nhận.

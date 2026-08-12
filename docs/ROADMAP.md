@@ -42,6 +42,10 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - PLAN đã hoàn thành evaluation: PLAN 79 — Native AOT / Native Core Evaluation.
 - Phạm vi PLAN 79: chạy Release x64 Native AOT probe thật; ghi nhận `IL2026`/`IL3050` serializer blockers và ma trận
   WinUI/DirectXTex/Supabase/serializer/native interop/plugin. Quyết định `NOT ADOPTED / PRODUCTION NOT VERIFIED`.
+- PLAN đã hoàn thành contract: PLAN 80 — Client Integrity / Anti-Tamper Checks.
+- Phạm vi PLAN 80: reusable PLAN 77 Authenticode adapter; manifest hash-before-parse; strict normalized resource/companion
+  length+SHA-256 inventory; tamper chuyển risky capabilities về diagnostics-only. Không anti-debug/malware-like response;
+  concrete signed release binding và UI enforcement vẫn `PRODUCTION NOT VERIFIED`.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

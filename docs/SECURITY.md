@@ -787,3 +787,18 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
   Authenticode, signed update hoặc integrity verification.
 - Dynamic plugin loading không phù hợp với Native AOT; repository hiện không có plugin loader và không thêm một loader giả.
 - Xem xét lại cần source-generated JSON, WinUI/XAML/SkiaSharp/PInvoke/real-tool smoke, benchmark, AV/sign/update/rollback gate.
+
+## Moderate client integrity từ PLAN 80
+
+- Production policy có thể yêu cầu exact current executable Authenticode publisher qua PLAN 77 WinVerifyTrust adapter.
+- Integrity manifest chỉ được parse sau khi exact bytes khớp trusted SHA-256; manifest entries strict/bounded và chỉ nhận
+  normalized no-reparse paths dưới app root với exact content length + SHA-256.
+- `resource_bundle` và `companion_tool` modification/missing/path failure đều fail closed về diagnostics-only: archive,
+  build/export, update install và resource-dependent mutation capability đều false. Không tự xóa/sửa project hoặc artifact.
+- ACV Tool 5 vẫn được hash-verify khi provision/copy/pre-launch bởi archive policy hiện hữu; unified check không thay thế
+  specialized gate và không tuyên bố loại bỏ TOCTOU trước Administrator attacker.
+- Không anti-debug, debugger detection, process injection scan, self-modifying code, hidden exception hoặc malware-like
+  termination. Stable diagnostic không chứa full local path hay secret.
+- Generator chỉ tạo deterministic manifest/hash. Trusted expected hash phải nằm trong signed release/package/update chain;
+  sidecar hash không phải authority. Concrete production binding, signed app/resource artifact và UI disable wiring hiện
+  `PRODUCTION NOT VERIFIED`; unsigned Debug không được đổi nhãn thành production verified.

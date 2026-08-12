@@ -1154,3 +1154,21 @@ Quyết định là `EVALUATED / NOT ADOPTED / PRODUCTION NOT VERIFIED`: project
 DirectXTex vẫn là external-process boundary sau `IDdsService`; repository không có dynamic plugin loader. Mọi lần xem xét
 lại phải chuyển serializer sang source generation, đạt analyzer-zero, full real-tool/runtime matrix và benchmark có lợi ích
 đo được. AOT/native core chỉ là deployment/hardening option, không phải DRM hay nơi giữ client secret.
+
+## Client integrity gate từ PLAN 80
+
+`ClientIntegrityService` trong Security là orchestration UI-independent cho moderate integrity checks. Nó nhận application
+root, exact executable/manifest relative path, trusted manifest SHA-256 và production publisher identity. Khi production
+policy yêu cầu signature, `UpdaterClientExecutableTrustVerifier` adapter dùng lại `WindowsAuthenticodeUpdateVerifier` của
+PLAN 77 thay vì tạo WinTrust implementation thứ hai.
+
+Service xác minh executable path/no-reparse và signature trước, exact manifest bytes/SHA-256 trước parse, rồi strict
+schema-v1 inventory tối đa 512 explicit `resource_bundle`/`companion_tool` entries. Mỗi entry phải là normalized relative
+path dưới app root, no-reparse, exact length và SHA-256. Failure trả stable diagnostic không chứa full path và capability
+`DiagnosticsOnly`, tắt archive/build/export, update install và resource-dependent mutation; không crash/xóa project.
+
+`New-ClientIntegrityManifest.ps1` sinh deterministic inventory từ explicit release paths và trả manifest SHA-256. Expected
+hash phải được bind bằng signed release/package/update authority; đặt manifest và `.sha256` cạnh nhau không tự tạo trust.
+Production executable/manifest/resource bundle binding và UI diagnostics chưa được release artifact thực tế xác minh, nên
+trạng thái vận hành là `IMPLEMENTED CONTRACT / PRODUCTION NOT VERIFIED`. ACV vẫn có PLAN 07/31 specialized manifest,
+copy/pre-launch hash gate; PLAN 80 không thay archive abstraction hoặc giải quyết Administrator/TOCTOU tuyệt đối.
