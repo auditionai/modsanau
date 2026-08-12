@@ -4,6 +4,7 @@ using AuditionModStudio.Gateway.Endpoints;
 using AuditionModStudio.Gateway.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Npgsql;
 
 namespace AuditionModStudio.Gateway;
 
@@ -22,8 +23,25 @@ public static class GatewayApplication
         services.AddSingleton<ISupabaseAuthClient, SupabaseAuthHttpClient>();
         services.AddSingleton<ISupabaseAccessTokenValidator, SupabaseAccessTokenValidator>();
         services.AddSingleton<ITrustedAiGateway, UnavailableTrustedAiGateway>();
-        services.AddSingleton<ITrustedCreditQueryService, UnavailableTrustedCreditQueryService>();
         services.AddSingleton<ITrustedTemplateEntitlementService, UnavailableTrustedTemplateEntitlementService>();
+
+        if (options.TryGetCreditDatabaseConnectionString(out var creditConnectionString))
+        {
+            services.AddSingleton(_ => NpgsqlDataSource.Create(creditConnectionString));
+            services.AddSingleton<PostgresCreditLedgerService>();
+            services.AddSingleton<ICreditLedgerService>(provider =>
+                provider.GetRequiredService<PostgresCreditLedgerService>());
+            services.AddSingleton<ITrustedCreditQueryService>(provider =>
+                provider.GetRequiredService<PostgresCreditLedgerService>());
+        }
+        else
+        {
+            services.AddSingleton<UnavailableCreditLedgerService>();
+            services.AddSingleton<ICreditLedgerService>(provider =>
+                provider.GetRequiredService<UnavailableCreditLedgerService>());
+            services.AddSingleton<ITrustedCreditQueryService>(provider =>
+                provider.GetRequiredService<UnavailableCreditLedgerService>());
+        }
 
         services.AddAuthentication(GatewayAuthenticationDefaults.Scheme)
             .AddScheme<AuthenticationSchemeOptions, GatewayAuthenticationHandler>(
@@ -78,6 +96,7 @@ public sealed class TrustedGatewayOptions
     public string SupabasePublishableKey { get; init; } = string.Empty;
     public Uri? ProviderEndpoint { get; init; }
     public string ProviderApiKey { get; init; } = string.Empty;
+    public string CreditDatabaseConnectionString { get; init; } = string.Empty;
 
     public bool HasValidSupabaseConfiguration =>
         SupabaseProjectUri is { IsAbsoluteUri: true, Scheme: "https", AbsolutePath: "/" }
@@ -100,7 +119,41 @@ public sealed class TrustedGatewayOptions
             SupabasePublishableKey = section["SupabasePublishableKey"] ?? string.Empty,
             ProviderEndpoint = ParseAbsoluteUri(section["ProviderEndpoint"]),
             ProviderApiKey = section["ProviderApiKey"] ?? string.Empty,
+            CreditDatabaseConnectionString = section["CreditDatabaseConnectionString"] ?? string.Empty,
         };
+    }
+
+    public bool TryGetCreditDatabaseConnectionString(out string connectionString)
+    {
+        connectionString = string.Empty;
+        if (string.IsNullOrWhiteSpace(CreditDatabaseConnectionString)
+            || CreditDatabaseConnectionString.Length > 4_096)
+        {
+            return false;
+        }
+
+        try
+        {
+            var builder = new NpgsqlConnectionStringBuilder(CreditDatabaseConnectionString)
+            {
+                IncludeErrorDetail = false,
+                PersistSecurityInfo = false,
+            };
+            if (string.IsNullOrWhiteSpace(builder.Host)
+                || string.IsNullOrWhiteSpace(builder.Database)
+                || string.IsNullOrWhiteSpace(builder.Username)
+                || builder.SslMode is not (SslMode.Require or SslMode.VerifyCA or SslMode.VerifyFull))
+            {
+                return false;
+            }
+
+            connectionString = builder.ConnectionString;
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     public override string ToString() => "TrustedGatewayOptions { [REDACTED] }";

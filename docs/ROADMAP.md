@@ -142,7 +142,12 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
   snapshot read và exact template entitlement. Gateway introspect bearer token qua Supabase Auth, lấy UserId duy
   nhất từ verified principal, validate request/response bounded và giữ provider configuration phía server. Trusted
   capability mặc định fail closed; chưa có wallet/ledger/reservation/refund hoặc client-supplied commercial state.
-- PLAN kế tiếp: PLAN 60 — Credit Ledger.
+- PLAN đã hoàn thành kiểm chứng: PLAN 60 — Credit Ledger.
+- Phạm vi PLAN 60: PostgreSQL/Supabase private schema cho wallet projection, reservation state machine,
+  append-only ledger/refund/idempotency records và năm transactional server functions `grant/reserve/capture/release/refund`.
+  Gateway dùng pooled Npgsql data source với TLS, parameterized commands, explicit transaction/cancellation và fail-closed
+  khi database chưa cấu hình. HTTP vẫn chỉ cho đọc snapshot; không có client mutation hoặc client-supplied balance/cost/refund/payment state.
+- PLAN kế tiếp: PLAN 61 — AI Pricing.
 
 ## Stage Gates
 

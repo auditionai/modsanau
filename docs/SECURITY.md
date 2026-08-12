@@ -587,3 +587,26 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Gateway chưa cấu hình TLS termination, rate limiting, provider adapter, database/RLS, audit persistence hoặc
   distributed abuse controls; các concern này phải được hoàn tất ở deployment/security PLAN tương ứng. ASP.NET
   production deployment phải terminate TLS và cấp secrets qua secret store/environment, không appsettings Git.
+
+## Credit authority boundary từ PLAN 60
+
+- Credit tables nằm trong private PostgreSQL schema, bật RLS và revoke toàn bộ table/function privilege khỏi
+  `PUBLIC`, `anon`, `authenticated`. `service_role` chỉ được SELECT wallet projection và EXECUTE năm exact mutation
+  functions; không được direct INSERT/UPDATE/DELETE tables. Connection string là server secret và Gateway chỉ chấp
+  nhận TLS `Require`, `VerifyCA` hoặc `VerifyFull`; option rendering luôn redacted.
+- Ledger, refund và idempotency rows bị trigger chặn UPDATE/DELETE. Wallet/reservation là mutable projections nhưng
+  chỉ `SECURITY DEFINER` functions có fixed safe search path được thay đổi. Functions kiểm tra nonnegative balance,
+  positive amount, overflow, valid state transition, reservation/capture ownership và refund aggregate cap.
+- Mỗi mutation chạy trong explicit database transaction. Advisory lock serialize concurrent replay của cùng
+  `(user, operation, idempotency key)`; wallet/reservation/captured-ledger row locks chống double-spend,
+  capture-vs-release race và concurrent over-refund. Request SHA-256 canonical được lưu cùng unique idempotency key;
+  replay cùng payload trả stored result, payload khác trả `CREDIT_IDEMPOTENCY_CONFLICT`.
+- User identity tiếp tục đến từ verified Supabase subject của PLAN 59. Public API chỉ có `GET /v1/credits`; không có
+  request contract/route để client set balance, cost, refund, grant hoặc successful payment. Capture cost và refund
+  amount nằm trong internal server contract cho pricing/job/payment authorities tương lai, không phải client authority.
+- Database/Npgsql errors được collapse thành stable unavailable/rejected code; raw SQL error, connection string và
+  credential không được trả/log bởi ledger code. Cancellation được truyền tới open/read/commit và rollback xảy ra
+  khi transaction chưa commit.
+- Chưa có live PostgreSQL fixture trong repository, payment webhook, pricing rules, ledger retention/archive policy
+  hoặc operational reconciliation dashboard. SQL migration/contract và service gates được kiểm thử offline; deployer
+  phải apply migration bằng trusted migration role trước khi cấu hình Gateway. Pricing thuộc PLAN 61.

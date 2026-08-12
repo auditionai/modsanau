@@ -157,12 +157,18 @@ public sealed class TrustedGatewayEndpointTests
     {
         await using var factory = new GatewayFactory();
         using var client = AuthenticatedClient(factory);
-        using var body = new StringContent("{\"balance\":999999,\"refund\":true}",
-            System.Text.Encoding.UTF8, "application/json");
+        var payload = "{\"balance\":999999,\"cost\":0,\"refund\":true,\"paymentSucceeded\":true}";
+        var methods = new[] { HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch, HttpMethod.Delete };
+        var responses = await Task.WhenAll(methods.Select(async method =>
+        {
+            using var request = new HttpRequestMessage(method, "/v1/credits")
+            {
+                Content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json"),
+            };
+            return await client.SendAsync(request);
+        }));
 
-        var response = await client.PostAsync("/v1/credits", body);
-
-        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        Assert.All(responses, response => Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode));
         Assert.Equal(0, factory.Credits.CallCount);
     }
 

@@ -77,15 +77,6 @@ public sealed class UnavailableTrustedAiGateway : ITrustedAiGateway
             "AI_PROVIDER_UNAVAILABLE", null));
 }
 
-public sealed class UnavailableTrustedCreditQueryService : ITrustedCreditQueryService
-{
-    public Task<TrustedCreditResult> GetAsync(
-        AuthenticatedGatewayUser user,
-        CancellationToken cancellationToken = default) =>
-        Task.FromResult(new TrustedCreditResult(TrustedServiceStatus.Unavailable,
-            "CREDIT_SERVICE_UNAVAILABLE", null));
-}
-
 public sealed class UnavailableTrustedTemplateEntitlementService : ITrustedTemplateEntitlementService
 {
     public Task<TrustedTemplateEntitlementResult> CheckAsync(

@@ -940,3 +940,29 @@ Save current project
   trong desktop/request/response contract.
 - PLAN 59 không tạo persistence/table, wallet mutation, ledger, reservation, refund, pricing, job system, RLS hay
   payment state. Credit transaction semantics thuộc PLAN 60; AI pricing/job orchestration thuộc PLAN sau.
+
+## Credit Ledger từ PLAN 60
+
+- PostgreSQL là authority duy nhất cho credit. `private.credit_wallets` là mutable projection của available/reserved
+  credits; `private.credit_ledger`, `private.credit_refunds` và `private.credit_idempotency` là append-only bằng
+  trigger chặn UPDATE/DELETE. `private.credit_reservations` giữ state machine `open → captured|released` và exact
+  reserve/terminal transaction lineage.
+- `private.credit_grant`, `credit_reserve`, `credit_capture`, `credit_release` và `credit_refund` là năm
+  `SECURITY DEFINER` functions có fixed search path. Mỗi call là một transaction, dùng transaction-scoped advisory
+  lock cho `(user, operation, idempotency key)` và row lock cho wallet/reservation/captured transaction. Unique
+  `(user_id, operation, idempotency_key)` cùng canonical request SHA-256 tạo replay deterministic; cùng key nhưng
+  payload khác bị reject.
+- Reserve chuyển available sang reserved. Capture chỉ nhận server-resolved cost, trả phần reserve dư và ghi capture
+  transaction. Release trả toàn bộ open reservation. Refund chỉ nhận server-authorized amount, khóa captured
+  transaction và không cho tổng refund vượt captured cost. Grant yêu cầu server authority reference; không mô hình
+  successful payment state và không phải payment endpoint.
+- `ICreditLedgerService` chỉ tồn tại trong Gateway/server assembly. `PostgresCreditLedgerService` dùng một pooled
+  `NpgsqlDataSource`, positional parameters, explicit transaction và cancellation; DB failure trả unavailable và
+  không phản chiếu database error. `ITrustedCreditQueryService` reuse cùng service/source of truth cho read-only
+  `/v1/credits`. Không có HTTP route cho grant/reserve/capture/release/refund.
+- `Gateway:CreditDatabaseConnectionString` là server-only deployment secret, bắt buộc TLS
+  `Require/VerifyCA/VerifyFull`, bị loại khỏi `ToString()` và không nằm trong App/.audproj. Khi cấu hình thiếu/sai,
+  cả query và ledger mutations fail closed. Migration revoke client roles; chỉ server `service_role` được SELECT
+  wallet projection và EXECUTE exact functions.
+- PLAN 60 không chứa pricing rule, AI job, payment webhook/provider hoặc store UI. Server-hosted pricing thuộc
+  PLAN 61 — AI Pricing.

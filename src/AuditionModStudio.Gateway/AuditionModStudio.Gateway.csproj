@@ -10,4 +10,8 @@
     <ProjectReference Include="..\AuditionModStudio.Core\AuditionModStudio.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+
 </Project>
