@@ -523,3 +523,14 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   archive hash, workspace ID/project ID hoặc tool integrity checks.
 - Generated archive nằm dưới ignored controlled output; fixture/tool/keydat/DDS/generated archive không được Git
   track. SHA-256 là integrity identity, không phải chữ ký hoặc bằng chứng tương thích runtime.
+
+## Batch Build Summary boundary từ PLAN 56
+
+- Texture outcomes là input không tin cậy: relative path phải qua `ModRelativePath`, identity duplicate bị reject,
+  status phải là enum xác định và diagnostic code chỉ nhận bounded uppercase ASCII stable-code characters.
+- Reported `Changed` set phải khớp exact immutable `AuditionProject.EditedTextures`; failed/skipped outcome không
+  cấp quyền sửa file và không thể che một edited texture khỏi summary.
+- Orchestrator không nhận absolute path/tool path, không gọi filesystem/process/network trực tiếp và không tự pack.
+  Mọi mutation, isolation, tool integrity, atomic promotion và rollback vẫn nằm trong PLAN 49.
+- No-change/mismatch/input invalid fail trước build. Build failure/cancellation giữ typed terminal result và summary
+  quan sát được, không publish partial success hoặc gọi lại build ngầm.

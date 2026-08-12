@@ -878,3 +878,16 @@ Save current project
   byte integrity, pristine fixture/tool giữ hash và final controlled artifact có size/SHA-256 xác định.
 - Product pipeline kết thúc tại file archive đã export. Manual launch/visual/gameplay là optional external QA và
   không thuộc acceptance scope hiện tại.
+
+## Batch Build Summary từ PLAN 56
+
+- `ITextureBatchBuildSummaryService` nhận exact immutable project/workspace và outcomes đã được caller quyết định;
+  service không resize, encode, Apply hoặc replace texture. `AuditionProject.EditedTextures` vẫn là source of truth
+  duy nhất cho texture thực sự đổi trong archive.
+- Outcome identity dùng `ModRelativePath`; duplicate được so ordinal-ignore-case sau normalization. Tập `Changed`
+  phải bằng chính xác tập edited textures, nhờ đó summary không thể bỏ sót hoặc khai thêm thay đổi trong artifact.
+- Khi có ít nhất một approved change, orchestration gọi đúng một `IProjectBuildService.BuildAsync`; summary giữ
+  deterministic path order và counts `Changed/Failed/Skipped`. Build failure/cancellation được giữ nguyên cùng
+  summary nhưng không bao giờ thành success.
+- Không có schema/persistence/UI mới. Summary là result runtime; output archive và project build state tiếp tục do
+  PLAN 49 sở hữu. PLAN 56 không export, không batch nhiều project và không tương tác game.

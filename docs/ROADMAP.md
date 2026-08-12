@@ -124,6 +124,11 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
   Apply → Project Validate → Build → Export → canonical staging/re-extract; 320/320 asset, đúng một target đổi,
   319 non-target byte-identical, pristine safety và final artifact size/SHA-256. Không kiểm thử hoặc tương tác game.
 - Batch PLAN 51–55 đã hoàn thành; không tự động triển khai PLAN tiếp theo.
+- PLAN đã hoàn thành kiểm chứng: PLAN 56 — Batch Build Summary.
+- Phạm vi PLAN 56: summary typed/deterministic cho `Changed/Failed/Skipped`; exact `Changed` set phải khớp
+  `AuditionProject.EditedTextures`, và đúng một PLAN 49 build được gọi khi có approved changes. Không tạo batch
+  Apply/build path thứ hai, không export và không chạm game.
+- PLAN kế tiếp: PLAN 57 — AI Provider Abstraction.
 
 ## Stage Gates
 
