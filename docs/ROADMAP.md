@@ -151,9 +151,12 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
   append-only ledger/refund/idempotency records và năm transactional server functions `grant/reserve/capture/release/refund`.
   Gateway dùng pooled Npgsql data source với TLS, parameterized commands, explicit transaction/cancellation và fail-closed
   khi database chưa cấu hình. HTTP vẫn chỉ cho đọc snapshot; không có client mutation hoặc client-supplied balance/cost/refund/payment state.
-- PLAN kế tiếp: PLAN 61 — AI Pricing.
+- PLAN đã hoàn thành kiểm chứng: PLAN 61 — AI Pricing.
+- Phạm vi PLAN 61: immutable server-hosted catalog có version/effective time và integer credit price cho đủ bảy AI
+  operations; authenticated bounded quote endpoint trả display estimate, stale version trả 409 kèm current quote,
+  invalid/unavailable catalog fail closed. Client không gửi cost/provider và quote không reserve/charge ledger.
+- PLAN kế tiếp: PLAN 62 — AI Job System.
 - Milestone hiện tại: Milestone 4 — AI Workflow & Commercial Backend.
-- PLAN 61 chưa được triển khai bởi roadmap direction audit; cần product owner approval riêng.
 
 ## Stage Gates
 

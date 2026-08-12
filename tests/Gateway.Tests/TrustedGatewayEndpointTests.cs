@@ -25,12 +25,71 @@ public sealed class TrustedGatewayEndpointTests
         var responses = await Task.WhenAll(
             client.GetAsync("/v1/credits"),
             client.PostAsJsonAsync("/v1/templates/entitlement", ValidTemplate()),
-            client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)));
+            client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)),
+            PricingQuoteAsync(client));
 
         Assert.All(responses, response => Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode));
         Assert.Equal(0, factory.Ai.CallCount);
         Assert.Equal(0, factory.Credits.CallCount);
         Assert.Equal(0, factory.Entitlement.CallCount);
+        Assert.Equal(0, factory.Pricing.CallCount);
+    }
+
+    [Fact]
+    public async Task Pricing_quote_uses_verified_user_and_server_catalog_without_credit_mutation()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+
+        var response = await PricingQuoteAsync(client);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("\"creditCost\":7", body, StringComparison.Ordinal);
+        Assert.Contains("\"pricingVersion\":\"2026.08.12\"", body, StringComparison.Ordinal);
+        Assert.Equal(UserId, factory.Pricing.LastUser!.UserId);
+        Assert.Equal(TrustedAiOperation.Generate, factory.Pricing.LastOperation);
+        Assert.Null(factory.Pricing.LastExpectedVersion);
+        Assert.Equal(0, factory.Credits.CallCount);
+    }
+
+    [Fact]
+    public async Task Stale_pricing_version_returns_conflict_with_current_server_quote()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+        using var content = new StringContent(
+            "{\"operation\":\"Generate\",\"expectedPricingVersion\":\"old\"}",
+            System.Text.Encoding.UTF8, "application/json");
+        factory.Pricing.Result = factory.Pricing.Result with
+        {
+            Status = AiPricingStatus.PriceChanged,
+            DiagnosticCode = "AI_PRICE_CHANGED",
+        };
+
+        var response = await client.PostAsync("/v1/ai/pricing/quote", content);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Equal("old", factory.Pricing.LastExpectedVersion!.Value.Value);
+        Assert.Equal(0, factory.Credits.CallCount);
+    }
+
+    [Theory]
+    [InlineData("{\"operation\":0}")]
+    [InlineData("{\"operation\":\"Generate\",\"cost\":0}")]
+    [InlineData("{\"operation\":\"Generate\",\"provider\":\"client\"}")]
+    [InlineData("null")]
+    public async Task Pricing_rejects_numeric_enum_client_authority_and_null_payloads(string payload)
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+        using var content = new StringContent(payload, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.PostAsync("/v1/ai/pricing/quote", content);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(0, factory.Pricing.CallCount);
+        Assert.Equal(0, factory.Credits.CallCount);
     }
 
     [Fact]
@@ -192,7 +251,8 @@ public sealed class TrustedGatewayEndpointTests
         var responses = await Task.WhenAll(
             client.GetAsync("/v1/credits"),
             client.PostAsJsonAsync("/v1/templates/entitlement", ValidTemplate()),
-            client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)));
+            client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)),
+            PricingQuoteAsync(client));
 
         Assert.All(responses, response => Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode));
     }
@@ -241,6 +301,13 @@ public sealed class TrustedGatewayEndpointTests
         return client;
     }
 
+    private static Task<HttpResponseMessage> PricingQuoteAsync(HttpClient client)
+    {
+        var content = new StringContent("{\"operation\":\"Generate\"}",
+            System.Text.Encoding.UTF8, "application/json");
+        return client.PostAsync("/v1/ai/pricing/quote", content);
+    }
+
     private static TemplateEntitlementRequest ValidTemplate() => new(
         "pointer",
         "v1",
@@ -254,6 +321,7 @@ public sealed class TrustedGatewayEndpointTests
         public StubAiGateway Ai { get; } = new();
         public StubCreditService Credits { get; } = new();
         public StubEntitlementService Entitlement { get; } = new();
+        public StubPricingService Pricing { get; } = new();
         public CapturingLoggerProvider Logs { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -269,11 +337,37 @@ public sealed class TrustedGatewayEndpointTests
                     services.RemoveAll<ITrustedAiGateway>();
                     services.RemoveAll<ITrustedCreditQueryService>();
                     services.RemoveAll<ITrustedTemplateEntitlementService>();
+                    services.RemoveAll<IAiPricingService>();
                     services.AddSingleton<ITrustedAiGateway>(Ai);
                     services.AddSingleton<ITrustedCreditQueryService>(Credits);
                     services.AddSingleton<ITrustedTemplateEntitlementService>(Entitlement);
+                    services.AddSingleton<IAiPricingService>(Pricing);
                 }
             });
+        }
+    }
+
+    private sealed class StubPricingService : IAiPricingService
+    {
+        public AiPricingResult Result { get; set; } = new(AiPricingStatus.Succeeded,
+            "AI_PRICE_QUOTED", new(TrustedAiOperation.Generate, new AiCreditPrice(7),
+                new AiPricingVersion("2026.08.12"), DateTimeOffset.UnixEpoch));
+        public int CallCount { get; private set; }
+        public AuthenticatedGatewayUser? LastUser { get; private set; }
+        public TrustedAiOperation? LastOperation { get; private set; }
+        public AiPricingVersion? LastExpectedVersion { get; private set; }
+
+        public Task<AiPricingResult> QuoteAsync(
+            AuthenticatedGatewayUser user,
+            TrustedAiOperation operation,
+            AiPricingVersion? expectedVersion = null,
+            CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            LastUser = user;
+            LastOperation = operation;
+            LastExpectedVersion = expectedVersion;
+            return Task.FromResult(Result);
         }
     }
 

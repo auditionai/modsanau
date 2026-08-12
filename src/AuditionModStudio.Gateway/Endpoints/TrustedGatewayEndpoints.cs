@@ -19,6 +19,10 @@ public sealed record TemplateEntitlementRequest(
     string? Sha256,
     string? CompatibleGameBuild);
 
+public sealed record AiPricingQuoteRequest(
+    TrustedAiOperation Operation,
+    string? ExpectedPricingVersion);
+
 public static class TrustedGatewayEndpoints
 {
     private const int MaximumPromptLength = 4_000;
@@ -26,6 +30,7 @@ public static class TrustedGatewayEndpoints
     private const int MaximumBase64Length = 5_592_408;
     private const long MaximumAiRequestBytes = 12 * 1_024 * 1_024;
     private const long MaximumEntitlementRequestBytes = 16 * 1_024;
+    private const long MaximumPricingRequestBytes = 4 * 1_024;
 
     public static void MapTrustedGatewayEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -46,6 +51,27 @@ public static class TrustedGatewayEndpoints
                 CancellationToken cancellationToken) =>
             MapCreditResult(await service.GetAsync(User(principal), cancellationToken).ConfigureAwait(false)))
             .RequireAuthorization();
+
+        endpoints.MapPost("/v1/ai/pricing/quote", async (ClaimsPrincipal principal,
+                AiPricingQuoteRequest? request,
+                IAiPricingService service,
+                CancellationToken cancellationToken) =>
+            {
+                if (!TryCreatePricingVersion(request?.ExpectedPricingVersion, out var expectedVersion)
+                    || request is null || !Enum.IsDefined(request.Operation))
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["request"] = ["AI pricing request is invalid."],
+                    });
+                }
+
+                var result = await service.QuoteAsync(User(principal), request.Operation,
+                    expectedVersion, cancellationToken).ConfigureAwait(false);
+                return MapPricingResult(result);
+            })
+            .RequireAuthorization()
+            .WithMetadata(new RequestSizeLimitAttribute(MaximumPricingRequestBytes));
 
         endpoints.MapPost("/v1/templates/entitlement", async (ClaimsPrincipal principal,
                 TemplateEntitlementRequest? request,
@@ -122,6 +148,34 @@ public static class TrustedGatewayEndpoints
             TrustedServiceStatus.Rejected => Results.Forbid(),
             _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
                 "Credit service is unavailable.", result.DiagnosticCode),
+        };
+    }
+
+    private static IResult MapPricingResult(AiPricingResult result)
+    {
+        if (!Enum.IsDefined(result.Status)
+            || !IsSafeDiagnosticCode(result.DiagnosticCode)
+            || result.Status is AiPricingStatus.Succeeded or AiPricingStatus.PriceChanged
+            && !IsValidQuote(result.Quote))
+        {
+            return InvalidTrustedResponse();
+        }
+
+        var response = result.Quote is null ? null : new
+        {
+            Operation = result.Quote.Operation,
+            CreditCost = result.Quote.CreditCost.Value,
+            PricingVersion = result.Quote.PricingVersion.Value,
+            result.Quote.EffectiveAt,
+            result.DiagnosticCode,
+        };
+        return result.Status switch
+        {
+            AiPricingStatus.Succeeded => Results.Ok(response),
+            AiPricingStatus.PriceChanged => Results.Conflict(response),
+            AiPricingStatus.Rejected => Results.UnprocessableEntity(new GatewayErrorResponse(result.DiagnosticCode)),
+            _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
+                "AI pricing service is unavailable.", result.DiagnosticCode),
         };
     }
 
@@ -253,6 +307,28 @@ public static class TrustedGatewayEndpoints
             return false;
         }
     }
+
+    private static bool TryCreatePricingVersion(string? value, out AiPricingVersion? version)
+    {
+        version = null;
+        if (value is null) return true;
+        try
+        {
+            version = new AiPricingVersion(value);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsValidQuote(AiPricingQuote? quote) =>
+        quote is not null
+        && Enum.IsDefined(quote.Operation)
+        && quote.CreditCost.Value is > 0 and <= AiCreditPrice.MaximumCredits
+        && !string.IsNullOrEmpty(quote.PricingVersion.Value)
+        && quote.EffectiveAt.Offset == TimeSpan.Zero;
 
     private static AuthenticatedGatewayUser User(ClaimsPrincipal principal)
     {

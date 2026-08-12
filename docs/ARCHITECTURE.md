@@ -970,3 +970,18 @@ Save current project
   wallet projection và EXECUTE exact functions.
 - PLAN 60 không chứa pricing rule, AI job, payment webhook/provider hoặc store UI. Server-hosted pricing thuộc
   PLAN 61 — AI Pricing.
+
+## AI Pricing từ PLAN 61
+
+- `IAiPricingService` là boundary chỉ tồn tại trong Gateway. Catalog được nạp một lần từ server configuration
+  `Gateway:AiPricing`, gồm version bất biến, thời điểm hiệu lực UTC và giá credit nguyên dương cho đủ bảy
+  `TrustedAiOperation`; desktop/client không chứa catalog hay nguồn giá thứ hai.
+- `POST /v1/ai/pricing/quote` yêu cầu bearer token đã xác minh, body tối đa 4 KiB và chỉ nhận operation cùng optional
+  expected pricing version. JSON enum số, member lạ, cost/price/provider do client gửi và version sai grammar đều bị
+  từ chối trước service. Response là display estimate gồm operation, integer credit cost, pricing version và effective time.
+- Khi expected version cũ, Gateway trả `409 AI_PRICE_CHANGED` kèm current server quote. Catalog thiếu, chưa hiệu lực,
+  không đủ operation hoặc có giá ngoài `1..1,000,000,000` fail closed với 503. Cấu hình hợp lệ được giữ như process
+  snapshot; đổi rule/version có hiệu lực sau controlled restart/reload của deployment.
+- Quote không gọi ledger và không reserve/charge. PLAN 62 phải resolve lại giá qua server pricing authority khi tạo job
+  và chỉ truyền server-resolved cost vào internal ledger contract; giá hiển thị hoặc amount từ client không có authority.
+  PLAN 61 không thêm database migration, AI job/provider execution, payment, admin pricing UI hoặc desktop UI.

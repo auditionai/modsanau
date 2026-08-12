@@ -612,3 +612,17 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Chưa có live PostgreSQL fixture trong repository, payment webhook, pricing rules, ledger retention/archive policy
   hoặc operational reconciliation dashboard. SQL migration/contract và service gates được kiểm thử offline; deployer
   phải apply migration bằng trusted migration role trước khi cấu hình Gateway. Pricing thuộc PLAN 61.
+
+## AI pricing authority boundary từ PLAN 61
+
+- Giá AI chỉ được nạp từ server configuration vào immutable process catalog. Version chỉ cho phép grammar bounded;
+  effective time phải là UTC round-trip timestamp; mọi operation phải có integer credit cost trong giới hạn dương.
+  Catalog thiếu/sai/chưa hiệu lực dùng `UnavailableAiPricingService` hoặc trả unavailable, không fallback sang client.
+- Quote endpoint yêu cầu verified Supabase subject, giới hạn body 4 KiB, cấm unknown JSON member và enum số. Contract
+  client không có cost, price, discount, provider cost, balance, refund hoặc payment state. Expected version chỉ là
+  optimistic display token, không cho phép client chọn catalog hay số credit.
+- Stale version trả conflict cùng current safe quote để client refresh estimate. Quote là read-only: không phụ thuộc,
+  gọi hoặc mutate `ICreditLedgerService`; vì vậy invalid/unavailable pricing không thể reserve/charge một phần.
+- PLAN 62 phải resolve giá hiện hành ở server tại transactional job enqueue/capture boundary. Không được dùng amount
+  từ request hoặc quote cache phía client làm final charge. PLAN 61 không chứa provider call, job state, payment flow,
+  database schema mới hay secret mới; live pricing config/reload/audit là trách nhiệm deployment vận hành.

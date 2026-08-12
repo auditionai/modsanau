@@ -15,7 +15,7 @@ public static class GatewayApplication
         services.ConfigureHttpJsonOptions(options =>
         {
             options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
-            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
         });
 
         var options = TrustedGatewayOptions.FromConfiguration(configuration);
@@ -24,6 +24,16 @@ public static class GatewayApplication
         services.AddSingleton<ISupabaseAccessTokenValidator, SupabaseAccessTokenValidator>();
         services.AddSingleton<ITrustedAiGateway, UnavailableTrustedAiGateway>();
         services.AddSingleton<ITrustedTemplateEntitlementService, UnavailableTrustedTemplateEntitlementService>();
+        services.AddSingleton(TimeProvider.System);
+        if (AiPricingCatalog.TryFromConfiguration(configuration, out var pricingCatalog))
+        {
+            services.AddSingleton(pricingCatalog!);
+            services.AddSingleton<IAiPricingService, ConfiguredAiPricingService>();
+        }
+        else
+        {
+            services.AddSingleton<IAiPricingService, UnavailableAiPricingService>();
+        }
 
         if (options.TryGetCreditDatabaseConnectionString(out var creditConnectionString))
         {
