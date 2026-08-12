@@ -24,6 +24,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 72: exact-identity encrypted cache dùng per-entry random AES-256-GCM key, Windows DPAPI current-user wrapping, chunked bounded I/O, atomic write/materialization, corruption/key-loss cleanup và per-entry concurrency serialization. Cache không phải entitlement/DRM authority và không chứa game-install path.
 - PLAN đã hoàn thành: PLAN 73 — Template Exposure & Build-Location Decision.
 - Quyết định ADR-0001: hybrid — server-controlled acquisition + encrypted local cache + client-side local build/export. Server worker không được chọn cho V1; authorized user vẫn có thể recover final archive, nên legal evidence và residual-risk disclosure là release gate.
+- PLAN đã hoàn thành: PLAN 74 — Protected Workspace Hardening.
+- Phạm vi PLAN 74: random managed workspace được harden bằng exact protected NTFS DACL owner/SYSTEM/Administrators, reparse/read-back gates, fail-safe partial cleanup và existing crash/concurrency ownership semantics; không plaintext global cache, raw-key logging hoặc secure-delete claim.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

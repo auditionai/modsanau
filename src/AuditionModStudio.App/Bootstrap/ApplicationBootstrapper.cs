@@ -95,6 +95,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<ArchiveToolIntegrityPolicy>();
         builder.Services.AddSingleton(ProjectArchiveToolIntegrityOptions.CreateProduction(AppContext.BaseDirectory));
         builder.Services.AddSingleton<IProjectToolIntegrityValidator, ProjectArchiveToolIntegrityValidator>();
+        builder.Services.AddSingleton<IWorkspaceProtection, WindowsWorkspaceProtection>();
         builder.Services.AddSingleton<IArchiveToolExecutionPolicy>(services =>
             services.GetRequiredService<ArchiveToolIntegrityPolicy>());
         builder.Services.AddSingleton<IKeydatService, KeydatService>();

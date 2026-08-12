@@ -35,6 +35,43 @@ public sealed class SecureWorkspaceTests
     }
 
     [Fact]
+    public async Task Windows_workspace_root_has_exact_protected_restrictive_dacl()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+        var testRoot = CreateTestRoot();
+        try
+        {
+            var paths = new AppPaths(testRoot);
+            var protection = new WindowsWorkspaceProtection();
+            await using var service = new SecureWorkspaceService(paths, new PathSecurity(), null, protection);
+            await using var workspace = await service.CreateAsync();
+
+            Assert.True(protection.IsProtected(workspace.Paths.RootDirectory));
+        }
+        finally { DeleteTestRoot(testRoot); }
+    }
+
+    [Fact]
+    public async Task Acl_failure_removes_partial_workspace_and_preserves_other_managed_data()
+    {
+        var testRoot = CreateTestRoot();
+        try
+        {
+            var paths = new AppPaths(testRoot); paths.EnsureDirectoriesExist();
+            var sentinel = Path.Combine(paths.ProjectsDirectory, "keep.audproj");
+            await File.WriteAllTextAsync(sentinel, "keep");
+            await using var service = new SecureWorkspaceService(
+                paths, new PathSecurity(), null, new FailingWorkspaceProtection());
+
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.CreateAsync().AsTask());
+
+            Assert.Empty(Directory.GetDirectories(paths.WorkspacesDirectory));
+            Assert.Equal("keep", await File.ReadAllTextAsync(sentinel));
+        }
+        finally { DeleteTestRoot(testRoot); }
+    }
+
+    [Fact]
     public async Task Concurrent_workspace_creation_has_no_collisions()
     {
         var testRoot = CreateTestRoot();
@@ -452,5 +489,11 @@ public sealed class SecureWorkspaceTests
         {
             Directory.Delete(testRoot, recursive: true);
         }
+    }
+
+    private sealed class FailingWorkspaceProtection : IWorkspaceProtection
+    {
+        public void Protect(string directoryPath) => throw new UnauthorizedAccessException("ACL denied.");
+        public bool IsProtected(string directoryPath) => false;
     }
 }

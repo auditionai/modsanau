@@ -152,7 +152,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | 10 | Malformed provider/media result gây publish/charge sai | 3 | 5 | 15 | High | Bounded media validator, persist-before-complete, reconciliation **Implemented contract** | Medium/High; concrete provider/live storage chưa verified |
 | 11 | Copy raw premium template/archive | 5 | 3 | 15 | High | Authenticated signed/scoped distribution + DPAPI-wrapped AES-GCM local cache **Implemented** | High; authorized user can recover workspace/final archive |
 | 12 | Dump process memory lấy user token/content | 3 | 4 | 12 | High | Short-lived token/rotation, minimal lifetime, secure store **Implemented partly** | High với Administrator/compromised account |
-| 13 | Inspect temp/workspace lấy raw assets/masks | 4 | 3 | 12 | High | Randomized managed workspace, cleanup/recovery, no global pristine mutation **Implemented** | Medium; same-account/admin access |
+| 13 | Inspect temp/workspace lấy raw assets/masks | 4 | 3 | 12 | High | Randomized managed workspace, protected owner/SYSTEM/admin DACL, reparse gates, cleanup/recovery **Implemented** | Medium; same-account/admin access |
 | 14 | Decompile .NET code/copy IP | 5 | 2 | 10 | Medium | No embedded authority; signing/obfuscation/AOT chỉ hardening | High cho IP confidentiality, Low cho server authority |
 | 15 | Prompt/preset injection điều khiển provider/price/path | 3 | 3 | 9 | Medium | Bounded typed fields, allowlisted options, no executable templates **Implemented** | Low/Medium; model-output safety provider-specific |
 | 16 | Log/crash artifact leak token/prompt/provider body | 3 | 3 | 9 | Medium | Redacted value objects, stable diagnostics, no raw body logging **Implemented**; release artifact scan **Planned/Operational** | Medium |
@@ -171,7 +171,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Malicious upload/output | Gateway + Imaging | Size/MIME/signature/dimension/hash validation | `AiExecutionTests`, imaging/import/DDS tests | Fuzzing và concrete provider verification |
 | Path traversal/reparse | Desktop Infrastructure | Central path abstraction, no follow reparse, atomic writes | `PathSecurityTests`, workspace/project/archive tests | Re-run on supported filesystems/release image |
 | Tool replacement/DLL hijack | Archive/DDS + Release | Absolute path, pinned SHA-256, isolated cwd, prelaunch check | archive integrity/process runner tests | Signed tool package; document TOCTOU residual |
-| Temp disclosure | Desktop Infrastructure | Random workspace, lifecycle cleanup, crash recovery | workspace cleanup/recovery tests | Same-account ACL/privacy review |
+| Temp disclosure | Desktop Infrastructure | Random workspace, protected DACL, lifecycle cleanup, crash recovery | workspace ACL/reparse/cleanup/recovery/concurrency tests | Same-account/admin/process-memory residual |
 | Update tampering | Release Engineering | Signed/timestamped package and manifest, hash, freshness | Updater unit tests where present | Production signing key/HSM and E2E gate |
 | Dependency compromise | Release Engineering | Lock/pin, vulnerability audit, provenance/SBOM | `dotnet list package --vulnerable` gate | SBOM/license/provenance pipeline |
 | Prompt/preset authority escalation | AI Desktop + Gateway | Typed allowlist, schema/version bounds, selection-only behavior | `PromptPresetTests`, `LocalPromptPresetStoreTests`, `AiStudioViewModelTests` | Authenticated cloud preset adapter/store |

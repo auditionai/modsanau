@@ -21,17 +21,20 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
     private readonly IAppPaths _appPaths;
     private readonly IPathSecurity _pathSecurity;
     private readonly ILogger<SecureWorkspaceService> _logger;
+    private readonly IWorkspaceProtection _workspaceProtection;
     private ImmutableArray<WorkspaceRecoveryCandidate> _detectedCandidates = [];
     private int _disposeState;
 
     public SecureWorkspaceService(
         IAppPaths appPaths,
         IPathSecurity pathSecurity,
-        ILogger<SecureWorkspaceService>? logger = null)
+        ILogger<SecureWorkspaceService>? logger = null,
+        IWorkspaceProtection? workspaceProtection = null)
     {
         _appPaths = appPaths ?? throw new ArgumentNullException(nameof(appPaths));
         _pathSecurity = pathSecurity ?? throw new ArgumentNullException(nameof(pathSecurity));
         _logger = logger ?? NullLogger<SecureWorkspaceService>.Instance;
+        _workspaceProtection = workspaceProtection ?? new WindowsWorkspaceProtection();
     }
 
     public ImmutableArray<WorkspaceRecoveryCandidate> DetectedCandidates => _detectedCandidates;
@@ -71,6 +74,17 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
             }
 
             Directory.CreateDirectory(root);
+            try { _workspaceProtection.Protect(root); }
+            catch
+            {
+                try { Directory.Delete(root, recursive: false); }
+                catch (Exception cleanupException) when (cleanupException is IOException or UnauthorizedAccessException)
+                {
+                    _logger.LogWarning("Workspace ACL failure cleanup failed with {ExceptionType}",
+                        cleanupException.GetType().Name);
+                }
+                throw;
+            }
             _pathSecurity.EnsureNoReparsePoints(_appPaths.WorkspacesDirectory, root);
 
             var lockPath = Path.Combine(root, LockFileName);
@@ -147,6 +161,9 @@ public sealed class SecureWorkspaceService : ISecureWorkspaceService, ISecureWor
         try
         {
             _pathSecurity.EnsureNoReparsePoints(_appPaths.WorkspacesDirectory, root);
+            _workspaceProtection.Protect(root);
+            if (!_workspaceProtection.IsProtected(root))
+                return ValueTask.FromResult<ISecureWorkspace?>(null);
             EnsureTreeHasNoReparsePoints(root);
             var paths = GetExistingWorkspacePaths(root);
             var lockPath = _pathSecurity.ResolvePathWithinRoot(root, LockFileName);

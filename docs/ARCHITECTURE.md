@@ -1090,3 +1090,9 @@ Materialization chỉ được phép dưới managed `WorkspacesDirectory`, ghi 
 ## Quyết định vị trí build từ PLAN 73
 
 [ADR-0001](ADR/0001-template-exposure-and-build-location.md) chọn hybrid cho V1: server-controlled catalog/authorization/package access, encrypted local cache và client-side local build qua pipeline hiện hữu. Server-side worker không được chọn vì tăng privacy/latency/Windows-worker operations nhưng final archive vẫn extractable. Quyết định không thay đổi runtime code; legal evidence, production download integration và PLAN 74/75 là release gates. Backend không nhận game path, không install output và export vẫn kết thúc tại standalone `.ab`/`.acv`.
+
+## Protected workspace hardening từ PLAN 74
+
+`SecureWorkspaceService` tiếp tục cấp random 128-bit lowercase hex identity dưới managed `Temp/Workspaces`; không dùng project/template/user/secret trong directory name. `IWorkspaceProtection` được áp dụng ngay sau root creation và trước khi tạo lock/content. Trên Windows, `WindowsWorkspaceProtection` đặt protected DACL chính xác chỉ cho Owner Rights, SYSTEM và Built-in Administrators, với container/object inheritance; create fail nếu không thể apply/read-back exact policy và cleanup root vừa tạo.
+
+Open/recovery xác minh no-reparse tree rồi re-apply/read-back policy trước khi nhận exclusive marker lock. Active/retained/unsafe candidates giữ semantics crash recovery hiện hữu: startup chỉ inventory, không auto-delete evidence; explicit cleanup cần exact 32-hex ID, valid marker, no reparse và exclusive ownership. ACL failure không mutate project/cache/pristine roots. Cleanup là best-effort exposure reduction, không secure deletion trên SSD.

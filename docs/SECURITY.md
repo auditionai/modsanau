@@ -719,3 +719,10 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - Cache path derive từ typed `TemplateId/TemplateVersion/SHA-256` dưới managed root, không chứa filename user input, signed URL, entitlement grant, secret hoặc game-install path.
 - Atomic temp/write-through/replace và process-wide per-entry lock ngăn partial/concurrent publication. Corruption, wrong key, hash/length mismatch và trailing data fail closed, cleanup entry; plaintext chỉ atomic materialize vào random file dưới managed project workspace.
 - Cache hit không chứng minh entitlement. Offline acquisition mới không được phép chỉ dựa trên ciphertext local; project/workspace đã tồn tại tiếp tục theo local semantics. DPAPI không chống compromised Windows account/Administrator và cleanup không được mô tả là secure deletion trên SSD.
+
+## Protected workspace từ PLAN 74
+
+- Workspace root có random 128-bit name, nằm dưới managed `Temp/Workspaces`; filename không chứa user, template, token, key hoặc signed URL.
+- Windows root dùng protected inheritable DACL chỉ cho owner, SYSTEM và Built-in Administrators. ACL được apply/read-back trước nội dung mới và khi open/recover; không thể harden thì fail closed và cleanup partial root.
+- Path/reparse validation chạy trước khi tin existing workspace; exclusive lock marker thắng PID/timestamp trong quyết định active/stale. Startup chỉ phát hiện recovery candidate, không auto-delete retained/unsafe evidence.
+- Cleanup success/failure/explicit recovery chỉ tác động exact owned workspace; project, encrypted cache và pristine source không bị mutate. Không log raw key và không hứa secure deletion trên SSD.
