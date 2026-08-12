@@ -802,3 +802,14 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - Generator chỉ tạo deterministic manifest/hash. Trusted expected hash phải nằm trong signed release/package/update chain;
   sidecar hash không phải authority. Concrete production binding, signed app/resource artifact và UI disable wiring hiện
   `PRODUCTION NOT VERIFIED`; unsigned Debug không được đổi nhãn thành production verified.
+
+## DLL hijacking và process launch từ PLAN 81
+
+- Production chỉ có ACV/DirectXTex child tools; cả hai launch exact canonical absolute verified path, không `PATH` lookup.
+- App DLL search dùng application directory + System32, không user dirs. Unpackaged child bỏ current directory khỏi search;
+  child `PATH` chỉ gồm System32/Windows và không forward provider/DB/auth/signing environment.
+- ACV workspace cwd chỉ phục vụ relative data protocol. Unexpected DLL cạnh standalone `acv.exe` bị reject. DirectXTex
+  tool directory phải chỉ có exact re-hashed `texconv.exe` ngay trước launch.
+- `UseShellExecute=false`, raw `Arguments` rỗng, switches code-owned qua `ArgumentList`; không CMD/PowerShell/SendKeys.
+- Current `requireAdministrator` không đổi nên blast radius còn cao. Hash/DLL policy giảm planting nhưng không loại bỏ
+  Administrator/same-user TOCTOU; đây không phải sandbox/anti-debug. Production signed package/native inventory chưa verified.

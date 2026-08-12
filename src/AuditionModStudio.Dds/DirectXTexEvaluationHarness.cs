@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Paths;
+using AuditionModStudio.Infrastructure.Processes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -140,6 +141,7 @@ public sealed class DirectXTexEvaluationHarness(
         }
         catch (Exception exception) when (exception is ArgumentException
                                           or IOException
+                                          or InvalidOperationException
                                           or UnauthorizedAccessException)
         {
             _logger.LogError(
@@ -320,7 +322,7 @@ public sealed class DirectXTexEvaluationHarness(
         return new(destinationPath, toolDirectory, null);
     }
 
-    private static async Task<ProcessResult> RunProcessAsync(
+    private async Task<ProcessResult> RunProcessAsync(
         string executablePath,
         string workingDirectory,
         DirectXTexEvaluationRequest request,
@@ -328,6 +330,19 @@ public sealed class DirectXTexEvaluationHarness(
         string outputDirectory,
         CancellationToken cancellationToken)
     {
+        var toolDirectory = Path.GetDirectoryName(executablePath)!;
+        pathSecurity.EnsureNoReparsePoints(toolDirectory, executablePath);
+        if (Directory.EnumerateFileSystemEntries(toolDirectory, "*", SearchOption.TopDirectoryOnly)
+                .Any(path => !string.Equals(Path.GetFullPath(path), Path.GetFullPath(executablePath),
+                    OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            || !await HashMatchesAsync(executablePath, approvedTool.Sha256, cancellationToken).ConfigureAwait(false))
+        {
+            return ProcessResult.Fail(Failure(
+                DirectXTexEvaluationState.Failed,
+                DirectXTexEvaluationFailureReason.ToolIntegrityMismatch,
+                "DIRECTXTEX_PRELAUNCH_TOOL_INTEGRITY_MISMATCH"));
+        }
+
         using var process = new Process
         {
             StartInfo = DirectXTexCommandBuilder.Create(
@@ -338,6 +353,7 @@ public sealed class DirectXTexEvaluationHarness(
                 outputDirectory),
         };
 
+        WindowsProcessLaunchHardening.ApplyProcessDllPolicy();
         if (!process.Start())
         {
             return ProcessResult.Fail(Failure(

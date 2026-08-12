@@ -100,6 +100,13 @@ public sealed class ArchiveToolIntegrityPolicy(
                 observedVersion);
         }
 
+        if (descriptor.ExpectedFileName.Equals("acv.exe", StringComparison.OrdinalIgnoreCase)
+            && Directory.EnumerateFiles(Path.GetDirectoryName(candidate)!, "*.dll", SearchOption.TopDirectoryOnly).Any())
+        {
+            return Failure(ArchiveToolIntegrityFailureReason.UnexpectedCompanion, toolId, descriptor,
+                actualHash, observedVersion);
+        }
+
         return new(
             true,
             ArchiveToolIntegrityFailureReason.None,

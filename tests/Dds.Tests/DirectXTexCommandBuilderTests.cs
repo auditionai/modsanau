@@ -27,6 +27,19 @@ public sealed class DirectXTexCommandBuilderTests
                 @"C:\isolated workspace\Extracted\ảnh.dds",
             ],
             info.ArgumentList);
+        Assert.Empty(info.Arguments);
+        Assert.DoesNotContain(@"C:\isolated workspace", info.Environment["PATH"] ?? string.Empty,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(@"C:\isolated workspace", info.Environment["TEMP"]);
+    }
+
+    [Fact]
+    public void Bare_texconv_name_is_rejected_before_process_start()
+    {
+        var request = CreateRequest(DirectXTexEvaluationOperation.DecodeToPng);
+
+        Assert.Throws<ArgumentException>(() => DirectXTexCommandBuilder.Create(
+            "texconv.exe", @"C:\work", request, @"C:\work\input.dds", @"C:\work\out"));
     }
 
     [Fact]

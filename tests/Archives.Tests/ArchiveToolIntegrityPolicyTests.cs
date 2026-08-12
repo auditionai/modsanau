@@ -156,6 +156,21 @@ public sealed class ArchiveToolIntegrityPolicyTests
         Assert.True(string.IsNullOrEmpty(result.ObservedFileVersion));
     }
 
+    [Fact]
+    public async Task Unexpected_dll_beside_standalone_acv_is_rejected()
+    {
+        using var context = IntegrityTestContext.Create();
+        await File.WriteAllTextAsync(Path.Combine(context.RootDirectory, "malicious.dll"), "not trusted");
+
+        var result = await context.Policy.VerifyAsync(
+            ArchiveToolIds.AcvTool5,
+            context.ToolPath,
+            context.RootDirectory);
+
+        Assert.False(result.Approved);
+        Assert.Equal(ArchiveToolIntegrityFailureReason.UnexpectedCompanion, result.FailureReason);
+    }
+
     [Fact(Skip = "Requires Windows symbolic-link creation privilege; run manually in an elevated test process.")]
     public async Task Executable_symbolic_link_is_rejected()
     {

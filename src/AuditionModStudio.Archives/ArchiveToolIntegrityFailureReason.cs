@@ -10,4 +10,5 @@ public enum ArchiveToolIntegrityFailureReason
     HashMismatch,
     UnapprovedTool,
     InvalidManifest,
+    UnexpectedCompanion,
 }

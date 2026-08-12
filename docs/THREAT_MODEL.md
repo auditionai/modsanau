@@ -231,3 +231,11 @@ anti-debug hoặc phá hủy dữ liệu. Control tăng khả năng phát hiện
 Administrator có thể patch process/memory hoặc thay đồng thời unsigned authority. Vì vậy expected manifest hash phải được
 bind vào signed release/package/update chain; production binding hiện chưa verified. Archive pre-launch hash gate vẫn là
 control gần execution nhất cho `acv.exe`, với residual TOCTOU đã được chấp nhận.
+
+## DLL planting / process launch từ PLAN 81
+
+Attacker có thể đặt fake executable hoặc DLL vào `PATH`, cwd, workspace, Temp/Downloads/project/export hoặc dùng reparse/race.
+Production launcher không search executable; app/child DLL search bỏ cwd/user dirs, child nhận system-only `PATH`, và exact
+tool bytes/directory được kiểm sát launch. ACV/DDS typed arguments không tạo shell command. Residual same-user/Administrator
+TOCTOU còn tồn tại giữa verify và OS image open; current elevation làm impact lớn hơn, nên ADR-0002 vẫn là mitigation ưu tiên.
+Không có control nào theo dõi/can thiệp game process.

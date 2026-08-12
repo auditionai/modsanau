@@ -45,7 +45,8 @@ public sealed class ProjectArchiveToolIntegrityValidator(
         ArchiveToolIntegrityFailureReason.HashMismatch
             or ArchiveToolIntegrityFailureReason.FilenameMismatch
             or ArchiveToolIntegrityFailureReason.UnapprovedTool
-            or ArchiveToolIntegrityFailureReason.InvalidManifest => ProjectToolIntegrityStatus.Invalid,
+            or ArchiveToolIntegrityFailureReason.InvalidManifest
+            or ArchiveToolIntegrityFailureReason.UnexpectedCompanion => ProjectToolIntegrityStatus.Invalid,
         _ => ProjectToolIntegrityStatus.Unavailable,
     };
 }

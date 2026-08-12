@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AuditionModStudio.Core.Paths;
+using AuditionModStudio.Infrastructure.Processes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -78,6 +79,7 @@ public sealed class AcvTool5Runner(
                 context.ExtractDirectoryArgument),
         };
 
+        WindowsProcessLaunchHardening.ApplyProcessDllPolicy();
         if (!process.Start())
         {
             throw new InvalidOperationException("The archive tool process could not be started.");

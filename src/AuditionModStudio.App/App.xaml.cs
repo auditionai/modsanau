@@ -1,4 +1,5 @@
 using AuditionModStudio.App.Bootstrap;
+using AuditionModStudio.Infrastructure.Processes;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
@@ -21,6 +22,7 @@ public partial class App : Application
 
     public App()
     {
+        WindowsProcessLaunchHardening.ApplyProcessDllPolicy();
         InitializeComponent();
         UnhandledException += OnXamlUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;

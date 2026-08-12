@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AuditionModStudio.Core.Dds;
+using AuditionModStudio.Infrastructure.Processes;
 
 namespace AuditionModStudio.Dds;
 
@@ -62,6 +63,7 @@ public static class DirectXTexCommandBuilder
         startInfo.ArgumentList.Add(outputDirectory);
         startInfo.ArgumentList.Add("--");
         startInfo.ArgumentList.Add(inputPath);
+        WindowsProcessLaunchHardening.HardenChildStartInfo(startInfo, workingDirectory);
         return startInfo;
     }
 

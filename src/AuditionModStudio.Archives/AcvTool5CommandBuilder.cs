@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using AuditionModStudio.Infrastructure.Processes;
 
 namespace AuditionModStudio.Archives;
 
@@ -25,6 +26,7 @@ internal static class AcvTool5CommandBuilder
         startInfo.ArgumentList.Add(operation == AcvTool5Operation.Extract ? "-da" : "-ca");
         startInfo.ArgumentList.Add(archiveArgument);
         startInfo.ArgumentList.Add(extractDirectoryArgument);
+        WindowsProcessLaunchHardening.HardenChildStartInfo(startInfo, workingDirectory);
         return startInfo;
     }
 }

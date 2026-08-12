@@ -1172,3 +1172,15 @@ hash phải được bind bằng signed release/package/update authority; đặt
 Production executable/manifest/resource bundle binding và UI diagnostics chưa được release artifact thực tế xác minh, nên
 trạng thái vận hành là `IMPLEMENTED CONTRACT / PRODUCTION NOT VERIFIED`. ACV vẫn có PLAN 07/31 specialized manifest,
 copy/pre-launch hash gate; PLAN 80 không thay archive abstraction hoặc giải quyết Administrator/TOCTOU tuyệt đối.
+
+## DLL search và process launch hardening từ PLAN 81
+
+`WindowsProcessLaunchHardening` là platform implementation trong Infrastructure, dùng chung bởi Archives, DDS và App.
+App áp dụng application-directory + System32 DLL policy trước XAML initialization. Child process dùng absolute canonical
+verified executable, structured arguments, shell disabled và sanitized minimal environment; executable không resolve qua
+`PATH`, còn current working directory bị loại khỏi DLL search của unpackaged child.
+
+ACV giữ workspace cwd vì data/keydat protocol nhưng standalone tool policy reject unexpected adjacent DLL. DirectXTex
+rehash/no-reparse và yêu cầu exact single-file tool directory ngay trước start. Timeout/cancellation/process-tree kill và
+stdout/stderr semantics giữ nguyên. Xem [PROCESS_LAUNCH_HARDENING.md](PROCESS_LAUNCH_HARDENING.md) cho inventory và residual
+TOCTOU. Không có game process/install/launcher behavior; privilege manifest và signing/update authority không đổi.

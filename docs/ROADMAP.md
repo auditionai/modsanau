@@ -46,6 +46,10 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 80: reusable PLAN 77 Authenticode adapter; manifest hash-before-parse; strict normalized resource/companion
   length+SHA-256 inventory; tamper chuyển risky capabilities về diagnostics-only. Không anti-debug/malware-like response;
   concrete signed release binding và UI enforcement vẫn `PRODUCTION NOT VERIFIED`.
+- PLAN đã hoàn thành: PLAN 81 — DLL Hijacking / Process Launch Hardening.
+- Phạm vi PLAN 81: absolute exact verified ACV/DirectXTex paths; app/child DLL search bỏ cwd/user dirs; system-only child
+  `PATH`; minimal no-secret environment; standalone companion inventory và DirectXTex re-hash sát launch. Không shell,
+  sandbox/anti-debug, privilege change hay game process behavior; signed packaging/native inventory chưa production-verified.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.
