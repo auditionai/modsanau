@@ -22,6 +22,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 71: server-controlled premium package catalog, signed manifest bind exact template/version/hash/game/mod, authenticated short-lived private-storage access reuse PLAN 70 grant/nonce, revocation/fail-closed policy và non-destructive existing-project semantics. Concrete storage/download/cache adapter chưa được cấu hình; PLAN 72 sở hữu encrypted local cache.
 - PLAN đã hoàn thành: PLAN 72 — Encrypted Local Template Cache.
 - Phạm vi PLAN 72: exact-identity encrypted cache dùng per-entry random AES-256-GCM key, Windows DPAPI current-user wrapping, chunked bounded I/O, atomic write/materialization, corruption/key-loss cleanup và per-entry concurrency serialization. Cache không phải entitlement/DRM authority và không chứa game-install path.
+- PLAN đã hoàn thành: PLAN 73 — Template Exposure & Build-Location Decision.
+- Quyết định ADR-0001: hybrid — server-controlled acquisition + encrypted local cache + client-side local build/export. Server worker không được chọn cho V1; authorized user vẫn có thể recover final archive, nên legal evidence và residual-risk disclosure là release gate.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.
