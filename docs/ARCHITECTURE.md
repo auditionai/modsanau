@@ -891,3 +891,15 @@ Save current project
   summary nhưng không bao giờ thành success.
 - Không có schema/persistence/UI mới. Summary là result runtime; output archive và project build state tiếp tục do
   PLAN 49 sở hữu. PLAN 56 không export, không batch nhiều project và không tương tác game.
+
+## AI Provider Abstraction từ PLAN 57
+
+- `IAiService` nằm trong Core và định nghĩa đúng bảy operation async: Generate, Edit, Inpaint, Outpaint,
+  RemoveObject, ReplaceObject và Upscale. Mỗi operation nhận request typed, optional progress và cancellation token,
+  trả `AiImageResult` typed; không expose provider SDK, endpoint, HTTP header hoặc credential.
+- Request dùng lại immutable `InternalImage`; mask cũng là `InternalImage`, không có pixel model thứ hai. `AiPrompt`
+  giới hạn 4.000 ký tự và control characters; `AiTargetSize` hỗ trợ arbitrary NPOT tới giới hạn code-owned.
+- Desktop DI hiện bind `IAiService` tới `UnavailableAiService`. Implementation stateless này không network và fail
+  closed với `AI_TRUSTED_BACKEND_UNAVAILABLE`, hoặc typed cancellation nếu token đã cancel.
+- PLAN 57 không có UI, persistence, project schema, provider selection hoặc backend transport. Trusted gateway sẽ
+  thuộc PLAN 59; auth thuộc PLAN 58 và chưa được giả lập trong abstraction này.

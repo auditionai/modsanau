@@ -128,7 +128,11 @@ Nguồn đặc tả duy nhất cho thứ tự và acceptance criteria là `Audit
 - Phạm vi PLAN 56: summary typed/deterministic cho `Changed/Failed/Skipped`; exact `Changed` set phải khớp
   `AuditionProject.EditedTextures`, và đúng một PLAN 49 build được gọi khi có approved changes. Không tạo batch
   Apply/build path thứ hai, không export và không chạm game.
-- PLAN kế tiếp: PLAN 57 — AI Provider Abstraction.
+- PLAN đã hoàn thành kiểm chứng: PLAN 57 — AI Provider Abstraction.
+- Phạm vi PLAN 57: `IAiService` async typed cho Generate/Edit/Inpaint/Outpaint/RemoveObject/ReplaceObject/Upscale,
+  reuse `InternalImage`, bounded prompt/target size và typed progress/result/cancellation. Desktop DI mặc định dùng
+  fail-closed `UnavailableAiService`; không có provider credential, endpoint hoặc network call.
+- PLAN kế tiếp: PLAN 58 — Supabase Auth.
 
 ## Stage Gates
 

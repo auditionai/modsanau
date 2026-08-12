@@ -534,3 +534,16 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   Mọi mutation, isolation, tool integrity, atomic promotion và rollback vẫn nằm trong PLAN 49.
 - No-change/mismatch/input invalid fail trước build. Build failure/cancellation giữ typed terminal result và summary
   quan sát được, không publish partial success hoặc gọi lại build ngầm.
+
+## AI Provider Abstraction boundary từ PLAN 57
+
+- `IAiService` không có tham số provider API key, privileged token, endpoint override hoặc raw authorization header;
+  desktop không thể cấp embedded provider secret qua contract này.
+- Prompt là bounded value object, target dimensions có hard limit và image/mask reuse immutable `InternalImage`.
+  Contract không log hoặc persist prompt/pixels; implementation PLAN 57 không giữ reference sau khi trả kết quả.
+- Desktop bind fail-closed implementation không chạy network. Khi trusted backend chưa tồn tại, mọi operation trả
+  structured unavailable; pre-cancellation trả cancellation và không publish image.
+- `AiImageResult` success mới chứa image; failure/cancelled không mang partial pixels. Progress chỉ chứa phase,
+  percentage và stable diagnostic code, không chứa prompt, image, credential hoặc provider response.
+- PLAN 57 chưa tạo auth, gateway, credit hoặc provider transport. Các trust checks server-side không được mô phỏng
+  trong client và chỉ được triển khai ở PLAN tương ứng.

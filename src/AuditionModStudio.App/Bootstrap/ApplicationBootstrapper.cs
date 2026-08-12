@@ -1,4 +1,6 @@
 using AuditionModStudio.Archives;
+using AuditionModStudio.AI;
+using AuditionModStudio.Core.AI;
 using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
@@ -167,6 +169,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton(ProjectBuildOptions.Default);
         builder.Services.AddSingleton<IProjectBuildService, ProjectBuildService>();
         builder.Services.AddSingleton<ITextureBatchBuildSummaryService, TextureBatchBuildSummaryService>();
+        builder.Services.AddSingleton<IAiService, UnavailableAiService>();
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
         builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();
