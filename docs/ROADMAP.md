@@ -10,6 +10,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 
 - PLAN đã hoàn thành: PLAN 66 — Prompt Presets.
 - Phạm vi PLAN 66: preset provider-neutral có immutable ID/version, operation và exact `(GameId, ModId, texture semantic type)`; local user store schema-v1 atomic với strict/bounded import/export; deterministic local/cloud merge cô lập conflict; cloud fail-closed/offline local fallback; selector trong AI Studio chỉ điền prompt và không submit job, reserve credit, sửa mask hay Apply.
+- PLAN đã hoàn thành: PLAN 67 — Threat Model.
+- Phạm vi PLAN 67: threat model cho kiến trúc PLAN 01–66 với assets/attackers, trust và data-flow diagrams, ranked abuse cases, owner/mitigation/test mapping, control status và explicit residual risk; không coi game process/install/runtime là application workflow.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.
