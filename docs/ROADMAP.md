@@ -39,6 +39,9 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - PLAN đã hoàn thành evaluation: PLAN 78 — Binary Obfuscation Strategy.
 - Quyết định ADR-0003: Dotfuscator Professional 7.2.2 là candidate pilot, nhưng chưa adopt vì thiếu license/tool và
   WinUI/XAML/reflection/native/AV evidence. Debug/Release hiện không obfuscate; anti-tamper disabled; mapping phải private.
+- PLAN đã hoàn thành evaluation: PLAN 79 — Native AOT / Native Core Evaluation.
+- Phạm vi PLAN 79: chạy Release x64 Native AOT probe thật; ghi nhận `IL2026`/`IL3050` serializer blockers và ma trận
+  WinUI/DirectXTex/Supabase/serializer/native interop/plugin. Quyết định `NOT ADOPTED / PRODUCTION NOT VERIFIED`.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

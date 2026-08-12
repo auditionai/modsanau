@@ -778,3 +778,12 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
   Anti-tamper/anti-debug disabled cho đến approved AV/compatibility gate; không malware-like response.
 - Obfuscation không bảo vệ privileged secret, credit, entitlement, payment, update/template signing key hoặc template
   plaintext khỏi Administrator. Server authority và PLAN 76/77 cryptographic verification vẫn là security boundary.
+
+## Native AOT evaluation từ PLAN 79
+
+- Release x64 AOT probe thật fail ở `IL2026`/`IL3050` do reflection/dynamic-code JSON paths; analyzer không bị suppress.
+- Trạng thái là `EVALUATED / NOT ADOPTED / PRODUCTION NOT VERIFIED`; không có binary AOT nào được coi là release artifact.
+- Native AOT không che secret, không ngăn Administrator/authorized user đọc runtime plaintext và không thay server authority,
+  Authenticode, signed update hoặc integrity verification.
+- Dynamic plugin loading không phù hợp với Native AOT; repository hiện không có plugin loader và không thêm một loader giả.
+- Xem xét lại cần source-generated JSON, WinUI/XAML/SkiaSharp/PInvoke/real-tool smoke, benchmark, AV/sign/update/rollback gate.

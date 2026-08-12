@@ -1143,3 +1143,14 @@ Future pilot phải bắt đầu renaming-only với keep rules, rồi mới th�
 compatibility evidence; anti-tamper vẫn disabled. Nếu adopt, obfuscation nằm sau unsigned publish và trước PLAN 76 signing;
 PLAN 77 manifest chỉ bind final signed bytes. Map/report là private per-version/commit/tool/config artifact, không vào
 repository/public release. Obfuscation không đổi Core/server authority và không phải nơi giữ secrets.
+
+## Native AOT evaluation từ PLAN 79
+
+[ADR-0004](ADR/0004-native-aot-evaluation.md) ghi nhận probe `dotnet publish` Release x64 thật đã fail closed ở
+`IL2026`/`IL3050` trên các đường JSON của Security, Infrastructure, Projects, Cloud/Supabase và Updater. Vì publish chưa
+đi tới native link và runtime smoke, WinUI/XAML, SkiaSharp và Windows interop chưa được tuyên bố tương thích production.
+
+Quyết định là `EVALUATED / NOT ADOPTED / PRODUCTION NOT VERIFIED`: project/publish profile không bật `PublishAot`.
+DirectXTex vẫn là external-process boundary sau `IDdsService`; repository không có dynamic plugin loader. Mọi lần xem xét
+lại phải chuyển serializer sang source generation, đạt analyzer-zero, full real-tool/runtime matrix và benchmark có lợi ích
+đo được. AOT/native core chỉ là deployment/hardening option, không phải DRM hay nơi giữ client secret.

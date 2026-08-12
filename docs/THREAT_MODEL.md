@@ -2,7 +2,7 @@
 
 ## Phạm vi và giả định
 
-Tài liệu này áp dụng cho kiến trúc đã triển khai đến PLAN 77. Sản phẩm là file-based content editor, archive builder và export tool có backend AI/commercial tùy chọn. Pipeline kết thúc ở standalone `.ab`/`.acv` được người dùng xuất ra.
+Tài liệu này áp dụng cho kiến trúc đã triển khai đến PLAN 79. Sản phẩm là file-based content editor, archive builder và export tool có backend AI/commercial tùy chọn. Pipeline kết thúc ở standalone `.ab`/`.acv` được người dùng xuất ra.
 
 Không coi Audition installation, game folder, game process, launcher, login, anti-cheat, gameplay, mod installation, backup/restore game archive hoặc in-game QA là asset, trust boundary hay workflow của ứng dụng.
 
@@ -215,3 +215,10 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 ## Quy trình duy trì
 
 Security owner phải cập nhật tài liệu khi trust boundary, data flow, provider, payment, storage, update hoặc template distribution thay đổi. Mỗi threat mới cần owner, mitigation, automated/operational test và residual risk. Mọi tuyên bố production phải liên kết evidence của deployment cụ thể; test fake/offline không được đổi nhãn thành live verification.
+
+## Native AOT residual risk từ PLAN 79
+
+PLAN 79 không adopt Native AOT vì Release x64 publish analyzer fail trên JSON dynamic-code paths. Managed binary/IP vẫn có
+thể bị decompile; AOT tương lai cũng chỉ tăng chi phí phân tích, không thay server authority hoặc ngăn Administrator/runtime
+plaintext capture. Việc probe dừng trước native link có nghĩa WinUI/XAML, SkiaSharp và P/Invoke runtime vẫn chưa verified,
+không phải bằng chứng rằng các thành phần đó tương thích hay không tương thích tuyệt đối.
