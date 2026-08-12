@@ -1002,7 +1002,7 @@ Save current project
   authenticated direct read chỉ own-row safe columns; internal columns/table và mọi DML/RPC vẫn denied. Service role
   SELECT history và EXECUTE exact functions.
 - PLAN 62 không thêm provider executor, raw input/output storage, desktop UI, image Apply, payment hoặc gameplay.
-  Migration/locking hiện có offline contract evidence; chưa có live PostgreSQL execution evidence.
+  PLAN 85 đã bổ sung local real-PostgreSQL transaction/concurrency evidence; Supabase staging/live vẫn chưa verified.
 
 ## AI Studio UI từ PLAN 63
 
@@ -1219,8 +1219,8 @@ Gateway/service-role path giữ nguyên và server identity vẫn verified princ
 Supabase access, không thay Gateway ownership predicate hay cấp commercial mutation authority. Chi tiết matrix/test ở
 [SUPABASE_RLS_HARDENING.md](SUPABASE_RLS_HARDENING.md).
 
-Real PostgreSQL 17.6 gate đã apply cả bốn migration và chứng minh own/cross-user/column/DML/RPC/anon behavior. Gate đồng
-thời phát hiện PLAN 60 function ambiguity `42702`; PLAN 83 không lấn scope ledger, và exact PLAN 85 phải sửa/verify lỗi này.
+Real PostgreSQL 17.6 gate đã apply migrations và chứng minh own/cross-user/column/DML/RPC/anon behavior. Gate PLAN 83 từng
+phát hiện PLAN 60 function ambiguity `42702`; PLAN 85 đã sửa tại chỗ và verified bằng concurrency tests thật.
 
 ## Payment security từ PLAN 84
 
@@ -1235,5 +1235,20 @@ không tồn tại trong authority contract. Gateway chỉ chuyển typed verifi
 PostgreSQL `private.payment_apply_verified` serialize theo provider/payment, deduplicate cả event ID lẫn payment ID, phát
 hiện conflicting payload và chỉ sau đó gọi exact PLAN 60 `private.credit_grant`. `private.payment_events` append-only,
 ENABLE+FORCE RLS và server-only. Thiếu secret/catalog/database đều fail closed. Xem
-[PAYMENT_SECURITY.md](PAYMENT_SECURITY.md); production Stripe và real transaction chỉ được tuyên bố sau evidence tương ứng,
-trong đó PLAN 85 sở hữu việc sửa lỗi PLAN 60 đã biết.
+[PAYMENT_SECURITY.md](PAYMENT_SECURITY.md); PLAN 85 đã có local real transaction evidence, còn production Stripe/Supabase
+chỉ được tuyên bố sau deployment evidence tương ứng.
+
+## Credit concurrency integration gate từ PLAN 85
+
+Migration thứ sáu sửa tại chỗ cả năm PLAN 60 functions. PostgreSQL `RETURNS TABLE` biến output đã va chạm tên cột không
+qualify; function mới dùng explicit table aliases trong mọi mutable projection nhưng giữ nguyên signature, advisory/row
+locks, append-only tables, request hash và exact `service_role` grants. Không có schema, wallet hay C# credit service mới.
+
+Real PostgreSQL 17.6 tests dùng connection riêng cho concurrent calls và kiểm cả response lẫn persisted cardinality/state.
+Evidence PASS cho full lifecycle, khác-key overspend, same-key replay, conflicting payload rollback, capture-vs-release,
+concurrent over-refund và verified payment-to-grant replay. Wallet lock bảo toàn tổng credit, reservation lock cho đúng một
+terminal transition, captured-ledger lock cap aggregate refund. Chi tiết ở
+[CREDIT_CONCURRENCY_INTEGRATION_GATE.md](CREDIT_CONCURRENCY_INTEGRATION_GATE.md).
+
+Đây là local engine evidence, không phải Supabase staging/live, multi-region/failover hay production operations evidence.
+HTTP/client authority không đổi: public chỉ đọc snapshot; amount/cost/refund/payment vẫn do trusted server quyết định.

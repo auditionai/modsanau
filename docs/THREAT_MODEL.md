@@ -12,7 +12,7 @@ Nhãn trạng thái control:
 - **Planned**: roadmap yêu cầu nhưng chưa triển khai.
 - **Operational**: deployment owner phải cấu hình/chứng minh ngoài repository.
 
-Không suy diễn `Operational` hoặc `Planned` thành production-ready. Concrete AI provider và live PostgreSQL integration hiện chưa được verified.
+Không suy diễn `Operational` hoặc `Planned` thành production-ready. Concrete AI provider và Supabase staging/live hiện chưa được verified; local PostgreSQL concurrency đã verified ở PLAN 85.
 
 ## Mục tiêu bảo mật
 
@@ -142,8 +142,8 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 |---:|---|---:|---:|---:|---|---|---|
 | 1 | Steal provider/service-role/payment/signing secret từ client/repo/log | 4 | 5 | 20 | Critical | Secret separation, redaction, server config **Implemented**; CI scan/managed secret/signing **Planned/Operational** | High cho compromised backend/operator |
 | 2 | Patch local license/credit/`IsPremium` check để lấy premium/AI | 5 | 4 | 20 | Critical | Server pricing/credit/identity và signed scoped grant **Implemented** | Medium; durable record/nonce deployment còn thiếu |
-| 3 | Concurrent/replayed spend gây double charge/spend | 4 | 5 | 20 | Critical | SQL transaction, advisory/row locks, idempotency, lease **Implemented offline-tested** | Medium; live PostgreSQL chưa verified |
-| 4 | Fake payment callback cấp credits | 4 | 5 | 20 | Critical | Raw-body HMAC/timestamp, server catalog, append-only dual idempotency **Implemented contract** | Medium; live Stripe/secret/ops và PLAN 85 DB gate chưa verified |
+| 3 | Concurrent/replayed spend gây double charge/spend | 4 | 5 | 20 | Critical | SQL transaction, advisory/row locks, idempotency **Local PostgreSQL verified** | Low/Medium; staging/live/load/failover chưa verified |
+| 4 | Fake payment callback cấp credits | 4 | 5 | 20 | Critical | Raw-body HMAC/timestamp, catalog, dual idempotency; local payment-to-grant **Verified** | Medium; live Stripe/secret/ops chưa verified |
 | 5 | Cross-user content/job/preset/template access | 4 | 5 | 20 | Critical | Verified UUID, owner filters/content kind **Implemented**; cloud preset/template storage **Planned** | Medium/High tùy deployment/RLS test |
 | 6 | Tamper update/installer/dependency để chạy code | 4 | 5 | 20 | Critical | App signing pipeline + signed manifest/hash/version/publisher verification **Implemented contract**; live signer/installer/SBOM **Operational/Planned** | Medium/High |
 | 7 | Path traversal/reparse/malicious archive or image escapes workspace | 4 | 5 | 20 | Critical | Canonical relative paths, reparse checks, bounds, atomic promotion **Implemented** | Medium; parser/tool vulnerabilities còn lại |
@@ -165,8 +165,8 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Client secret theft | Security + Backend Ops | Server-only config, redaction, no privileged contract | `GatewayArchitectureTests`, auth/provider config tests, repository scan | PLAN 68 CI scan + rotation runbook |
 | Token theft/rotation | Desktop Security + Auth | Credential Manager, redirects off, bounded parse, serialized refresh | `WindowsCredentialSessionStoreTests`, `SupabaseAuthServiceTests` | PLAN 69 release/plaintext/concurrency audit |
 | Forged identity/cross-user | Gateway + Data | Supabase `/auth/v1/user`, UUID from principal, owner filters/RLS | `SupabaseAccessTokenValidatorTests`, `TrustedGatewayEndpointTests`, AI job/content tests | Live RLS/storage integration |
-| Credit replay/race | Backend + Data | Transaction, advisory/row locks, request hash/idempotency | `CreditLedgerContractTests`, `AiJobContractTests` | Live PostgreSQL concurrency gate |
-| Fake payment | Payments + Backend | Raw-body HMAC/timestamp, server-priced catalog, idempotent append-only event/payment ledger | `PaymentSecurityTests`, migration contract tests | Live Stripe/secret rotation/alert và PLAN 85 DB gate |
+| Credit replay/race | Backend + Data | Transaction, advisory/row locks, request hash/idempotency | `CreditConcurrencyIntegrationTests` on real PostgreSQL | Supabase staging/live, load/failover |
+| Fake payment | Payments + Backend | Raw-body HMAC/timestamp, server-priced catalog, idempotent append-only event/payment ledger | Payment tests + real PostgreSQL payment-to-grant replay | Live Stripe/secret rotation/alert |
 | Provider ambiguity | AI Backend | Durable lease, reconciliation state, no blind retry | `AiExecutionTests`, migration contract tests | Operations reconciliation tooling |
 | Malicious upload/output | Gateway + Imaging | Size/MIME/signature/dimension/hash validation | `AiExecutionTests`, imaging/import/DDS tests | Fuzzing và concrete provider verification |
 | Path traversal/reparse | Desktop Infrastructure | Central path abstraction, no follow reparse, atomic writes | `PathSecurityTests`, workspace/project/archive tests | Re-run on supported filesystems/release image |
@@ -195,9 +195,9 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 1. Một authorized user nhận hoặc build complete standalone archive có thể recover nội dung. Encryption/cache/obfuscation chỉ giảm casual harvesting, không tạo DRM tuyệt đối.
 2. Administrator hoặc fully compromised Windows account có thể dump process memory, đọc token/content và patch binary. Credential Manager/DPAPI không giải quyết attacker này.
 3. SHA-256 xác nhận identity/integrity kỳ vọng nhưng không thay chữ ký publisher và không tự chứng minh runtime compatibility.
-4. External AI provider adapter, provider network, private content store deployment và live PostgreSQL concurrency chưa verified; provider-neutral/fake tests không phải production evidence.
+4. External AI provider adapter/network, private content store và Supabase staging/live chưa verified; local PostgreSQL concurrency PASS không phải production topology evidence.
 5. TLS termination, WAF/rate limiting, secret manager, monitoring, backup/restore và incident response là operational controls chưa được repository chứng minh.
-6. Stripe payment webhook contract đã triển khai nhưng live endpoint/secret/product, secret rotation, alert/dispute operations và real fulfillment transaction chưa verified. Premium package concrete storage/deployment cũng chưa verified.
+6. Stripe payment webhook contract và local PostgreSQL fulfillment transaction đã verified, nhưng live endpoint/secret/product, secret rotation, alert/dispute operations chưa verified. Premium package concrete storage/deployment cũng chưa verified.
 7. Parser/native/tool zero-day và supply-chain compromise vẫn có thể tồn tại dù input bounds/hash pin.
 8. App binary/IP có thể bị decompile. Bảo vệ business authority bằng server boundary quan trọng hơn cố giữ client code bí mật.
 9. Prompt và AI output có thể chứa sensitive user content; retention/deletion policy phải được deployment/product owner chốt trước production.
@@ -258,7 +258,7 @@ table, provider/lease capability và authority reference vẫn server-only. Real
 
 Residual risk nằm ở `service_role`/superuser/BYPASSRLS, Supabase exposed-schema và migration-owner configuration; leak
 service-role secret vượt qua RLS. Staging/live Supabase chưa verified. Foreign-key/unique enforcement có PostgreSQL covert
-channel semantics nhưng client không có DML. PLAN 60 function ambiguity đã được phát hiện và chuyển thành bắt buộc PLAN 85.
+channel semantics nhưng client không có DML. PLAN 60 function ambiguity đã được PLAN 85 sửa và verified trên PostgreSQL thật.
 
 ## Payment webhook residual risk từ PLAN 84
 
@@ -268,5 +268,15 @@ không có success/grant authority. Payment event ledger là append-only/server-
 
 Residual risk gồm compromised Stripe/Gateway secret, endpoint flooding nhiều replica, provider account takeover, event đến
 trễ hơn tolerance nhưng được Stripe ký mới, secret rotation sai, dispute/refund/chargeback và thiếu alert/reconciliation.
-Repository chưa chứng minh TLS edge/live Stripe. PLAN 60 ambiguity làm real grant chưa production-ready cho tới PLAN 85;
-vì vậy PLAN 84 chỉ là implemented contract, không phải live payment certification.
+Repository chưa chứng minh TLS edge/live Stripe. PLAN 85 đã chứng minh local database grant/replay nhưng PLAN 84 vẫn chỉ là
+implemented contract, không phải live payment certification.
+
+## Credit concurrency residual risk từ PLAN 85
+
+Real PostgreSQL gate chứng minh khác-key wallet race không overspend, same-key duplicate/conflict không double-mutate,
+capture-vs-release chỉ có một terminal state và concurrent refund không vượt capture. Persisted ledger/state được đối chiếu
+sau rejection; payment grant reuse cùng repaired ledger và idempotency.
+
+Residual risk còn lại là Supabase staging/live role/topology, connection pool exhaustion, lock timeout/deadlock dưới workload
+khác, multi-region/failover, operational retry, backup/restore và monitoring. Service-role/database compromise vẫn vượt qua
+business function boundary. Không có evidence nào cho phép client set balance/cost/refund/payment amount.

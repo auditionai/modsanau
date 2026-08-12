@@ -2,6 +2,7 @@ using Npgsql;
 
 namespace Gateway.Tests;
 
+[Collection("Postgres integration")]
 public sealed class SupabaseRlsHardeningTests
 {
     private static readonly string[] UserOwnedTables =

@@ -62,7 +62,12 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - PLAN đã hoàn thành contract: PLAN 84 — Payment Security.
 - Phạm vi PLAN 84: Stripe raw-body HMAC/timestamp verification, exact live/test + server product/amount/currency catalog,
   bounded anonymous webhook ingress và append-only dual event/payment idempotency trước exact PLAN 60 `credit_grant`.
-  Client success state không có authority; live Stripe và real fulfillment chưa verified, PLAN 85 sở hữu lỗi PLAN 60 đã biết.
+  Client success state không có authority; live Stripe chưa verified; PLAN 85 đã xử lý lỗi PLAN 60 đã biết và local
+  PostgreSQL payment fulfillment đã PASS.
+- PLAN đã hoàn thành gate: PLAN 85 — Credit Concurrency Integration Gate.
+- Phạm vi PLAN 85: sửa tại chỗ ambiguity `42702` trong năm PLAN 60 functions và chứng minh real PostgreSQL lifecycle,
+  overspend race, duplicate/conflicting key, capture-vs-release, over-refund và PLAN 84 payment-to-grant idempotency.
+  Không tạo credit schema/service thứ hai; Supabase staging/live vẫn `PRODUCTION NOT VERIFIED`.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.
@@ -227,7 +232,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 65: năm semantic operation dùng authenticated durable job, opaque private content, trusted
   provider/profile mapping, lease worker và server credit lifecycle; ambiguous outcome giữ reservation ở
   `ReconciliationRequired`. Desktop chỉ tải output bounded thành `InternalImage` preview; explicit approval mới reuse
-  Match Original/DDS validation/atomic Apply/history. Concrete external provider và live PostgreSQL chưa được kiểm chứng.
+  Match Original/DDS validation/atomic Apply/history. Concrete external provider và Supabase staging/live chưa kiểm chứng;
+  local PostgreSQL credit concurrency đã PASS ở PLAN 85.
 - PLAN kế tiếp: PLAN 66 — Prompt Presets.
 - Milestone hiện tại: Milestone 4 — AI Workflow & Commercial Backend.
 

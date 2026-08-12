@@ -642,9 +642,8 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - PLAN 83 bật FORCE RLS và cho `authenticated` SELECT own-row trên explicit safe job columns. Lease/provider request ID,
   idempotency/hash/transaction columns và mọi client DML/RPC bị deny. `service_role` đọc job history và execute exact job
   functions; API history vẫn filter verified owner và không trả lease/provider request ID.
-- Chưa chạy migration trên live/staging PostgreSQL, nên chưa tuyên bố concurrency/rollback thực tế. Contract SQL và
-  integration shape được kiểm thử offline; PLAN 85 vẫn là real PostgreSQL concurrency gate. Rate limiting và provider
-  worker vận hành vẫn là technical debt/deployment concern.
+- PLAN 85 đã chạy migration và concurrency/rollback trên local PostgreSQL 17.6 thật. Supabase staging/live, failover,
+  production pool/monitoring vẫn chưa verified; rate limiting và provider worker vận hành vẫn là deployment concern.
 
 ## AI Studio client boundary từ PLAN 63
 
@@ -682,8 +681,8 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   Known pre-billable failure/cancel dùng existing fail/cancel release path. Outcome không chắc chắn chuyển migration mới
   sang `ReconciliationRequired`, xóa lease nhưng giữ reservation; không tự retry/capture/release.
 - Default Gateway thiếu content/provider/media implementation trả unavailable và không charge/success giả. External
-  provider network integration và live PostgreSQL migration/concurrency vẫn NOT VERIFIED; reconciliation tooling là
-  technical debt cần một PLAN/deployment decision riêng.
+  provider network integration và Supabase staging/live vẫn NOT VERIFIED; local PostgreSQL credit concurrency đã PASS
+  ở PLAN 85. Reconciliation tooling là technical debt cần một PLAN/deployment decision riêng.
 - Desktop output dùng bounded streaming và existing `IImageImportService`, chỉ publish immutable `InternalImage` preview.
   Explicit Approve mới gọi existing atomic Apply/Match Original/DDS validation/history. Backend failure không ảnh hưởng
   local project editor, DDS, build hoặc export; không có code game install/launch/runtime.
@@ -843,8 +842,9 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
   image được pin immutable digest; test credential random không log/commit và isolated database/container được cleanup.
 - `service_role` bypass RLS theo Supabase nên vẫn là privileged secret; FORCE không chặn BYPASSRLS/superuser. Live Supabase
   migration owner, exposed schemas, backup/rollback và Data API chưa production-verified.
-- Gate tìm thấy lỗi sẵn có PLAN 60 `42702` trong credit function. RLS evidence dùng trusted admin seed; exact PLAN 85 sở hữu
-  việc sửa và concurrency verification. Xem [SUPABASE_RLS_HARDENING.md](SUPABASE_RLS_HARDENING.md).
+- Gate PLAN 83 tìm thấy lỗi PLAN 60 `42702`; PLAN 85 đã sửa chính năm functions và real PostgreSQL concurrency gate PASS.
+  Xem [SUPABASE_RLS_HARDENING.md](SUPABASE_RLS_HARDENING.md) và
+  [CREDIT_CONCURRENCY_INTEGRATION_GATE.md](CREDIT_CONCURRENCY_INTEGRATION_GATE.md).
 
 ## Payment security từ PLAN 84
 
@@ -858,5 +858,18 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
   conflict detection làm retry idempotent; exact function mới được phép gọi PLAN 60 `credit_grant`.
 - Table ENABLE+FORCE RLS không có client policy. `anon`/`authenticated` không table/function privilege; `service_role` chỉ
   có SELECT ledger payment và EXECUTE exact apply function.
-- Unit/HTTP/migration contract đã PASS nhưng live Stripe chưa verified. Lỗi PLAN 60 `42702` đã biết khiến real database
-  fulfillment chưa được tuyên bố vận hành trước khi PLAN 85 sửa/test. Chi tiết ở [PAYMENT_SECURITY.md](PAYMENT_SECURITY.md).
+- Unit/HTTP/migration contract đã PASS nhưng live Stripe chưa verified. PLAN 85 đã chứng minh local PostgreSQL payment grant
+  và retry chỉ tạo một payment/grant row; production Stripe/Supabase vẫn chưa verified. Chi tiết ở
+  [PAYMENT_SECURITY.md](PAYMENT_SECURITY.md).
+
+## Credit concurrency gate từ PLAN 85
+
+- Migration sửa tại chỗ `grant/reserve/capture/release/refund`, qualify mutable table columns để loại lỗi `42702`; không
+  thêm schema/table/service hoặc thay function signature/privilege.
+- Real PostgreSQL dùng separate pooled connections chứng minh wallet row lock ngăn overspend, same-key advisory lock cho
+  one apply + deterministic replay/conflict, reservation row lock cho một capture/release terminal transition và captured
+  ledger row lock ngăn aggregate over-refund.
+- Rejection được đối chiếu persisted wallet/reservation/ledger/refund/idempotency state nên partial mutation bị phát hiện.
+  Verified payment-to-grant cũng chạy thật và idempotent sau fix.
+- Local PostgreSQL engine evidence là VERIFIED; Supabase staging/live topology, failover, load/soak, backup/restore và
+  operations vẫn `PRODUCTION NOT VERIFIED`. Client contracts/routes vẫn không nhận amount hay mutation authority.

@@ -50,7 +50,7 @@ Gate local dùng official PostgreSQL `17.6-alpine3.22` tại immutable image dig
   `service_role` vẫn bypass theo thiết kế và phải nằm trong server secret store.
 - Foreign-key/uniqueness enforcement có thể tạo covert-channel nhỏ theo PostgreSQL semantics; client không có DML nên exposure
   bị giảm đáng kể.
-- Real gate phát hiện PLAN 60 functions hiện lỗi `42702` do output parameter trùng tên cột. PLAN 83 seed qua trusted admin
-  để cô lập RLS evidence; lỗi ledger không bị sửa tại đây và là input bắt buộc cho exact PLAN 85 concurrency gate.
+- Real gate PLAN 83 đã phát hiện PLAN 60 functions lỗi `42702` do output parameter trùng tên cột. PLAN 85 đã sửa tại chỗ
+  và real PostgreSQL concurrency gate PASS; RLS evidence vẫn độc lập và Supabase staging/live vẫn chưa verified.
 
 Trạng thái: `RLS CONTRACT + LOCAL POSTGRES VERIFIED / SUPABASE PRODUCTION NOT VERIFIED`.

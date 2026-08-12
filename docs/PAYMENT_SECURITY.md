@@ -54,6 +54,6 @@ Thiết kế bám theo tài liệu Stripe về [xác minh chữ ký trên raw bo
 [Checkout event types](https://docs.stripe.com/api/events/types).
 
 Chưa có Stripe live endpoint/secret/product/observability evidence; trạng thái là
-`IMPLEMENTED CONTRACT / PRODUCTION PAYMENT NOT VERIFIED`. Real PostgreSQL gate PLAN 83 đã phát hiện ambiguity `42702` trong
-function PLAN 60; PLAN 85 kế tiếp phải sửa và chạy payment/ledger transaction thực trước khi fulfillment database được coi
-là vận hành được. Không đổi test giả/offline thành production evidence.
+`IMPLEMENTED CONTRACT / PRODUCTION PAYMENT NOT VERIFIED`. PLAN 85 đã sửa ambiguity PLAN 60 và real PostgreSQL test chứng
+minh một verified payment được grant đúng một lần qua cùng ledger khi retry. Đây là local database evidence, không đổi
+test/local engine thành live Stripe hoặc Supabase production evidence.
