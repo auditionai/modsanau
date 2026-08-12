@@ -150,7 +150,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | 8 | Replace `acv.exe`/DLL hijack | 4 | 4 | 16 | High | Absolute path, SHA-256 manifest/copy/prelaunch verify, isolated cwd **Implemented** | Medium; TOCTOU/admin attacker |
 | 9 | MITM/redirect/replay API request | 3 | 5 | 15 | High | Exact HTTPS origin, redirects off, token validation, idempotency **Implemented**; TLS termination/rate limit **Operational/Planned** | Medium |
 | 10 | Malformed provider/media result gây publish/charge sai | 3 | 5 | 15 | High | Bounded media validator, persist-before-complete, reconciliation **Implemented contract** | Medium/High; concrete provider/live storage chưa verified |
-| 11 | Copy raw premium template/archive | 5 | 3 | 15 | High | Authenticated signed/scoped short-lived distribution contract **Implemented**; encrypted cache **Planned** | High; authorized user can recover complete archive |
+| 11 | Copy raw premium template/archive | 5 | 3 | 15 | High | Authenticated signed/scoped distribution + DPAPI-wrapped AES-GCM local cache **Implemented** | High; authorized user can recover workspace/final archive |
 | 12 | Dump process memory lấy user token/content | 3 | 4 | 12 | High | Short-lived token/rotation, minimal lifetime, secure store **Implemented partly** | High với Administrator/compromised account |
 | 13 | Inspect temp/workspace lấy raw assets/masks | 4 | 3 | 12 | High | Randomized managed workspace, cleanup/recovery, no global pristine mutation **Implemented** | Medium; same-account/admin access |
 | 14 | Decompile .NET code/copy IP | 5 | 2 | 10 | Medium | No embedded authority; signing/obfuscation/AOT chỉ hardening | High cho IP confidentiality, Low cho server authority |
@@ -175,7 +175,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Update tampering | Release Engineering | Signed/timestamped package and manifest, hash, freshness | Updater unit tests where present | Production signing key/HSM and E2E gate |
 | Dependency compromise | Release Engineering | Lock/pin, vulnerability audit, provenance/SBOM | `dotnet list package --vulnerable` gate | SBOM/license/provenance pipeline |
 | Prompt/preset authority escalation | AI Desktop + Gateway | Typed allowlist, schema/version bounds, selection-only behavior | `PromptPresetTests`, `LocalPromptPresetStoreTests`, `AiStudioViewModelTests` | Authenticated cloud preset adapter/store |
-| Premium bypass/distribution | Entitlement Backend + Storage | Signed scoped expiring ES256 grant, replay defense, signed manifest, private short-lived access | `EntitlementGrantTests`, `PremiumTemplateDistributionTests`, authenticated endpoint tests | Durable catalog/record/nonce/private-storage deployment và encrypted client cache |
+| Premium bypass/distribution | Entitlement Backend + Storage | Signed scoped expiring ES256 grant, replay defense, signed manifest, private short-lived access, encrypted derived cache | `EntitlementGrantTests`, `PremiumTemplateDistributionTests`, `EncryptedPremiumTemplateCacheTests` | Durable catalog/record/nonce/private-storage deployment và download wiring |
 | Secret/log/crash leak | Security + SRE | Structured diagnostics, redacted types, artifact scans | architecture tests and manual scan | PLAN 68 automated source/build/log/crash scan |
 | DoS/rate abuse | Gateway Ops | Bounds/timeouts/cancellation; per-user distributed limits | request size/schema tests | Rate-limit deployment design |
 

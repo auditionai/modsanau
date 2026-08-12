@@ -180,6 +180,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<ICloudPromptPresetService, UnavailableCloudPromptPresetService>();
         builder.Services.AddSingleton<IAiService, UnavailableAiService>();
         builder.Services.AddSingleton<ISecureSessionStore, WindowsCredentialSessionStore>();
+        builder.Services.AddSingleton<ITemplateCacheKeyProtector, WindowsDpapiTemplateCacheKeyProtector>();
+        builder.Services.AddSingleton<IPremiumTemplateCache, EncryptedPremiumTemplateCache>();
         builder.Services.AddSingleton(new HttpClient(new HttpClientHandler
         {
             AllowAutoRedirect = false,
