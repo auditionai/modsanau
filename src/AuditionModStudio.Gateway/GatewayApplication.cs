@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using AuditionModStudio.Gateway.Authentication;
 using AuditionModStudio.Gateway.Endpoints;
+using AuditionModStudio.Gateway.Security;
 using AuditionModStudio.Gateway.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -19,7 +20,11 @@ public static class GatewayApplication
         });
 
         var options = TrustedGatewayOptions.FromConfiguration(configuration);
+        var abuseProtectionOptions = GatewayAbuseProtectionOptions.FromConfiguration(configuration);
         services.AddSingleton(options);
+        services.AddSingleton(abuseProtectionOptions);
+        services.AddSingleton<GatewayIpRateLimiter>();
+        services.AddGatewayRateLimiting(abuseProtectionOptions);
         services.AddSingleton<ISupabaseAuthClient, SupabaseAuthHttpClient>();
         services.AddSingleton<ISupabaseAccessTokenValidator, SupabaseAccessTokenValidator>();
         services.AddSingleton<ITrustedAiGateway, UnavailableTrustedAiGateway>();
@@ -93,6 +98,8 @@ public static class GatewayApplication
 
     public static void ConfigurePipeline(WebApplication app)
     {
+        app.UseForwardedHeaders();
+        app.UseRouting();
         app.Use(async (context, next) =>
         {
             try
@@ -122,7 +129,9 @@ public static class GatewayApplication
                     : "GATEWAY_UNEXPECTED_FAILURE"), context.RequestAborted).ConfigureAwait(false);
             }
         });
+        app.UseMiddleware<GatewaySecurityMiddleware>();
         app.UseAuthentication();
+        app.UseRateLimiter();
         app.UseAuthorization();
 
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();

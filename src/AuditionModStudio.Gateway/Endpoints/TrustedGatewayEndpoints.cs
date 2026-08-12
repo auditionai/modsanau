@@ -4,6 +4,8 @@ using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Games;
 using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Gateway.Services;
+using AuditionModStudio.Gateway.Security;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuditionModStudio.Gateway.Endpoints;
@@ -65,6 +67,7 @@ public static class TrustedGatewayEndpoints
                     CancellationToken cancellationToken) =>
                     ExecuteAiAsync(principal, operation, request, service, cancellationToken))
                 .RequireAuthorization()
+                .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy)
                 .WithMetadata(new RequestSizeLimitAttribute(MaximumAiRequestBytes));
         }
 
@@ -72,7 +75,8 @@ public static class TrustedGatewayEndpoints
                 ITrustedCreditQueryService service,
                 CancellationToken cancellationToken) =>
             MapCreditResult(await service.GetAsync(User(principal), cancellationToken).ConfigureAwait(false)))
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
 
         endpoints.MapPost("/v1/ai/pricing/quote", async (ClaimsPrincipal principal,
                 AiPricingQuoteRequest? request,
@@ -93,6 +97,7 @@ public static class TrustedGatewayEndpoints
                 return MapPricingResult(result);
             })
             .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy)
             .WithMetadata(new RequestSizeLimitAttribute(MaximumPricingRequestBytes));
 
         endpoints.MapPost("/v1/ai/jobs", async (ClaimsPrincipal principal,
@@ -116,6 +121,7 @@ public static class TrustedGatewayEndpoints
                     .ConfigureAwait(false));
             })
             .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.ChargedOperationPolicy)
             .WithMetadata(new RequestSizeLimitAttribute(MaximumJobRequestBytes));
 
         endpoints.MapPost("/v1/ai/content/{kind}", async (HttpRequest httpRequest,
@@ -124,25 +130,29 @@ public static class TrustedGatewayEndpoints
             await PutContentAsync(httpRequest, User(principal), kind, validator, store, cancellationToken)
                 .ConfigureAwait(false))
             .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy)
             .WithMetadata(new RequestSizeLimitAttribute(MaximumContentRequestBytes));
 
         endpoints.MapGet("/v1/ai/content/{contentId}", async (ClaimsPrincipal principal,
                 string contentId, IAiContentStore store, CancellationToken cancellationToken) =>
             await GetContentAsync(User(principal), contentId, store, cancellationToken).ConfigureAwait(false))
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
 
         endpoints.MapGet("/v1/ai/jobs", async (ClaimsPrincipal principal,
                 IAiJobService service,
                 CancellationToken cancellationToken) =>
             MapJobListResult(await service.ListAsync(User(principal), cancellationToken).ConfigureAwait(false)))
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
 
         endpoints.MapGet("/v1/ai/jobs/{jobId:guid}", async (ClaimsPrincipal principal,
                 Guid jobId,
                 IAiJobService service,
                 CancellationToken cancellationToken) =>
             MapJobResult(await service.GetAsync(User(principal), jobId, cancellationToken).ConfigureAwait(false)))
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
 
         endpoints.MapPost("/v1/ai/jobs/{jobId:guid}/cancel", async (ClaimsPrincipal principal,
                 Guid jobId,
@@ -151,6 +161,7 @@ public static class TrustedGatewayEndpoints
             MapJobResult(await service.CancelAsync(User(principal), jobId, cancellationToken)
                 .ConfigureAwait(false)))
             .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy)
             .WithMetadata(new RequestSizeLimitAttribute(0));
 
         endpoints.MapPost("/v1/templates/entitlement", async (ClaimsPrincipal principal,
@@ -171,6 +182,7 @@ public static class TrustedGatewayEndpoints
                 return MapEntitlementResult(result);
             })
             .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy)
             .WithMetadata(new RequestSizeLimitAttribute(MaximumEntitlementRequestBytes));
 
         endpoints.MapPost("/v1/entitlements/grants", async (ClaimsPrincipal principal,
@@ -198,6 +210,7 @@ public static class TrustedGatewayEndpoints
                 };
             })
             .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy)
             .WithMetadata(new RequestSizeLimitAttribute(MaximumEntitlementRequestBytes));
 
         endpoints.MapGet("/v1/premium-templates/catalog", async (
@@ -221,7 +234,8 @@ public static class TrustedGatewayEndpoints
                     manifest.MediaType,
                 }));
             })
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
 
         endpoints.MapPost("/v1/premium-templates/access", async (ClaimsPrincipal principal,
                 PremiumTemplateAccessApiRequest? request,
@@ -258,6 +272,7 @@ public static class TrustedGatewayEndpoints
                 };
             })
             .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy)
             .WithMetadata(new RequestSizeLimitAttribute(MaximumEntitlementRequestBytes));
     }
 

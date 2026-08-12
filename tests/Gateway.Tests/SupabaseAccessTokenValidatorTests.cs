@@ -12,6 +12,7 @@ public sealed class SupabaseAccessTokenValidatorTests
     [Fact]
     public async Task Validator_sends_token_only_to_exact_supabase_auth_user_endpoint()
     {
+        var token = Token(UserId);
         RequestSnapshot? captured = null;
         var client = new StubClient((request, _) =>
         {
@@ -22,12 +23,12 @@ public sealed class SupabaseAccessTokenValidatorTests
         });
         var validator = Create(client);
 
-        var result = await validator.ValidateAsync("header.payload.signature");
+        var result = await validator.ValidateAsync(token);
 
         Assert.Equal(AccessTokenValidationStatus.Valid, result.Status);
         Assert.Equal(UserId, result.UserId);
         Assert.Equal("https://project.example/auth/v1/user", captured!.Uri.ToString());
-        Assert.Equal("Bearer header.payload.signature", captured.Authorization);
+        Assert.Equal($"Bearer {token}", captured.Authorization);
         Assert.Equal("publishable-key", captured.ApiKey);
     }
 
@@ -42,7 +43,7 @@ public sealed class SupabaseAccessTokenValidatorTests
         var validator = Create(new StubClient((_, _) =>
             Task.FromResult(new HttpResponseMessage(statusCode))));
 
-        var result = await validator.ValidateAsync("header.payload.signature");
+        var result = await validator.ValidateAsync(Token(UserId));
 
         Assert.Equal(expected, result.Status);
         Assert.Equal(Guid.Empty, result.UserId);
@@ -55,7 +56,7 @@ public sealed class SupabaseAccessTokenValidatorTests
         var invalidConfig = new SupabaseAccessTokenValidator(client, new TrustedGatewayOptions());
         var validConfig = Create(client);
 
-        var configurationResult = await invalidConfig.ValidateAsync("header.payload.signature");
+        var configurationResult = await invalidConfig.ValidateAsync(Token(UserId));
         var tokenResult = await validConfig.ValidateAsync("invalid bearer token");
 
         Assert.Equal(AccessTokenValidationStatus.Unavailable, configurationResult.Status);
@@ -71,8 +72,8 @@ public sealed class SupabaseAccessTokenValidatorTests
         var malformed = Create(new StubClient((_, _) => Task.FromResult(Json(
             HttpStatusCode.OK, "{\"id\":\"not-a-guid\"}"))));
 
-        var oversizedResult = await oversized.ValidateAsync("header.payload.signature");
-        var malformedResult = await malformed.ValidateAsync("header.payload.signature");
+        var oversizedResult = await oversized.ValidateAsync(Token(UserId));
+        var malformedResult = await malformed.ValidateAsync(Token(UserId));
 
         Assert.Equal(AccessTokenValidationStatus.Unavailable, oversizedResult.Status);
         Assert.Equal(AccessTokenValidationStatus.Invalid, malformedResult.Status);
@@ -88,6 +89,24 @@ public sealed class SupabaseAccessTokenValidatorTests
         Assert.DoesNotContain("project.example", options.ToString(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Expired_overlong_or_cross_subject_token_is_rejected_fail_closed()
+    {
+        var client = new StubClient((_, _) => Task.FromResult(Json(HttpStatusCode.OK,
+            $$"""{"id":"{{UserId}}"}""")));
+        var validator = Create(client);
+        var now = DateTimeOffset.UtcNow;
+
+        var expired = await validator.ValidateAsync(Token(UserId, now.AddHours(-2), now.AddHours(-1)));
+        var overlong = await validator.ValidateAsync(Token(UserId, now, now.AddHours(2)));
+        var crossSubject = await validator.ValidateAsync(Token(Guid.NewGuid(), now, now.AddMinutes(30)));
+
+        Assert.Equal(AccessTokenValidationStatus.Invalid, expired.Status);
+        Assert.Equal(AccessTokenValidationStatus.Invalid, overlong.Status);
+        Assert.Equal(AccessTokenValidationStatus.Invalid, crossSubject.Status);
+        Assert.Equal(1, client.CallCount);
+    }
+
     private static SupabaseAccessTokenValidator Create(ISupabaseAuthClient client) => new(client, Options());
 
     private static TrustedGatewayOptions Options() => new()
@@ -97,6 +116,17 @@ public sealed class SupabaseAccessTokenValidatorTests
         ProviderEndpoint = new("https://provider.example/v1"),
         ProviderApiKey = "provider-secret",
     };
+
+    private static string Token(Guid subject, DateTimeOffset? issuedAt = null, DateTimeOffset? expiresAt = null)
+    {
+        var issued = issuedAt ?? DateTimeOffset.UtcNow.AddMinutes(-1);
+        var expires = expiresAt ?? issued.AddMinutes(30);
+        var payload = $$"""{"sub":"{{subject:D}}","iat":{{issued.ToUnixTimeSeconds()}},"exp":{{expires.ToUnixTimeSeconds()}}}""";
+        return $"{Base64Url("{\"alg\":\"RS256\"}")}.{Base64Url(payload)}.signature";
+    }
+
+    private static string Base64Url(string value) =>
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(value)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
 
     private static HttpResponseMessage Json(HttpStatusCode statusCode, string json) => new(statusCode)
     {

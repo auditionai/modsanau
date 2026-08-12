@@ -50,6 +50,11 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 81: absolute exact verified ACV/DirectXTex paths; app/child DLL search bỏ cwd/user dirs; system-only child
   `PATH`; minimal no-secret environment; standalone companion inventory và DirectXTex re-hash sát launch. Không shell,
   sandbox/anti-debug, privilege change hay game process behavior; signed packaging/native inventory chưa production-verified.
+- PLAN đã hoàn thành: PLAN 82 — API Replay / Abuse Protection.
+- Phạm vi PLAN 82: HTTPS fail-closed không redirect; trusted-proxy allowlist; per-IP pre-auth và per-verified-user rate
+  limiting không queue; Supabase JWT lifetime/sub binding; exact JSON/media/body bounds; durable charged-operation
+  idempotency/ownership reuse; structured redacted audit. Distributed edge limit, SIEM và live TLS/Supabase deployment vẫn
+  `PRODUCTION NOT VERIFIED`.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

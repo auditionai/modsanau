@@ -23,7 +23,7 @@ public sealed class TrustedGatewayEndpointTests
     public async Task Commercial_endpoints_require_a_bearer_token()
     {
         await using var factory = new GatewayFactory();
-        using var client = factory.CreateClient();
+        using var client = SecureClient(factory);
 
         var responses = await Task.WhenAll(
             client.GetAsync("/v1/credits"),
@@ -350,7 +350,7 @@ public sealed class TrustedGatewayEndpointTests
     public async Task Health_is_the_only_anonymous_route()
     {
         await using var factory = new GatewayFactory();
-        using var client = factory.CreateClient();
+        using var client = SecureClient(factory);
 
         var response = await client.GetAsync("/health");
 
@@ -410,12 +410,95 @@ public sealed class TrustedGatewayEndpointTests
             message => message.Contains(nameof(InvalidOperationException), StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task Cleartext_is_rejected_without_redirecting_bearer_or_body()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("http://localhost"),
+            AllowAutoRedirect = false,
+        });
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-Forwarded-Proto", "https");
+
+        var response = await client.GetAsync("/health");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("HTTPS_REQUIRED", body, StringComparison.Ordinal);
+        Assert.Null(response.Headers.Location);
+    }
+
+    [Fact]
+    public async Task Unsupported_json_media_type_and_oversized_body_fail_before_trusted_service()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+        using var wrongType = new StringContent("{}", System.Text.Encoding.UTF8, "text/plain");
+        using var oversized = new ByteArrayContent(new byte[21 * 1_024]);
+        oversized.Headers.ContentType = new("application/json");
+
+        var wrongTypeResponse = await client.PostAsync("/v1/ai/jobs", wrongType);
+        var oversizedResponse = await client.PostAsync("/v1/ai/jobs", oversized);
+
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, wrongTypeResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, oversizedResponse.StatusCode);
+        Assert.Equal(0, factory.Jobs.EnqueueCallCount);
+    }
+
+    [Fact]
+    public async Task Ip_and_charged_operation_limits_reject_without_queue_or_duplicate_execution()
+    {
+        await using var ipFactory = new GatewayFactory { PreAuthenticationPermitLimit = 2 };
+        using var anonymousClient = SecureClient(ipFactory);
+        var ipResponses = new[]
+        {
+            await anonymousClient.GetAsync("/health"),
+            await anonymousClient.GetAsync("/health"),
+            await anonymousClient.GetAsync("/health"),
+        };
+
+        await using var chargeFactory = new GatewayFactory { ChargedOperationPermitLimit = 1 };
+        using var authenticatedClient = AuthenticatedClient(chargeFactory);
+        var firstCharge = await JobEnqueueAsync(authenticatedClient);
+        var limitedCharge = await JobEnqueueAsync(authenticatedClient);
+
+        Assert.Equal(HttpStatusCode.OK, ipResponses[0].StatusCode);
+        Assert.Equal(HttpStatusCode.OK, ipResponses[1].StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, ipResponses[2].StatusCode);
+        Assert.Equal(HttpStatusCode.OK, firstCharge.StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, limitedCharge.StatusCode);
+        Assert.Equal(1, chargeFactory.Jobs.EnqueueCallCount);
+        Assert.True(limitedCharge.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task Security_audit_uses_route_template_and_subject_fingerprint_without_secrets()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+
+        var response = await client.PostAsJsonAsync("/v1/ai/generate",
+            new AiGatewayRequest("audit-secret-prompt", 1, 1, null, null));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(factory.Logs.Messages, message =>
+            message.Contains("Gateway security audit POST /v1/ai/generate 200", StringComparison.Ordinal));
+        Assert.DoesNotContain(factory.Logs.Messages, message =>
+            message.Contains("access-token", StringComparison.Ordinal)
+            || message.Contains("audit-secret-prompt", StringComparison.Ordinal)
+            || message.Contains(UserId.ToString("D"), StringComparison.Ordinal));
+    }
+
     private static HttpClient AuthenticatedClient(GatewayFactory factory)
     {
-        var client = factory.CreateClient();
+        var client = SecureClient(factory);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "access-token");
         return client;
     }
+
+    private static HttpClient SecureClient(GatewayFactory factory) => factory.CreateClient(
+        new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
 
     private static Task<HttpResponseMessage> PricingQuoteAsync(HttpClient client)
     {
@@ -442,6 +525,10 @@ public sealed class TrustedGatewayEndpointTests
     {
         public AccessTokenValidationStatus TokenStatus { get; init; } = AccessTokenValidationStatus.Valid;
         public bool ReplaceTrustedServices { get; init; } = true;
+        public bool RequireHttps { get; init; } = true;
+        public int PreAuthenticationPermitLimit { get; init; } = 120;
+        public int AuthenticatedPermitLimit { get; init; } = 60;
+        public int ChargedOperationPermitLimit { get; init; } = 10;
         public StubAiGateway Ai { get; } = new();
         public StubCreditService Credits { get; } = new();
         public StubEntitlementService Entitlement { get; } = new();
@@ -454,6 +541,13 @@ public sealed class TrustedGatewayEndpointTests
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            builder.UseSetting("Gateway:AbuseProtection:RequireHttps", RequireHttps.ToString());
+            builder.UseSetting("Gateway:AbuseProtection:PreAuthenticationPermitLimit",
+                PreAuthenticationPermitLimit.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            builder.UseSetting("Gateway:AbuseProtection:AuthenticatedPermitLimit",
+                AuthenticatedPermitLimit.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            builder.UseSetting("Gateway:AbuseProtection:ChargedOperationPermitLimit",
+                ChargedOperationPermitLimit.ToString(System.Globalization.CultureInfo.InvariantCulture));
             builder.ConfigureLogging(logging => logging.AddProvider(Logs));
             builder.ConfigureServices(services =>
             {
@@ -483,6 +577,7 @@ public sealed class TrustedGatewayEndpointTests
                 }
             });
         }
+
     }
 
     private sealed class StubMediaValidator : IAiMediaValidator

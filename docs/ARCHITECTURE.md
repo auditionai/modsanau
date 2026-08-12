@@ -1184,3 +1184,25 @@ ACV giữ workspace cwd vì data/keydat protocol nhưng standalone tool policy r
 rehash/no-reparse và yêu cầu exact single-file tool directory ngay trước start. Timeout/cancellation/process-tree kill và
 stdout/stderr semantics giữ nguyên. Xem [PROCESS_LAUNCH_HARDENING.md](PROCESS_LAUNCH_HARDENING.md) cho inventory và residual
 TOCTOU. Không có game process/install/launcher behavior; privilege manifest và signing/update authority không đổi.
+
+## API replay và abuse protection từ PLAN 82
+
+Gateway pipeline là `trusted forwarded headers → routing → redacted audit wrapper → HTTPS/type/size/IP gate → Supabase
+authentication → per-user limiter → authorization → endpoint`. `X-Forwarded-For`/`X-Forwarded-Proto` chỉ được xử lý từ
+known proxy và tối đa một hop; cleartext bị reject tại Gateway, không redirect request có bearer/body.
+
+Tầng trước auth là fixed-window partition theo remote IP nhằm giới hạn call tới auth authority. Tầng sau auth dùng
+ASP.NET Core named policy partition theo verified subject; enqueue tính phí có ngưỡng riêng và queue bằng 0. Các limiter
+này per-process, không thay edge/distributed quota. Rate-limit response là stable `RATE_LIMIT_EXCEEDED` cùng `Retry-After`.
+
+Supabase access token tiếp tục được gửi tới exact HTTPS `/auth/v1/user` với redirect tắt. Gateway còn parse bounded
+JWT claims để reject token thiếu/sai `sub`, `iat`, `exp`, quá hạn, not-before tương lai hoặc lifetime trên một giờ; parsed
+claims không tự tạo trust và authoritative user trả về phải trùng token subject. Ownership vẫn chỉ derive từ principal.
+
+`/v1/ai/jobs` giữ durable `(user, operation, idempotency key, canonical request hash)` của PLAN 62 nên retry cùng payload
+trả cùng row và khác payload bị conflict, không double-reserve. PLAN 70 one-time entitlement nonce giữ nguyên. AI enqueue
+không thêm nonce làm hỏng retry semantics; timestamp đã được bind trong short-lived token.
+
+Audit chỉ gồm method, code-owned route template, status, one-way subject fingerprint và duration; không ghi URL query,
+body, prompt/image, Authorization, raw user UUID hay server credential. Chi tiết cấu hình/vận hành ở
+[API_REPLAY_ABUSE_PROTECTION.md](API_REPLAY_ABUSE_PROTECTION.md).

@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using AuditionModStudio.Gateway.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -63,22 +64,42 @@ public sealed class SupabaseAuthHttpClient : ISupabaseAuthClient, IDisposable
     public void Dispose() => _client.Dispose();
 }
 
-public sealed class SupabaseAccessTokenValidator(
-    ISupabaseAuthClient httpClient,
-    TrustedGatewayOptions options) : ISupabaseAccessTokenValidator
+public sealed class SupabaseAccessTokenValidator : ISupabaseAccessTokenValidator
 {
     private const int MaximumTokenLength = 4_096;
+    private const int MaximumClaimsBytes = 16 * 1_024;
     private const int MaximumResponseBytes = 64 * 1_024;
+    private readonly ISupabaseAuthClient _httpClient;
+    private readonly TrustedGatewayOptions _options;
+    private readonly GatewayAbuseProtectionOptions _abuseProtection;
+    private readonly TimeProvider _timeProvider;
+
+    public SupabaseAccessTokenValidator(
+        ISupabaseAuthClient httpClient,
+        TrustedGatewayOptions options,
+        GatewayAbuseProtectionOptions abuseProtection,
+        TimeProvider timeProvider)
+    {
+        _httpClient = httpClient;
+        _options = options;
+        _abuseProtection = abuseProtection;
+        _timeProvider = timeProvider;
+    }
+
+    public SupabaseAccessTokenValidator(ISupabaseAuthClient httpClient, TrustedGatewayOptions options)
+        : this(httpClient, options, new GatewayAbuseProtectionOptions(), TimeProvider.System)
+    {
+    }
 
     public async Task<AccessTokenValidationResult> ValidateAsync(
         string accessToken,
         CancellationToken cancellationToken = default)
     {
-        if (!options.HasValidSupabaseConfiguration)
+        if (!_options.HasValidSupabaseConfiguration)
         {
             return AccessTokenValidationResult.Unavailable();
         }
-        if (!IsSafeToken(accessToken))
+        if (!TryReadBoundedClaims(accessToken, out var claims))
         {
             return AccessTokenValidationResult.Invalid();
         }
@@ -86,11 +107,11 @@ public sealed class SupabaseAccessTokenValidator(
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get,
-                new Uri(options.SupabaseProjectUri!, "auth/v1/user"));
+                new Uri(_options.SupabaseProjectUri!, "auth/v1/user"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-            request.Headers.TryAddWithoutValidation("apikey", options.SupabasePublishableKey);
+            request.Headers.TryAddWithoutValidation("apikey", _options.SupabasePublishableKey);
 
-            using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            using var response = await _httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
             if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden
                 or HttpStatusCode.BadRequest)
             {
@@ -108,6 +129,7 @@ public sealed class SupabaseAccessTokenValidator(
             return user is { Id: not null }
                    && Guid.TryParse(user.Id, out var userId)
                    && userId != Guid.Empty
+                   && userId == claims.Subject
                 ? AccessTokenValidationResult.Valid(userId, NormalizeEmail(user.Email))
                 : AccessTokenValidationResult.Invalid();
         }
@@ -122,11 +144,95 @@ public sealed class SupabaseAccessTokenValidator(
         }
     }
 
-    private static bool IsSafeToken(string token) =>
-        !string.IsNullOrWhiteSpace(token)
-        && token.Length <= MaximumTokenLength
-        && token.All(character => char.IsAsciiLetterOrDigit(character)
-                                  || character is '-' or '.' or '_' or '~' or '+' or '/' or '=');
+    private bool TryReadBoundedClaims(string token, out AccessTokenClaims claims)
+    {
+        claims = default;
+        if (string.IsNullOrWhiteSpace(token) || token.Length > MaximumTokenLength
+            || !token.All(character => char.IsAsciiLetterOrDigit(character)
+                                      || character is '-' or '.' or '_' or '~' or '+' or '/' or '='))
+        {
+            return false;
+        }
+
+        var segments = token.Split('.');
+        if (segments.Length != 3 || segments.Any(string.IsNullOrEmpty)
+            || !TryDecodeBase64Url(segments[1], out var payload))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("sub", out var subjectProperty)
+                || !Guid.TryParse(subjectProperty.GetString(), out var subject) || subject == Guid.Empty
+                || !TryReadUnixTime(root, "iat", out var issuedAt)
+                || !TryReadUnixTime(root, "exp", out var expiresAt))
+            {
+                return false;
+            }
+
+            var now = _timeProvider.GetUtcNow();
+            if (expiresAt <= issuedAt
+                || expiresAt - issuedAt > _abuseProtection.MaximumAccessTokenLifetime
+                || issuedAt > now + _abuseProtection.AccessTokenClockSkew
+                || expiresAt <= now - _abuseProtection.AccessTokenClockSkew
+                || root.TryGetProperty("nbf", out var notBeforeProperty)
+                && (!notBeforeProperty.TryGetInt64(out var notBeforeSeconds)
+                    || DateTimeOffset.FromUnixTimeSeconds(notBeforeSeconds)
+                    > now + _abuseProtection.AccessTokenClockSkew))
+            {
+                return false;
+            }
+
+            claims = new(subject, issuedAt, expiresAt);
+            return true;
+        }
+        catch (Exception exception) when (exception is JsonException or FormatException
+                                                     or ArgumentOutOfRangeException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadUnixTime(JsonElement root, string name, out DateTimeOffset value)
+    {
+        value = default;
+        try
+        {
+            return root.TryGetProperty(name, out var property)
+                   && property.TryGetInt64(out var seconds)
+                   && (value = DateTimeOffset.FromUnixTimeSeconds(seconds)) != default;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryDecodeBase64Url(string value, out byte[] decoded)
+    {
+        decoded = [];
+        if (value.Length is 0 or > MaximumClaimsBytes * 2) return false;
+        var normalized = value.Replace('-', '+').Replace('_', '/');
+        normalized += (normalized.Length % 4) switch
+        {
+            0 => string.Empty,
+            2 => "==",
+            3 => "=",
+            _ => "invalid",
+        };
+        try
+        {
+            decoded = Convert.FromBase64String(normalized);
+            return decoded.Length is > 0 and <= MaximumClaimsBytes;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
 
     private static string? NormalizeEmail(string? email) =>
         !string.IsNullOrWhiteSpace(email) && email.Length <= 320 && !email.Any(char.IsControl)
@@ -134,6 +240,10 @@ public sealed class SupabaseAccessTokenValidator(
             : null;
 
     private sealed record SupabaseUser(string? Id, string? Email);
+    private readonly record struct AccessTokenClaims(
+        Guid Subject,
+        DateTimeOffset IssuedAt,
+        DateTimeOffset ExpiresAt);
 }
 
 public sealed class GatewayAuthenticationHandler(

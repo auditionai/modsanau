@@ -813,3 +813,21 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - `UseShellExecute=false`, raw `Arguments` rỗng, switches code-owned qua `ArgumentList`; không CMD/PowerShell/SendKeys.
 - Current `requireAdministrator` không đổi nên blast radius còn cao. Hash/DLL policy giảm planting nhưng không loại bỏ
   Administrator/same-user TOCTOU; đây không phải sandbox/anti-debug. Production signed package/native inventory chưa verified.
+
+## API replay và abuse protection từ PLAN 82
+
+- Production secure default bắt buộc HTTPS và reject cleartext bằng `HTTPS_REQUIRED`; không redirect bearer token/body.
+  Reverse proxy chỉ được tin bằng exact IP allowlist và forward limit một hop. Certificate/TLS termination topology thật
+  chưa được repository xác minh.
+- Trước auth có per-IP fixed-window limit; sau auth mọi commercial endpoint có per-verified-user limit và charged AI enqueue
+  có ngưỡng riêng. Queue bằng 0. Counter local một process nên scale-out vẫn cần edge/distributed limiter, stress test và alert.
+- Supabase online user validation vẫn là authority. Bounded JWT `sub/iat/exp/nbf` gate chỉ thu hẹp acceptance: token quá
+  hạn, lifetime trên một giờ, future token hoặc returned user khác subject đều fail closed trước trusted service.
+- JSON/media type và endpoint body limits bị enforce trước trusted service; existing prompt/image/pixel/schema bounds giữ
+  nguyên. Chunked stream còn được Kestrel request-size feature chặn khi đọc.
+- Charged job bắt buộc durable idempotency/request hash; same replay không double-reserve, conflict payload bị reject.
+  Signed entitlement grant tiếp tục atomic one-time nonce. Không dùng client timestamp/nonce làm credit authority.
+- Security audit dùng stable event `8200`, route template và subject fingerprint; không log token, raw UUID, query/body,
+  prompt/image, provider/DB/signing secret. Central append-restricted audit sink/SIEM/retention chưa production-verified.
+- Xem [API_REPLAY_ABUSE_PROTECTION.md](API_REPLAY_ABUSE_PROTECTION.md). Trạng thái là
+  `IMPLEMENTED CONTRACT / PRODUCTION DEPLOYMENT NOT VERIFIED`.

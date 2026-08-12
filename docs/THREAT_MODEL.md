@@ -239,3 +239,13 @@ Production launcher không search executable; app/child DLL search bỏ cwd/user
 tool bytes/directory được kiểm sát launch. ACV/DDS typed arguments không tạo shell command. Residual same-user/Administrator
 TOCTOU còn tồn tại giữa verify và OS image open; current elevation làm impact lớn hơn, nên ADR-0002 vẫn là mitigation ưu tiên.
 Không có control nào theo dõi/can thiệp game process.
+
+## API replay / abuse residual risk từ PLAN 82
+
+Gateway hiện reject cleartext, validate short-lived Supabase JWT online, giới hạn request theo IP trước auth và verified
+user sau auth, enforce type/size/ownership, giữ durable idempotency cho charged job và ghi audit đã giảm dữ liệu. Replay
+cùng idempotency key/payload là retry deterministic, không phải charge mới; entitlement grant vẫn one-time nonce.
+
+Residual risk: limiter chỉ local process nên botnet hoặc nhiều replica cần edge/distributed control; proxy allowlist/TLS
+certificate, Supabase live JWT expiry, production stress threshold, centralized audit sink/alert/retention chưa có evidence.
+Compromised bearer token vẫn dùng được đến `exp`; Gateway không tuyên bố instant revocation hay chống account takeover.
