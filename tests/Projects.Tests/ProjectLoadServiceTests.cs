@@ -24,6 +24,8 @@ public sealed class ProjectLoadServiceTests
         Assert.False(context.Archive.Called);
         Assert.False(context.Scan.Called);
         Assert.False(context.Store.Saved);
+        Assert.False(context.Entitlement.Called);
+        Assert.False(context.Acquisition.Called);
     }
 
     [Fact]

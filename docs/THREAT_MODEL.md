@@ -150,7 +150,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | 8 | Replace `acv.exe`/DLL hijack | 4 | 4 | 16 | High | Absolute path, SHA-256 manifest/copy/prelaunch verify, isolated cwd **Implemented** | Medium; TOCTOU/admin attacker |
 | 9 | MITM/redirect/replay API request | 3 | 5 | 15 | High | Exact HTTPS origin, redirects off, token validation, idempotency **Implemented**; TLS termination/rate limit **Operational/Planned** | Medium |
 | 10 | Malformed provider/media result gây publish/charge sai | 3 | 5 | 15 | High | Bounded media validator, persist-before-complete, reconciliation **Implemented contract** | Medium/High; concrete provider/live storage chưa verified |
-| 11 | Copy raw premium template/archive | 5 | 3 | 15 | High | Authenticated distribution/cache controls **Planned**; pristine working-copy separation **Implemented** | High; authorized user can recover complete archive |
+| 11 | Copy raw premium template/archive | 5 | 3 | 15 | High | Authenticated signed/scoped short-lived distribution contract **Implemented**; encrypted cache **Planned** | High; authorized user can recover complete archive |
 | 12 | Dump process memory lấy user token/content | 3 | 4 | 12 | High | Short-lived token/rotation, minimal lifetime, secure store **Implemented partly** | High với Administrator/compromised account |
 | 13 | Inspect temp/workspace lấy raw assets/masks | 4 | 3 | 12 | High | Randomized managed workspace, cleanup/recovery, no global pristine mutation **Implemented** | Medium; same-account/admin access |
 | 14 | Decompile .NET code/copy IP | 5 | 2 | 10 | Medium | No embedded authority; signing/obfuscation/AOT chỉ hardening | High cho IP confidentiality, Low cho server authority |
@@ -175,7 +175,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Update tampering | Release Engineering | Signed/timestamped package and manifest, hash, freshness | Updater unit tests where present | Production signing key/HSM and E2E gate |
 | Dependency compromise | Release Engineering | Lock/pin, vulnerability audit, provenance/SBOM | `dotnet list package --vulnerable` gate | SBOM/license/provenance pipeline |
 | Prompt/preset authority escalation | AI Desktop + Gateway | Typed allowlist, schema/version bounds, selection-only behavior | `PromptPresetTests`, `LocalPromptPresetStoreTests`, `AiStudioViewModelTests` | Authenticated cloud preset adapter/store |
-| Premium bypass | Entitlement Backend | Signed scoped expiring ES256 grant, replay defense | `EntitlementGrantTests`, authenticated endpoint tests | Durable entitlement record/nonce deployment |
+| Premium bypass/distribution | Entitlement Backend + Storage | Signed scoped expiring ES256 grant, replay defense, signed manifest, private short-lived access | `EntitlementGrantTests`, `PremiumTemplateDistributionTests`, authenticated endpoint tests | Durable catalog/record/nonce/private-storage deployment và encrypted client cache |
 | Secret/log/crash leak | Security + SRE | Structured diagnostics, redacted types, artifact scans | architecture tests and manual scan | PLAN 68 automated source/build/log/crash scan |
 | DoS/rate abuse | Gateway Ops | Bounds/timeouts/cancellation; per-user distributed limits | request size/schema tests | Rate-limit deployment design |
 
@@ -196,7 +196,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 3. SHA-256 xác nhận identity/integrity kỳ vọng nhưng không thay chữ ký publisher và không tự chứng minh runtime compatibility.
 4. External AI provider adapter, provider network, private content store deployment và live PostgreSQL concurrency chưa verified; provider-neutral/fake tests không phải production evidence.
 5. TLS termination, WAF/rate limiting, secret manager, monitoring, backup/restore và incident response là operational controls chưa được repository chứng minh.
-6. Payment webhook và premium package distribution chưa triển khai. Signed entitlement grant đã có contract/implementation nhưng durable record/nonce deployment chưa verified.
+6. Payment webhook chưa triển khai. Premium package distribution contract đã có nhưng concrete catalog/private storage/download cache và durable record/nonce deployment chưa verified.
 7. Parser/native/tool zero-day và supply-chain compromise vẫn có thể tồn tại dù input bounds/hash pin.
 8. App binary/IP có thể bị decompile. Bảo vệ business authority bằng server boundary quan trọng hơn cố giữ client code bí mật.
 9. Prompt và AI output có thể chứa sensitive user content; retention/deletion policy phải được deployment/product owner chốt trước production.

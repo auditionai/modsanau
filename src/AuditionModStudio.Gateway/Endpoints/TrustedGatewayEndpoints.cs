@@ -27,6 +27,12 @@ public sealed record EntitlementGrantRequest(
     string? GameId,
     string? ModId);
 
+public sealed record PremiumTemplateAccessApiRequest(
+    string? TemplateId,
+    string? Version,
+    string? GameId,
+    string? ModId);
+
 public sealed record AiPricingQuoteRequest(
     TrustedAiOperation Operation,
     string? ExpectedPricingVersion);
@@ -189,6 +195,66 @@ public static class TrustedGatewayEndpoints
                         new GatewayErrorResponse(result.DiagnosticCode), statusCode: StatusCodes.Status403Forbidden),
                     _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
                         "Entitlement grant service is unavailable.", result.DiagnosticCode),
+                };
+            })
+            .RequireAuthorization()
+            .WithMetadata(new RequestSizeLimitAttribute(MaximumEntitlementRequestBytes));
+
+        endpoints.MapGet("/v1/premium-templates/catalog", async (
+                IPremiumTemplateCatalogService catalog, CancellationToken cancellationToken) =>
+            {
+                var result = await catalog.ListAsync(cancellationToken).ConfigureAwait(false);
+                if (!IsSafeDiagnosticCode(result.DiagnosticCode)) return InvalidTrustedResponse();
+                if (result.Status != PremiumTemplateCatalogStatus.Succeeded)
+                    return SafeProblem(StatusCodes.Status503ServiceUnavailable,
+                        "Premium template catalog is unavailable.", result.DiagnosticCode);
+                if (result.Manifests.Any(manifest => manifest is not { IsValid: true }))
+                    return InvalidTrustedResponse();
+                return Results.Ok(result.Manifests.Select(manifest => new
+                {
+                    TemplateId = manifest.Identity.TemplateId.Value,
+                    Version = manifest.Identity.Version.Value,
+                    CompatibleGameBuild = manifest.Identity.CompatibleGameBuild.Value,
+                    GameId = manifest.GameId.Value,
+                    ModId = manifest.ModId.Value,
+                    manifest.ContentLength,
+                    manifest.MediaType,
+                }));
+            })
+            .RequireAuthorization();
+
+        endpoints.MapPost("/v1/premium-templates/access", async (ClaimsPrincipal principal,
+                PremiumTemplateAccessApiRequest? request,
+                IPremiumTemplateDistributionService distribution,
+                CancellationToken cancellationToken) =>
+            {
+                if (!TryCreatePremiumTemplateAccessRequest(request, out var accessRequest))
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    { ["request"] = ["Premium template access request is invalid."] });
+                var result = await distribution.AuthorizeAsync(User(principal), accessRequest!, cancellationToken)
+                    .ConfigureAwait(false);
+                if (!IsSafeDiagnosticCode(result.DiagnosticCode)) return InvalidTrustedResponse();
+                return result.Status switch
+                {
+                    TrustedServiceStatus.Succeeded when result.Manifest is { IsValid: true }
+                        && IsSafeBase64(result.PackageSignature) && result.DownloadUri is not null
+                        && result.ExpiresAt is not null => Results.Ok(new
+                        {
+                            result.DiagnosticCode,
+                            TemplateId = result.Manifest.Identity.TemplateId.Value,
+                            Version = result.Manifest.Identity.Version.Value,
+                            ExpectedSha256 = result.Manifest.Identity.Sha256.Value,
+                            CompatibleGameBuild = result.Manifest.Identity.CompatibleGameBuild.Value,
+                            result.Manifest.ContentLength,
+                            result.Manifest.MediaType,
+                            result.PackageSignature,
+                            DownloadUrl = result.DownloadUri.AbsoluteUri,
+                            result.ExpiresAt,
+                        }),
+                    TrustedServiceStatus.Rejected => Results.Json(
+                        new GatewayErrorResponse(result.DiagnosticCode), statusCode: StatusCodes.Status403Forbidden),
+                    _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
+                        "Premium template distribution is unavailable.", result.DiagnosticCode),
                 };
             })
             .RequireAuthorization()
@@ -493,6 +559,13 @@ public static class TrustedGatewayEndpoints
             && segment.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_'));
     }
 
+    private static bool IsSafeBase64(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > 512) return false;
+        try { return Convert.FromBase64String(value).Length == 64; }
+        catch (FormatException) { return false; }
+    }
+
     private static bool TryCreateAiRequest(
         TrustedAiOperation operation,
         AiGatewayRequest request,
@@ -551,6 +624,20 @@ public static class TrustedGatewayEndpoints
         descriptor = new(request.Scope, EntitlementGrantDescriptor.TemplateAudience,
             template, gameId, modId);
         return descriptor.IsValid;
+    }
+
+    private static bool TryCreatePremiumTemplateAccessRequest(PremiumTemplateAccessApiRequest? request,
+        out PremiumTemplateAccessRequest? access)
+    {
+        access = null;
+        try
+        {
+            if (request is null) return false;
+            access = new(new TemplateId(request.TemplateId!), new TemplateVersion(request.Version!),
+                new GameId(request.GameId!), new ModId(request.ModId!));
+            return true;
+        }
+        catch (ArgumentException) { return false; }
     }
 
     private static bool TryDecode(string? value, out ImmutableArray<byte> bytes)

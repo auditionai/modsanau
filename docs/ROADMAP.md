@@ -18,6 +18,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 69: harden store PLAN 58 bằng schema-v1 strict, in-place legacy Credential Manager migration, process-wide target serialization, bounded token/blob và buffer zeroing; test rotation/delete/corruption/migration/concurrency và release plaintext scan, không tạo store thứ hai.
 - PLAN đã hoàn thành: PLAN 70 — Server-Authoritative License/Entitlement.
 - Phạm vi PLAN 70: authenticated server entitlement-record boundary và short-lived ES256 grants bind verified user/scope/audience/template/game/mod/expiry/nonce; atomic nonce consume chống replay, premium AI offline fail closed, không local `IsPremium`, không template distribution hoặc game-install coupling.
+- PLAN đã hoàn thành: PLAN 71 — Premium Template Distribution Model.
+- Phạm vi PLAN 71: server-controlled premium package catalog, signed manifest bind exact template/version/hash/game/mod, authenticated short-lived private-storage access reuse PLAN 70 grant/nonce, revocation/fail-closed policy và non-destructive existing-project semantics. Concrete storage/download/cache adapter chưa được cấu hình; PLAN 72 sở hữu encrypted local cache.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

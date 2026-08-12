@@ -41,6 +41,10 @@ public static class GatewayApplication
         services.AddSingleton<IEntitlementRecordService, UnavailableEntitlementRecordService>();
         services.AddSingleton<IEntitlementNonceStore, UnavailableEntitlementNonceStore>();
         services.AddSingleton<IEntitlementGrantService, UnavailableEntitlementGrantService>();
+        services.AddSingleton<IPremiumTemplateCatalogService, UnavailablePremiumTemplateCatalogService>();
+        services.AddSingleton<IPremiumTemplatePrivateStorage, UnavailablePremiumTemplatePrivateStorage>();
+        services.AddSingleton<IPremiumTemplateDistributionService,
+            UnavailablePremiumTemplateDistributionService>();
         services.AddSingleton(TimeProvider.System);
         if (AiPricingCatalog.TryFromConfiguration(configuration, out var pricingCatalog))
         {

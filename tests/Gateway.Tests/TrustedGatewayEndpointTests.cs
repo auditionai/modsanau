@@ -1,4 +1,5 @@
 using System.Net;
+using AuditionModStudio.Core.Archives;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Collections.Immutable;
@@ -29,6 +30,9 @@ public sealed class TrustedGatewayEndpointTests
             client.PostAsJsonAsync("/v1/templates/entitlement", ValidTemplate()),
             client.PostAsJsonAsync("/v1/entitlements/grants", new EntitlementGrantRequest(
                 PremiumEntitlementScope.PremiumAi, null, null, null)),
+            client.GetAsync("/v1/premium-templates/catalog"),
+            client.PostAsJsonAsync("/v1/premium-templates/access", new PremiumTemplateAccessApiRequest(
+                "pointer", "v1", "audition", "pointer_mod")),
             client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)),
             PricingQuoteAsync(client),
             JobEnqueueAsync(client),
@@ -39,6 +43,7 @@ public sealed class TrustedGatewayEndpointTests
         Assert.Equal(0, factory.Credits.CallCount);
         Assert.Equal(0, factory.Entitlement.CallCount);
         Assert.Equal(0, factory.Grants.CallCount);
+        Assert.Equal(0, factory.Distribution.CallCount);
         Assert.Equal(0, factory.Pricing.CallCount);
         Assert.Equal(0, factory.Jobs.EnqueueCallCount);
     }
@@ -306,6 +311,22 @@ public sealed class TrustedGatewayEndpointTests
     }
 
     [Fact]
+    public async Task Premium_template_access_uses_verified_user_and_exact_typed_request()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+
+        var response = await client.PostAsJsonAsync("/v1/premium-templates/access",
+            new PremiumTemplateAccessApiRequest("pointer", "v1", "audition", "pointer_mod"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(UserId, factory.Distribution.LastUser!.UserId);
+        Assert.Equal("pointer", factory.Distribution.LastRequest!.TemplateId.Value);
+        var json = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("storageReference", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Client_cannot_mutate_credit_or_send_client_authority_fields()
     {
         await using var factory = new GatewayFactory();
@@ -425,6 +446,7 @@ public sealed class TrustedGatewayEndpointTests
         public StubCreditService Credits { get; } = new();
         public StubEntitlementService Entitlement { get; } = new();
         public StubGrantService Grants { get; } = new();
+        public StubPremiumTemplateDistribution Distribution { get; } = new();
         public StubPricingService Pricing { get; } = new();
         public StubJobService Jobs { get; } = new();
         public StubContentStore Content { get; } = new();
@@ -444,6 +466,7 @@ public sealed class TrustedGatewayEndpointTests
                     services.RemoveAll<ITrustedCreditQueryService>();
                     services.RemoveAll<ITrustedTemplateEntitlementService>();
                     services.RemoveAll<IEntitlementGrantService>();
+                    services.RemoveAll<IPremiumTemplateDistributionService>();
                     services.RemoveAll<IAiPricingService>();
                     services.RemoveAll<IAiJobService>();
                     services.RemoveAll<IAiContentStore>();
@@ -452,6 +475,7 @@ public sealed class TrustedGatewayEndpointTests
                     services.AddSingleton<ITrustedCreditQueryService>(Credits);
                     services.AddSingleton<ITrustedTemplateEntitlementService>(Entitlement);
                     services.AddSingleton<IEntitlementGrantService>(Grants);
+                    services.AddSingleton<IPremiumTemplateDistributionService>(Distribution);
                     services.AddSingleton<IAiPricingService>(Pricing);
                     services.AddSingleton<IAiJobService>(Jobs);
                     services.AddSingleton<IAiContentStore>(Content);
@@ -646,6 +670,26 @@ public sealed class TrustedGatewayEndpointTests
         public Task<EntitlementGrantResult> ValidateAndConsumeAsync(string grant,
             AuthenticatedGatewayUser expectedUser, EntitlementGrantDescriptor expectedDescriptor,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class StubPremiumTemplateDistribution : IPremiumTemplateDistributionService
+    {
+        public int CallCount { get; private set; }
+        public AuthenticatedGatewayUser? LastUser { get; private set; }
+        public PremiumTemplateAccessRequest? LastRequest { get; private set; }
+        public Task<PremiumTemplateAccessResult> AuthorizeAsync(AuthenticatedGatewayUser user,
+            PremiumTemplateAccessRequest request, CancellationToken cancellationToken = default)
+        {
+            CallCount++; LastUser = user; LastRequest = request;
+            var manifest = new PremiumTemplatePackageManifest(
+                new(new("pointer"), new("v1"), new(new string('A', 64)), new("build-1")),
+                new("audition"), new("pointer_mod"), 4096,
+                PremiumTemplatePackageManifest.PackageMediaType);
+            return Task.FromResult(new PremiumTemplateAccessResult(TrustedServiceStatus.Succeeded,
+                "PREMIUM_TEMPLATE_ACCESS_AUTHORIZED", manifest, Convert.ToBase64String(new byte[64]),
+                new("https://storage.invalid/package?sig=short"),
+                new DateTimeOffset(2026, 8, 12, 12, 1, 0, TimeSpan.Zero)));
+        }
     }
 
     private sealed class CapturingLoggerProvider : ILoggerProvider
