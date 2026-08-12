@@ -250,6 +250,10 @@ ClientBin/
 *.key
 *.cer.private
 *.signing.json
+*.obfuscation-map.xml
+**/DotfuscatorReports/
+**/Dotfuscated/
+/artifacts/private-symbols/
 *.publishsettings
 orleans.codegen.cs
 

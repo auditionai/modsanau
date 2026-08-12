@@ -765,3 +765,16 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - Live manifest signer/public-key rollout, HTTPS release server, production Authenticode certificate và updater network
   đều `NOT VERIFIED`. Rollover phải ship old+new public verifier trước khi ngừng old key; emergency revoke phát hành
   verifier policy qua current trusted chain, không chấp nhận unsigned metadata fallback.
+
+## Binary obfuscation strategy từ PLAN 78
+
+- Obfuscation hiện `NOT ADOPTED/NOT VERIFIED`; không có vendor binary/license/target trong production build và không có
+  tuyên bố Release đã obfuscate. Dotfuscator Professional 7.2.2 chỉ là candidate pilot dựa trên official .NET 10 docs.
+- Debug/dev tuyệt đối không obfuscate. Future protected Release phải chạy functional/performance/AV/decompile gate và
+  sign lại sau transform; không sửa binary đã Authenticode-sign.
+- Mapping/report chứa symbol inventory có thể đảo lợi ích renaming nên bind exact version/commit/tool/config, giữ private,
+  không repository/public artifact/log/diagnostic export. Script artifact policy chặn map/report trong public root.
+- Renaming/control flow/string/resource chỉ bật tăng dần với explicit XAML/reflection/DI/JSON/PInvoke keep rules.
+  Anti-tamper/anti-debug disabled cho đến approved AV/compatibility gate; không malware-like response.
+- Obfuscation không bảo vệ privileged secret, credit, entitlement, payment, update/template signing key hoặc template
+  plaintext khỏi Administrator. Server authority và PLAN 76/77 cryptographic verification vẫn là security boundary.

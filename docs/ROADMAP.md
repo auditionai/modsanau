@@ -36,6 +36,9 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 77: strict signed ES256 update manifest bind exact HTTPS URL/version/length/hash/publisher; typed downgrade
   rejection; randomized bounded staging; WinVerifyTrust + exact Authenticode identity; installer boundary chỉ chạy sau
   verify. Concrete install/swap/rollback/UI thuộc PLAN 96; live manifest signer/network/installer chưa VERIFIED.
+- PLAN đã hoàn thành evaluation: PLAN 78 — Binary Obfuscation Strategy.
+- Quyết định ADR-0003: Dotfuscator Professional 7.2.2 là candidate pilot, nhưng chưa adopt vì thiếu license/tool và
+  WinUI/XAML/reflection/native/AV evidence. Debug/Release hiện không obfuscate; anti-tamper disabled; mapping phải private.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.

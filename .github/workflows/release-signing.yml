@@ -69,6 +69,12 @@ jobs:
       - name: Scan signed release artifacts
         shell: pwsh
         run: ./scripts/Invoke-SecretScan.ps1 -Paths artifacts/release
+      - name: Reject private obfuscation maps and reports
+        shell: pwsh
+        run: >-
+          ./scripts/Test-ObfuscationArtifactPolicy.ps1
+          -PublicArtifactRoot artifacts/release
+          -Configuration Release
       - name: Upload signed release candidate
         uses: actions/upload-artifact@v4
         with:

@@ -1132,3 +1132,14 @@ trước bước cuối không gọi installer và cleanup staging best-effort v
 PLAN 77 chỉ cung cấp verification và verified-installer boundary. Installer/swap, rollback, channel/staged rollout,
 deferral lúc build/export và UI thuộc PLAN 96. Chưa có live manifest key, release endpoint hoặc production installer;
 default App composition chưa wire updater nên local editor không phụ thuộc network/update availability.
+
+## Binary obfuscation strategy từ PLAN 78
+
+[ADR-0003](ADR/0003-binary-obfuscation-strategy.md) đánh giá Dotfuscator Professional 7.2.2 là candidate pilot ưu
+tiên nhưng quyết định `EVALUATED / NOT ADOPTED`. Không có vendor package/target/license/config trong build và Debug/Release
+hiện không bị transform. Lý do là chưa có WinUI 3/XAML/reflection/DI/JSON/PInvoke/native tool/AV evidence trên output thật.
+
+Future pilot phải bắt đầu renaming-only với keep rules, rồi mới thử control flow/string/resource theo performance và
+compatibility evidence; anti-tamper vẫn disabled. Nếu adopt, obfuscation nằm sau unsigned publish và trước PLAN 76 signing;
+PLAN 77 manifest chỉ bind final signed bytes. Map/report là private per-version/commit/tool/config artifact, không vào
+repository/public release. Obfuscation không đổi Core/server authority và không phải nơi giữ secrets.
