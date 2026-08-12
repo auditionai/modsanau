@@ -966,8 +966,8 @@ Save current project
   `/v1/credits`. Không có HTTP route cho grant/reserve/capture/release/refund.
 - `Gateway:CreditDatabaseConnectionString` là server-only deployment secret, bắt buộc TLS
   `Require/VerifyCA/VerifyFull`, bị loại khỏi `ToString()` và không nằm trong App/.audproj. Khi cấu hình thiếu/sai,
-  cả query và ledger mutations fail closed. Migration revoke client roles; chỉ server `service_role` được SELECT
-  wallet projection và EXECUTE exact functions.
+  cả query và ledger mutations fail closed. PLAN 83 cho `authenticated` đọc explicit safe columns của own rows qua RLS;
+  chỉ server `service_role` được EXECUTE exact functions và client không có direct mutation privilege.
 - PLAN 60 không chứa pricing rule, AI job, payment webhook/provider hoặc store UI. Server-hosted pricing thuộc
   PLAN 61 — AI Pricing.
 
@@ -998,8 +998,9 @@ Save current project
   `credit_capture`; failure terminal/cancel trước capture gọi `credit_release`. Retry chỉ requeue, không reserve lại.
   Expired lease được reclaim; hết retry hoặc cancel-requested được terminal hóa và release bằng deterministic key.
 - Public Gateway cung cấp authenticated enqueue/get/list/cancel. Owner luôn từ verified principal; history query có
-  owner predicate, tối đa 100 rows. Provider request ID/lease token không được phản chiếu ra client. Table bật RLS,
-  client roles không có schema/table/function quyền; service role chỉ SELECT history và EXECUTE exact functions.
+  owner predicate, tối đa 100 rows. Provider request ID/lease token không được phản chiếu ra client. PLAN 83 cho
+  authenticated direct read chỉ own-row safe columns; internal columns/table và mọi DML/RPC vẫn denied. Service role
+  SELECT history và EXECUTE exact functions.
 - PLAN 62 không thêm provider executor, raw input/output storage, desktop UI, image Apply, payment hoặc gameplay.
   Migration/locking hiện có offline contract evidence; chưa có live PostgreSQL execution evidence.
 
@@ -1206,3 +1207,17 @@ không thêm nonce làm hỏng retry semantics; timestamp đã được bind tro
 Audit chỉ gồm method, code-owned route template, status, one-way subject fingerprint và duration; không ghi URL query,
 body, prompt/image, Authorization, raw user UUID hay server credential. Chi tiết cấu hình/vận hành ở
 [API_REPLAY_ABUSE_PROTECTION.md](API_REPLAY_ABUSE_PROTECTION.md).
+
+## Supabase RLS hardening từ PLAN 83
+
+Migration thứ tư harden tại chỗ 6 user-owned tables của PLAN 60/62/65. Tất cả dùng ENABLE+FORCE RLS. Wallet,
+reservation, ledger, refund và AI job có policy SELECT-only theo `(SELECT auth.uid()) = user_id`; `credit_idempotency`
+không có client policy. `authenticated` chỉ được SELECT explicit contract-safe columns; `anon` không có schema usage và
+không client role nào có DML hoặc private-function EXECUTE.
+
+Gateway/service-role path giữ nguyên và server identity vẫn verified principal. Column/RLS read là defense-in-depth cho
+Supabase access, không thay Gateway ownership predicate hay cấp commercial mutation authority. Chi tiết matrix/test ở
+[SUPABASE_RLS_HARDENING.md](SUPABASE_RLS_HARDENING.md).
+
+Real PostgreSQL 17.6 gate đã apply cả bốn migration và chứng minh own/cross-user/column/DML/RPC/anon behavior. Gate đồng
+thời phát hiện PLAN 60 function ambiguity `42702`; PLAN 83 không lấn scope ledger, và exact PLAN 85 phải sửa/verify lỗi này.

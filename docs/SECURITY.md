@@ -592,9 +592,10 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 
 ## Credit authority boundary từ PLAN 60
 
-- Credit tables nằm trong private PostgreSQL schema, bật RLS và revoke toàn bộ table/function privilege khỏi
-  `PUBLIC`, `anon`, `authenticated`. `service_role` chỉ được SELECT wallet projection và EXECUTE năm exact mutation
-  functions; không được direct INSERT/UPDATE/DELETE tables. Connection string là server secret và Gateway chỉ chấp
+- Credit tables nằm trong private PostgreSQL schema, bật FORCE RLS. PLAN 83 cho `authenticated` SELECT explicit safe
+  columns của own rows; `credit_idempotency` và internal columns server-only. `anon` không có schema access; client không
+  có INSERT/UPDATE/DELETE/function EXECUTE. `service_role` được SELECT/EXECUTE exact backend boundary. Connection string
+  là server secret và Gateway chỉ chấp
   nhận TLS `Require`, `VerifyCA` hoặc `VerifyFull`; option rendering luôn redacted.
 - Ledger, refund và idempotency rows bị trigger chặn UPDATE/DELETE. Wallet/reservation là mutable projections nhưng
   chỉ `SECURITY DEFINER` functions có fixed safe search path được thay đổi. Functions kiểm tra nonnegative balance,
@@ -638,9 +639,9 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
 - Lease token là worker-only capability. Claim dùng row lock + `SKIP LOCKED`; stale worker không thể complete nếu lease
   hết hạn/sai token. Retryable failure chỉ requeue; terminal failure/cancel/lease exhaustion release open reservation.
   Complete validate final cost không vượt reserve, output reference và provider request ID trước capture.
-- RLS được bật và mọi quyền trực tiếp bị revoke khỏi `PUBLIC/anon/authenticated`. `service_role` chỉ đọc job history và
-  execute năm exact job functions; không được direct INSERT/UPDATE/DELETE. API history luôn filter verified owner và
-  không trả lease/provider request ID.
+- PLAN 83 bật FORCE RLS và cho `authenticated` SELECT own-row trên explicit safe job columns. Lease/provider request ID,
+  idempotency/hash/transaction columns và mọi client DML/RPC bị deny. `service_role` đọc job history và execute exact job
+  functions; API history vẫn filter verified owner và không trả lease/provider request ID.
 - Chưa chạy migration trên live/staging PostgreSQL, nên chưa tuyên bố concurrency/rollback thực tế. Contract SQL và
   integration shape được kiểm thử offline; PLAN 85 vẫn là real PostgreSQL concurrency gate. Rate limiting và provider
   worker vận hành vẫn là technical debt/deployment concern.
@@ -831,3 +832,16 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
   prompt/image, provider/DB/signing secret. Central append-restricted audit sink/SIEM/retention chưa production-verified.
 - Xem [API_REPLAY_ABUSE_PROTECTION.md](API_REPLAY_ABUSE_PROTECTION.md). Trạng thái là
   `IMPLEMENTED CONTRACT / PRODUCTION DEPLOYMENT NOT VERIFIED`.
+
+## Supabase RLS hardening từ PLAN 83
+
+- Audit đủ `credit_wallets`, `credit_reservations`, `credit_ledger`, `credit_refunds`, `credit_idempotency`, `ai_jobs`.
+  Cả 6 ENABLE+FORCE RLS; chỉ 5 bảng có authenticated SELECT-own policy, idempotency server-only.
+- Grants là column-level allowlist. Authority reference, provider/lease capability, request/idempotency material và internal
+  transaction bindings không được client đọc. Không có client INSERT/UPDATE/DELETE/private RPC; `anon` không schema usage.
+- PostgreSQL 17.6 loopback gate chứng minh owner/cross-user/hidden-column/DML/RPC/anon và catalog policy behavior. Official
+  image được pin immutable digest; test credential random không log/commit và isolated database/container được cleanup.
+- `service_role` bypass RLS theo Supabase nên vẫn là privileged secret; FORCE không chặn BYPASSRLS/superuser. Live Supabase
+  migration owner, exposed schemas, backup/rollback và Data API chưa production-verified.
+- Gate tìm thấy lỗi sẵn có PLAN 60 `42702` trong credit function. RLS evidence dùng trusted admin seed; exact PLAN 85 sở hữu
+  việc sửa và concurrency verification. Xem [SUPABASE_RLS_HARDENING.md](SUPABASE_RLS_HARDENING.md).

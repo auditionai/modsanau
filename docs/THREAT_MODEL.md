@@ -249,3 +249,12 @@ cùng idempotency key/payload là retry deterministic, không phải charge mớ
 Residual risk: limiter chỉ local process nên botnet hoặc nhiều replica cần edge/distributed control; proxy allowlist/TLS
 certificate, Supabase live JWT expiry, production stress threshold, centralized audit sink/alert/retention chưa có evidence.
 Compromised bearer token vẫn dùng được đến `exp`; Gateway không tuyên bố instant revocation hay chống account takeover.
+
+## Supabase RLS residual risk từ PLAN 83
+
+Own-row SELECT policy + column grants chặn user A đọc row/cột internal của user B và chặn mọi client DML/RPC. Idempotency
+table, provider/lease capability và authority reference vẫn server-only. Real PostgreSQL negative gate đã xác minh behavior.
+
+Residual risk nằm ở `service_role`/superuser/BYPASSRLS, Supabase exposed-schema và migration-owner configuration; leak
+service-role secret vượt qua RLS. Staging/live Supabase chưa verified. Foreign-key/unique enforcement có PostgreSQL covert
+channel semantics nhưng client không có DML. PLAN 60 function ambiguity đã được phát hiện và chuyển thành bắt buộc PLAN 85.

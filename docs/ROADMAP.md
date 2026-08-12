@@ -55,6 +55,10 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
   limiting không queue; Supabase JWT lifetime/sub binding; exact JSON/media/body bounds; durable charged-operation
   idempotency/ownership reuse; structured redacted audit. Distributed edge limit, SIEM và live TLS/Supabase deployment vẫn
   `PRODUCTION NOT VERIFIED`.
+- PLAN đã hoàn thành: PLAN 83 — Supabase RLS Hardening.
+- Phạm vi PLAN 83: audit 6 user-owned tables trong existing `private` schema; FORCE RLS; five own-row SELECT policies và
+  safe column grants; idempotency/internal columns server-only; no client DML/RPC; cross-user gate PASS trên PostgreSQL
+  17.6 pinned digest. Supabase staging/live chưa verified; PLAN 60 function ambiguity được ghi nhận cho exact PLAN 85.
 
 - PLAN đã hoàn thành: PLAN 01 — Repository & Solution Foundation.
 - PLAN đã hoàn thành kiểm chứng tự động: PLAN 02 — Windows App Bootstrap + Administrator.
