@@ -135,6 +135,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAlphaChannelService, AlphaChannelService>();
         builder.Services.AddSingleton<IEditHistoryService, EditHistoryService>();
         builder.Services.AddSingleton<IAiMaskEditingService, AiMaskEditingService>();
+        builder.Services.AddSingleton<IAiTransportImageEncoder, AiTransportImageEncoder>();
         builder.Services.AddSingleton<IAiMaskAssetStore, AiMaskAssetStore>();
         var gameCatalog = GameCatalog.CreateBuiltIn();
         builder.Services.AddSingleton(gameCatalog);
@@ -215,7 +216,9 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<HttpClient>(),
                     services.GetRequiredService<ISecureSessionStore>(),
                     services.GetRequiredService<IAuthenticationService>(),
-                    gatewayOptions)
+                    gatewayOptions,
+                    services.GetRequiredService<IAiTransportImageEncoder>(),
+                    services.GetRequiredService<IImageImportService>())
                 : new UnavailableAiStudioService();
         });
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();

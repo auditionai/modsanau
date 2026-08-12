@@ -38,6 +38,7 @@ public static class TrustedGatewayEndpoints
     private const long MaximumEntitlementRequestBytes = 16 * 1_024;
     private const long MaximumPricingRequestBytes = 4 * 1_024;
     private const long MaximumJobRequestBytes = 20 * 1_024;
+    private const long MaximumContentRequestBytes = 16 * 1_024 * 1_024;
 
     public static void MapTrustedGatewayEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -87,6 +88,7 @@ public static class TrustedGatewayEndpoints
             {
                 if (request is null || request.InputMetadata is null
                     || !Enum.IsDefined(request.Operation) || !request.InputMetadata.IsValid
+                    || !IsValidExecutionMetadata(request.Operation, request.InputMetadata)
                     || !TryCreateJobIdempotencyKey(request.IdempotencyKey, out var idempotencyKey)
                     || !TryCreatePricingVersion(request.ExpectedPricingVersion, out var expectedVersion))
                 {
@@ -101,6 +103,19 @@ public static class TrustedGatewayEndpoints
             })
             .RequireAuthorization()
             .WithMetadata(new RequestSizeLimitAttribute(MaximumJobRequestBytes));
+
+        endpoints.MapPost("/v1/ai/content/{kind}", async (HttpRequest httpRequest,
+                ClaimsPrincipal principal, string kind, IAiMediaValidator validator,
+                IAiContentStore store, CancellationToken cancellationToken) =>
+            await PutContentAsync(httpRequest, User(principal), kind, validator, store, cancellationToken)
+                .ConfigureAwait(false))
+            .RequireAuthorization()
+            .WithMetadata(new RequestSizeLimitAttribute(MaximumContentRequestBytes));
+
+        endpoints.MapGet("/v1/ai/content/{contentId}", async (ClaimsPrincipal principal,
+                string contentId, IAiContentStore store, CancellationToken cancellationToken) =>
+            await GetContentAsync(User(principal), contentId, store, cancellationToken).ConfigureAwait(false))
+            .RequireAuthorization();
 
         endpoints.MapGet("/v1/ai/jobs", async (ClaimsPrincipal principal,
                 IAiJobService service,
@@ -291,6 +306,105 @@ public static class TrustedGatewayEndpoints
                 new GatewayErrorResponse(result.DiagnosticCode)),
             _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
                 "AI job service is unavailable.", result.DiagnosticCode),
+        };
+    }
+
+    private static async Task<IResult> PutContentAsync(HttpRequest request, AuthenticatedGatewayUser owner,
+        string kindText, IAiMediaValidator validator, IAiContentStore store, CancellationToken cancellationToken)
+    {
+        var kind = kindText switch
+        {
+            "source" => AiContentKind.SourceImage,
+            "mask" => AiContentKind.Mask,
+            _ => (AiContentKind?)null,
+        };
+        if (kind is null || request.ContentLength is null or <= 0 or > MaximumContentRequestBytes
+            || request.ContentType is not { } mediaType
+            || mediaType.Split(';', 2)[0].Trim().ToLowerInvariant() is not
+                ("image/png" or "image/jpeg" or "image/webp" or "image/bmp"))
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            { ["content"] = ["AI content request is invalid."] });
+        var bytes = new byte[request.ContentLength.Value];
+        var offset = 0;
+        while (offset < bytes.Length)
+        {
+            var read = await request.Body.ReadAsync(bytes.AsMemory(offset), cancellationToken).ConfigureAwait(false);
+            if (read == 0) return Results.BadRequest(new GatewayErrorResponse("AI_CONTENT_TRUNCATED"));
+            offset += read;
+        }
+        var validated = await validator.ValidateAsync(mediaType.Split(';', 2)[0].Trim().ToLowerInvariant(),
+            bytes, cancellationToken).ConfigureAwait(false);
+        if (validated is null) return Results.UnprocessableEntity(new GatewayErrorResponse("AI_CONTENT_INVALID"));
+        var result = await store.PutAsync(owner, kind.Value, validated, cancellationToken).ConfigureAwait(false);
+        return result.Succeeded && result.Metadata is { } metadata
+            && IsValidContentMetadata(metadata, owner, kind.Value, validated)
+            ? Results.Ok(new
+            {
+                ContentId = metadata.ContentId.Value,
+                metadata.Width,
+                metadata.Height,
+                metadata.ByteLength,
+                metadata.Sha256,
+                metadata.ExpiresAt
+            })
+            : SafeProblem(StatusCodes.Status503ServiceUnavailable,
+                "AI content storage is unavailable.", result.DiagnosticCode);
+    }
+
+    private static async Task<IResult> GetContentAsync(AuthenticatedGatewayUser owner, string value,
+        IAiContentStore store, CancellationToken cancellationToken)
+    {
+        AiContentId contentId;
+        try { contentId = new(value); }
+        catch (ArgumentException) { return Results.NotFound(); }
+        var stored = await store.GetAsync(owner, contentId, AiContentKind.ProviderOutput, cancellationToken)
+            .ConfigureAwait(false);
+        return stored is null || !IsValidStoredOutput(stored, owner)
+            ? Results.NotFound()
+            : Results.File(stored.Bytes.ToArray(), stored.Metadata.MediaType,
+                enableRangeProcessing: false);
+    }
+
+    private static bool IsValidContentMetadata(AiContentMetadata metadata, AuthenticatedGatewayUser owner,
+        AiContentKind kind, AiValidatedMedia media) => metadata.OwnerUserId == owner.UserId
+        && metadata.Kind == kind && metadata.MediaType == media.MediaType
+        && metadata.Width == media.Width && metadata.Height == media.Height
+        && metadata.ByteLength == media.Bytes.Length && metadata.ExpiresAt > DateTimeOffset.UtcNow
+        && metadata.Sha256.Equals(Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData(media.Bytes.AsSpan())), StringComparison.Ordinal);
+
+    private static bool IsValidStoredOutput(AiStoredContent stored, AuthenticatedGatewayUser owner)
+    {
+        var metadata = stored.Metadata;
+        return metadata.OwnerUserId == owner.UserId && metadata.Kind == AiContentKind.ProviderOutput
+            && metadata.MediaType is "image/png" or "image/jpeg" or "image/webp" or "image/bmp"
+            && metadata.Width is > 0 and <= 16_384 && metadata.Height is > 0 and <= 16_384
+            && (long)metadata.Width * metadata.Height <= 100_000_000
+            && metadata.ByteLength == stored.Bytes.Length && metadata.ByteLength is > 0 and <= 16 * 1024 * 1024
+            && metadata.ExpiresAt > DateTimeOffset.UtcNow
+            && metadata.Sha256.Equals(Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(stored.Bytes.AsSpan())), StringComparison.Ordinal);
+    }
+
+    private static bool IsValidExecutionMetadata(TrustedAiOperation operation, AiJobInputMetadata metadata)
+    {
+        var hasMask = metadata.MaskReference is not null;
+        var hasPrompt = !string.IsNullOrWhiteSpace(metadata.Prompt);
+        var hasTarget = metadata.TargetWidth is not null && metadata.TargetHeight is not null;
+        var hasSource = metadata.SourceWidth is not null && metadata.SourceHeight is not null;
+        var targetIsBounded = !hasTarget || (long)metadata.TargetWidth!.Value * metadata.TargetHeight!.Value
+            <= 100_000_000;
+        var targetExpandsSource = hasTarget && hasSource
+            && metadata.TargetWidth >= metadata.SourceWidth && metadata.TargetHeight >= metadata.SourceHeight
+            && (metadata.TargetWidth > metadata.SourceWidth || metadata.TargetHeight > metadata.SourceHeight);
+        return targetIsBounded && operation switch
+        {
+            TrustedAiOperation.Inpaint => hasSource && hasMask && hasPrompt && !hasTarget,
+            TrustedAiOperation.Outpaint => hasSource && !hasMask && hasPrompt && targetExpandsSource,
+            TrustedAiOperation.RemoveObject => hasSource && hasMask && !hasPrompt && !hasTarget,
+            TrustedAiOperation.ReplaceObject => hasSource && hasMask && hasPrompt && !hasTarget,
+            TrustedAiOperation.Upscale => hasSource && !hasMask && !hasPrompt && targetExpandsSource,
+            _ => true,
         };
     }
 

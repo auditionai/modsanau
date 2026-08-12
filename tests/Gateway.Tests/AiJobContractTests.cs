@@ -76,7 +76,7 @@ public sealed class AiJobContractTests
         Assert.Contains("BEGIN;", sql, StringComparison.Ordinal);
         Assert.Contains("COMMIT;", sql, StringComparison.Ordinal);
         Assert.Contains("CREATE TABLE private.ai_jobs", sql, StringComparison.Ordinal);
-        Assert.All(Enum.GetNames<AiJobStatus>(), status =>
+        Assert.All(Enum.GetNames<AiJobStatus>().Where(status => status != nameof(AiJobStatus.ReconciliationRequired)), status =>
             Assert.Contains($"'{status}'", sql, StringComparison.Ordinal));
         Assert.All(new[]
         {
@@ -93,6 +93,26 @@ public sealed class AiJobContractTests
         Assert.Contains("lease_expires_at <= clock_timestamp()", sql, StringComparison.Ordinal);
         Assert.Contains("AI_JOB_IDEMPOTENCY_CONFLICT", sql, StringComparison.Ordinal);
         Assert.Contains("UNIQUE (user_id, idempotency_key)", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Plan65_migration_adds_reconciliation_without_mutating_ledger_or_releasing_reservation()
+    {
+        var sql = File.ReadAllText(MigrationPath("202608120003_plan65_ai_execution.sql"));
+
+        Assert.Contains("'ReconciliationRequired'", sql, StringComparison.Ordinal);
+        Assert.Contains("FUNCTION private.ai_job_require_reconciliation", sql, StringComparison.Ordinal);
+        Assert.Contains("status = 'ReconciliationRequired'", sql, StringComparison.Ordinal);
+        Assert.Contains("lease_token = NULL", sql, StringComparison.Ordinal);
+        var reconciliationFunction = sql[sql.IndexOf(
+            "CREATE OR REPLACE FUNCTION private.ai_job_require_reconciliation", StringComparison.Ordinal)..sql.IndexOf("CREATE OR REPLACE FUNCTION private.ai_job_cancel", StringComparison.Ordinal)];
+        Assert.DoesNotContain("private.credit_capture", reconciliationFunction, StringComparison.Ordinal);
+        Assert.DoesNotContain("private.credit_release", reconciliationFunction, StringComparison.Ordinal);
+        var reconciliationGuard = sql.IndexOf(
+            "'Completed', 'Failed', 'Cancelled', 'ReconciliationRequired'", StringComparison.Ordinal);
+        var release = sql.IndexOf("private.credit_release", StringComparison.Ordinal);
+        Assert.True(reconciliationGuard >= 0 && release > reconciliationGuard);
+        Assert.Contains("GRANT EXECUTE", sql, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -114,7 +134,7 @@ public sealed class AiJobContractTests
             StringComparison.Ordinal);
     }
 
-    private static string MigrationPath()
+    private static string MigrationPath(string fileName = "202608120002_plan62_ai_jobs.sql")
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "AuditionModStudio.sln")))
@@ -123,7 +143,7 @@ public sealed class AiJobContractTests
         }
         Assert.NotNull(directory);
         return Path.Combine(directory!.FullName, "supabase", "migrations",
-            "202608120002_plan62_ai_jobs.sql");
+            fileName);
     }
 
     private static int Count(string value, string token) =>

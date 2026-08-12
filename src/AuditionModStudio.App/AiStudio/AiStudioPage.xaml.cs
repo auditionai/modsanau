@@ -33,8 +33,11 @@ public sealed partial class AiStudioPage : Page
 
     public void FocusPrimaryHeading() => StudioHeading.Focus(FocusState.Programmatic);
 
-    private async void OnSubmitClicked(object sender, RoutedEventArgs e) => await ViewModel.SubmitAsync();
+    private async void OnSubmitClicked(object sender, RoutedEventArgs e) =>
+        await ViewModel.SubmitAsync(MaskViewModel.Mask);
     private void OnCancelClicked(object sender, RoutedEventArgs e) => ViewModel.CancelCurrent();
+    private async void OnApprovePreviewClicked(object sender, RoutedEventArgs e) =>
+        await ViewModel.ApprovePreviewAsync();
     private async void OnRefreshHistoryClicked(object sender, RoutedEventArgs e) =>
         await ViewModel.RefreshHistoryAsync();
 

@@ -23,6 +23,20 @@ public static class GatewayApplication
         services.AddSingleton<ISupabaseAuthClient, SupabaseAuthHttpClient>();
         services.AddSingleton<ISupabaseAccessTokenValidator, SupabaseAccessTokenValidator>();
         services.AddSingleton<ITrustedAiGateway, UnavailableTrustedAiGateway>();
+        services.AddSingleton<IAiContentStore, UnavailableAiContentStore>();
+        services.AddSingleton<IAiMediaValidator, UnavailableAiMediaValidator>();
+        services.AddSingleton<ITrustedAiProvider, UnavailableTrustedAiProvider>();
+        var providerProfiles = configuration.GetSection("Gateway:AiProviderProfiles").GetChildren()
+            .Select(section => Enum.TryParse<TrustedAiOperation>(section["Operation"], out var operation)
+                ? new TrustedAiProviderProfile(operation, section["PublicOptionId"] ?? string.Empty,
+                    section["ProviderId"] ?? string.Empty, section["ModelProfileId"] ?? string.Empty)
+                : null)
+            .ToArray();
+        services.AddSingleton<ITrustedAiProviderCatalog>(
+            providerProfiles.All(profile => profile is not null)
+            && TrustedAiProviderCatalog.TryCreate(providerProfiles!, out var providerCatalog)
+                ? providerCatalog!
+                : new TrustedAiProviderCatalog([]));
         services.AddSingleton<ITrustedTemplateEntitlementService, UnavailableTrustedTemplateEntitlementService>();
         services.AddSingleton(TimeProvider.System);
         if (AiPricingCatalog.TryFromConfiguration(configuration, out var pricingCatalog))
@@ -43,7 +57,11 @@ public static class GatewayApplication
                 provider.GetRequiredService<PostgresCreditLedgerService>());
             services.AddSingleton<ITrustedCreditQueryService>(provider =>
                 provider.GetRequiredService<PostgresCreditLedgerService>());
-            services.AddSingleton<IAiJobService, PostgresAiJobService>();
+            services.AddSingleton<PostgresAiJobService>();
+            services.AddSingleton<IAiJobService>(provider =>
+                provider.GetRequiredService<PostgresAiJobService>());
+            services.AddSingleton<IAiJobWorkerService>(provider =>
+                provider.GetRequiredService<PostgresAiJobService>());
         }
         else
         {
@@ -53,7 +71,10 @@ public static class GatewayApplication
             services.AddSingleton<ITrustedCreditQueryService>(provider =>
                 provider.GetRequiredService<UnavailableCreditLedgerService>());
             services.AddSingleton<IAiJobService, UnavailableAiJobService>();
+            services.AddSingleton<IAiJobWorkerService, UnavailableAiJobWorkerService>();
         }
+        services.AddSingleton<IAiJobExecutionService, AiJobExecutionService>();
+        services.AddHostedService<AiJobWorker>();
 
         services.AddAuthentication(GatewayAuthenticationDefaults.Scheme)
             .AddScheme<AuthenticationSchemeOptions, GatewayAuthenticationHandler>(

@@ -15,7 +15,8 @@ public enum AiJobStatus
     Processing,
     Completed,
     Failed,
-    Cancelled
+    Cancelled,
+    ReconciliationRequired
 }
 
 public readonly record struct AiJobIdempotencyKey
@@ -39,14 +40,25 @@ public sealed record AiJobInputMetadata(
     int PromptLength,
     int? TargetWidth,
     int? TargetHeight,
-    int InputBytes)
+    int InputBytes,
+    string? MaskReference = null,
+    string PublicOptionId = "standard",
+    string? Prompt = null,
+    int? SourceWidth = null,
+    int? SourceHeight = null)
 {
     public bool IsValid =>
         IsOpaqueReference(InputReference)
         && PromptLength is >= 0 and <= 4_000
         && InputBytes is >= 0 and <= 4 * 1_024 * 1_024
         && ((TargetWidth is null && TargetHeight is null)
-            || (TargetWidth is > 0 and <= 16_384 && TargetHeight is > 0 and <= 16_384));
+            || (TargetWidth is > 0 and <= 16_384 && TargetHeight is > 0 and <= 16_384))
+        && (MaskReference is null || IsOpaqueReference(MaskReference))
+        && IsSafeOption(PublicOptionId)
+        && (Prompt is null || Prompt.Length <= 4_000 && !Prompt.Any(character =>
+            char.IsControl(character) && character is not '\r' and not '\n' and not '\t'))
+        && ((SourceWidth is null && SourceHeight is null)
+            || (SourceWidth is > 0 and <= 16_384 && SourceHeight is > 0 and <= 16_384));
 
     private static bool IsOpaqueReference(string value) =>
         !string.IsNullOrWhiteSpace(value)
@@ -56,6 +68,26 @@ public sealed record AiJobInputMetadata(
             && segment is not "." and not ".."
             && segment.All(character => char.IsAsciiLetterOrDigit(character)
                 || character is '-' or '_' or '.'));
+
+    private static bool IsSafeOption(string value) =>
+        !string.IsNullOrWhiteSpace(value) && value.Length <= 64
+        && value.All(character => char.IsAsciiLetterOrDigit(character) || character is '-' or '_');
+}
+
+public sealed record AiJobWorkerLease(
+    AiJobSnapshot Job,
+    AuthenticatedGatewayUser Owner,
+    Guid LeaseToken);
+
+public interface IAiJobWorkerService
+{
+    Task<AiJobWorkerLease?> ClaimAsync(int leaseSeconds, CancellationToken cancellationToken = default);
+    Task<AiJobOperationResult> CompleteAsync(Guid jobId, Guid leaseToken, long finalCredits,
+        string outputReference, string providerRequestId, CancellationToken cancellationToken = default);
+    Task<AiJobOperationResult> FailAsync(Guid jobId, Guid leaseToken, string providerRequestId,
+        string errorCode, bool retryable, CancellationToken cancellationToken = default);
+    Task<AiJobOperationResult> RequireReconciliationAsync(Guid jobId, Guid leaseToken,
+        string providerRequestId, string errorCode, CancellationToken cancellationToken = default);
 }
 
 public sealed record AiJobSnapshot(
@@ -143,9 +175,23 @@ public sealed class UnavailableAiJobService : IAiJobService
         Task.FromResult(Unavailable);
 }
 
+public sealed class UnavailableAiJobWorkerService : IAiJobWorkerService
+{
+    public Task<AiJobWorkerLease?> ClaimAsync(int leaseSeconds, CancellationToken cancellationToken = default) =>
+        Task.FromResult<AiJobWorkerLease?>(null);
+    public Task<AiJobOperationResult> CompleteAsync(Guid jobId, Guid leaseToken, long finalCredits,
+        string outputReference, string providerRequestId, CancellationToken cancellationToken = default) => Result();
+    public Task<AiJobOperationResult> FailAsync(Guid jobId, Guid leaseToken, string providerRequestId,
+        string errorCode, bool retryable, CancellationToken cancellationToken = default) => Result();
+    public Task<AiJobOperationResult> RequireReconciliationAsync(Guid jobId, Guid leaseToken,
+        string providerRequestId, string errorCode, CancellationToken cancellationToken = default) => Result();
+    private static Task<AiJobOperationResult> Result() => Task.FromResult(new AiJobOperationResult(
+        AiJobOperationStatus.Unavailable, "AI_JOB_SERVICE_UNAVAILABLE", null));
+}
+
 public sealed class PostgresAiJobService(
     NpgsqlDataSource dataSource,
-    IAiPricingService pricingService) : IAiJobService
+    IAiPricingService pricingService) : IAiJobService, IAiJobWorkerService
 {
     private const string Columns = "job_id, operation, status, input_metadata, reserved_credits, " +
         "final_credits, pricing_version, output_reference, provider_request_id, error_code, " +
@@ -300,6 +346,73 @@ public sealed class PostgresAiJobService(
                                                    && exception.ConstraintName == "AI_JOB_NOT_FOUND")
         {
             return new(AiJobOperationStatus.NotFound, "AI_JOB_NOT_FOUND", null);
+        }
+        catch (NpgsqlException) { return Unavailable(); }
+        catch (InvalidDataException) { return Unavailable(); }
+    }
+
+    public async Task<AiJobWorkerLease?> ClaimAsync(
+        int leaseSeconds, CancellationToken cancellationToken = default)
+    {
+        if (leaseSeconds is < 5 or > 3600) return null;
+        try
+        {
+            await using var command = dataSource.CreateCommand(
+                $"SELECT {Columns}, user_id, lease_token FROM private.ai_job_claim($1)");
+            command.Parameters.AddWithValue(NpgsqlDbType.Integer, leaseSeconds);
+            await using var reader = await command.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken)
+                .ConfigureAwait(false);
+            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) return null;
+            var job = ReadJob(reader);
+            if (job.Status != AiJobStatus.Processing || reader.IsDBNull(15)) return null;
+            return new(job, new(reader.GetGuid(14)), reader.GetGuid(15));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (NpgsqlException) { return null; }
+        catch (InvalidDataException) { return null; }
+    }
+
+    public Task<AiJobOperationResult> CompleteAsync(
+        Guid jobId, Guid leaseToken, long finalCredits, string outputReference, string providerRequestId,
+        CancellationToken cancellationToken = default) => TransitionAsync(
+        "ai_job_complete", jobId, leaseToken,
+        [new(NpgsqlDbType.Bigint, finalCredits), new(NpgsqlDbType.Text, outputReference),
+            new(NpgsqlDbType.Text, providerRequestId)], "AI_JOB_COMPLETED", cancellationToken);
+
+    public Task<AiJobOperationResult> FailAsync(
+        Guid jobId, Guid leaseToken, string providerRequestId, string errorCode, bool retryable,
+        CancellationToken cancellationToken = default) => TransitionAsync(
+        "ai_job_fail", jobId, leaseToken,
+        [new(NpgsqlDbType.Text, providerRequestId), new(NpgsqlDbType.Text, errorCode),
+            new(NpgsqlDbType.Boolean, retryable)], "AI_JOB_FAILED", cancellationToken);
+
+    public Task<AiJobOperationResult> RequireReconciliationAsync(
+        Guid jobId, Guid leaseToken, string providerRequestId, string errorCode,
+        CancellationToken cancellationToken = default) => TransitionAsync(
+        "ai_job_require_reconciliation", jobId, leaseToken,
+        [new(NpgsqlDbType.Text, providerRequestId), new(NpgsqlDbType.Text, errorCode)],
+        "AI_JOB_RECONCILIATION_REQUIRED", cancellationToken);
+
+    private async Task<AiJobOperationResult> TransitionAsync(
+        string function, Guid jobId, Guid leaseToken, IReadOnlyList<(NpgsqlDbType Type, object Value)> values,
+        string successCode, CancellationToken cancellationToken)
+    {
+        if (jobId == Guid.Empty || leaseToken == Guid.Empty) return Rejected("AI_JOB_TRANSITION_INVALID");
+        try
+        {
+            var placeholders = string.Join(", ", Enumerable.Range(1, values.Count + 2).Select(i => $"${i}"));
+            await using var command = dataSource.CreateCommand(
+                $"SELECT {Columns} FROM private.{function}({placeholders})");
+            command.Parameters.AddWithValue(NpgsqlDbType.Uuid, jobId);
+            command.Parameters.AddWithValue(NpgsqlDbType.Uuid, leaseToken);
+            foreach (var value in values) command.Parameters.AddWithValue(value.Type, value.Value);
+            var job = await ReadSingleAsync(command, cancellationToken).ConfigureAwait(false);
+            return job is null ? Unavailable() : new(AiJobOperationStatus.Succeeded, successCode, job);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (PostgresException exception) when (exception.SqlState == "P0001")
+        {
+            return Rejected(exception.ConstraintName ?? "AI_JOB_TRANSITION_INVALID");
         }
         catch (NpgsqlException) { return Unavailable(); }
         catch (InvalidDataException) { return Unavailable(); }

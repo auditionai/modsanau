@@ -1,8 +1,11 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using AuditionModStudio.App.Workspace;
+using AuditionModStudio.App.Shell;
 using AuditionModStudio.Core.AI;
 using AuditionModStudio.Core.Images;
+using AuditionModStudio.Core.Mods;
+using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Tasks;
 
 namespace AuditionModStudio.App.AiStudio;
@@ -13,12 +16,16 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private readonly IAiStudioService _studioService;
     private readonly IBackgroundTaskManager _taskManager;
     private readonly IWorkspaceTextureSelection _selection;
+    private readonly ITextureApplyService? _applyService;
+    private readonly IApplicationProjectSession? _projectSession;
     private AiStudioOperationOption _selectedOperation = AiStudioOptions.Operations[0];
     private AiStudioOption _selectedModel = AiStudioOptions.Models[0];
     private AiStudioOption _selectedQuality = AiStudioOptions.Qualities[0];
     private AiStudioAspectOption _selectedAspect = AiStudioOptions.Aspects[0];
     private string _prompt = string.Empty;
     private string _negativePrompt = string.Empty;
+    private string _outputWidth = "1024";
+    private string _outputHeight = "1024";
     private string _statusMessage = "AI Studio is ready. Server availability is checked when this page opens.";
     private string _quoteText = "Price unavailable";
     private string _historyMessage = "Loading server job history…";
@@ -34,12 +41,16 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         IAiService aiService,
         IAiStudioService studioService,
         IBackgroundTaskManager taskManager,
-        IWorkspaceTextureSelection selection)
+        IWorkspaceTextureSelection selection,
+        ITextureApplyService? applyService = null,
+        IApplicationProjectSession? projectSession = null)
     {
         _aiService = aiService ?? throw new ArgumentNullException(nameof(aiService));
         _studioService = studioService ?? throw new ArgumentNullException(nameof(studioService));
         _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
         _selection = selection ?? throw new ArgumentNullException(nameof(selection));
+        _applyService = applyService;
+        _projectSession = projectSession;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -93,16 +104,32 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         get => _negativePrompt;
         set { if (Set(ref _negativePrompt, value ?? string.Empty)) NotifyValidationChanged(); }
     }
+    public string OutputWidth
+    {
+        get => _outputWidth;
+        set { if (Set(ref _outputWidth, value ?? string.Empty)) NotifyValidationChanged(); }
+    }
+    public string OutputHeight
+    {
+        get => _outputHeight;
+        set { if (Set(ref _outputHeight, value ?? string.Empty)) NotifyValidationChanged(); }
+    }
 
     public string OperationDescription => SelectedOperation.Description;
     public string PromptValidationMessage => Prompt.Length > AiPrompt.MaximumLength
         ? $"Prompt exceeds {AiPrompt.MaximumLength:N0} characters."
-        : string.IsNullOrWhiteSpace(Prompt) && SelectedOperation.Operation != AiStudioOperation.Upscale
+        : string.IsNullOrWhiteSpace(Prompt) && SelectedOperation.Operation is not
+            (AiStudioOperation.Upscale or AiStudioOperation.RemoveObject)
             ? "Enter a prompt for this operation."
             : string.Empty;
     public string NegativePromptValidationMessage => NegativePrompt.Length > AiPrompt.MaximumLength
         ? $"Negative prompt exceeds {AiPrompt.MaximumLength:N0} characters."
         : string.Empty;
+    public string OutputValidationMessage => SelectedOperation.Operation is not
+        (AiStudioOperation.Outpaint or AiStudioOperation.Upscale) ? string.Empty
+        : TryCreateExplicitTargetSize() is null
+            ? "Enter bounded output dimensions that expand the selected source."
+            : string.Empty;
     public string ReferenceMessage => SelectedOperation.RequiresReference
         ? _selection.SelectedTexture is null
             ? "Select a project texture in Projects before submitting."
@@ -114,6 +141,9 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public IReadOnlyList<AiStudioJobSummary> History { get => _history; private set => Set(ref _history, value); }
     public InternalImage? PreviewImage { get => _previewImage; private set => Set(ref _previewImage, value); }
     public bool HasPreview => PreviewImage is not null;
+    public bool CanApprovePreview => HasPreview && !IsBusy && _selection.SelectedTexture is not null
+        && _applyService is not null && _projectSession?.Project is not null
+        && _projectSession.Workspace is not null;
     public bool IsBusy { get => _isBusy; private set { if (Set(ref _isBusy, value)) NotifyValidationChanged(); } }
     public bool IsLoading { get => _isLoading; private set => Set(ref _isLoading, value); }
     public int ProgressPercentage { get => _progressPercentage; private set => Set(ref _progressPercentage, value); }
@@ -121,7 +151,10 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public bool CanSubmit => !IsBusy
         && Prompt.Length <= AiPrompt.MaximumLength
         && NegativePrompt.Length <= AiPrompt.MaximumLength
-        && (SelectedOperation.Operation == AiStudioOperation.Upscale || !string.IsNullOrWhiteSpace(Prompt))
+        && (SelectedOperation.Operation is AiStudioOperation.Upscale or AiStudioOperation.RemoveObject
+            || !string.IsNullOrWhiteSpace(Prompt))
+        && (SelectedOperation.Operation is not (AiStudioOperation.Outpaint or AiStudioOperation.Upscale)
+            || TryCreateExplicitTargetSize() is not null)
         && (!SelectedOperation.RequiresReference || _selection.SelectedTexture is not null);
 
     public async Task ActivateAsync(CancellationToken cancellationToken = default)
@@ -170,7 +203,10 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                 : $"{History.Count:N0} recent server jobs";
     }
 
-    public async Task SubmitAsync(CancellationToken cancellationToken = default)
+    public Task SubmitAsync(CancellationToken cancellationToken = default) =>
+        SubmitAsync(null, cancellationToken);
+
+    public async Task SubmitAsync(AiMask? mask, CancellationToken cancellationToken = default)
     {
         if (!CanSubmit)
         {
@@ -189,7 +225,19 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             }
         }
 
-        AiPrompt? prompt = string.IsNullOrWhiteSpace(Prompt) ? null : new AiPrompt(Prompt);
+        if (SelectedOperation.Operation is AiStudioOperation.Inpaint or AiStudioOperation.RemoveObject
+                or AiStudioOperation.ReplaceObject
+            && (mask is null || reference is null || mask.Width != reference.Width || mask.Height != reference.Height))
+        {
+            StatusMessage = "Initialize a source-aligned mask for this operation before submitting.";
+            return;
+        }
+
+        AiPrompt? prompt = SelectedOperation.Operation is AiStudioOperation.Upscale
+                or AiStudioOperation.RemoveObject
+            || string.IsNullOrWhiteSpace(Prompt)
+            ? null
+            : new AiPrompt(Prompt);
         AiPrompt? negative = string.IsNullOrWhiteSpace(NegativePrompt) ? null : new AiPrompt(NegativePrompt);
         var preferences = new AiRequestPreferences(negative, SelectedModel.Value, SelectedQuality.Value);
         if (!preferences.IsValid)
@@ -218,7 +266,28 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             BackgroundTaskKind.Ai,
             async (_, token) =>
             {
-                aiResult = await ExecuteAsync(reference, prompt, preferences, progress, token);
+                if (SelectedOperation.Operation is AiStudioOperation.Inpaint or AiStudioOperation.Outpaint
+                    or AiStudioOperation.RemoveObject or AiStudioOperation.ReplaceObject or AiStudioOperation.Upscale)
+                {
+                    var execution = await _studioService.ExecuteAsync(new(
+                        SelectedOperation.Operation,
+                        reference!,
+                        mask,
+                        prompt,
+                        SelectedOperation.Operation is AiStudioOperation.Outpaint or AiStudioOperation.Upscale
+                            ? TryCreateExplicitTargetSize()
+                            : null,
+                        SelectedModel.Value,
+                        $"desktop-{Guid.NewGuid():N}"), progress, token).ConfigureAwait(false);
+                    aiResult = execution.Succeeded && execution.Preview is not null
+                        ? AiImageResult.Success(execution.Preview)
+                        : execution.Cancelled ? AiImageResult.CancelledResult()
+                        : AiImageResult.Failure(AiServiceFailureReason.Failed, execution.DiagnosticCode);
+                }
+                else
+                {
+                    aiResult = await ExecuteAsync(reference, prompt, preferences, progress, token);
+                }
                 return aiResult.Succeeded
                     ? BackgroundTaskExecutionResult.Success()
                     : BackgroundTaskExecutionResult.Failure(aiResult.DiagnosticCode);
@@ -269,6 +338,66 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         await RefreshHistoryAsync(cancellationToken);
     }
 
+    public async Task<bool> ApprovePreviewAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanApprovePreview || PreviewImage is null || _applyService is null
+            || _projectSession?.Project is not { } project || _projectSession.Workspace is not { } workspace
+            || _selection.SelectedTexture is not { } selected)
+            return false;
+        ModRelativePath path;
+        try { path = new(selected.RelativePath); }
+        catch (ArgumentException)
+        {
+            StatusMessage = "The selected texture path is invalid.";
+            return false;
+        }
+        TextureApplyResult? result = null;
+        IsBusy = true;
+        StatusMessage = "Applying the approved AI preview through Match Original and DDS validation…";
+        try
+        {
+            var enqueue = await _taskManager.EnqueueAsync(new(BackgroundTaskKind.Convert,
+                async (taskProgress, token) =>
+                {
+                    result = await _applyService.ApplyAsync(new(project, workspace, path,
+                        new(PreviewImage, selected.Width, selected.Height,
+                            new(ImageResizeMode.Stretch))),
+                        new CallbackProgress<TextureApplyProgress>(progress => taskProgress.Report(new(
+                            progress.CompletedSteps, progress.TotalSteps, progress.Phase.ToString()))), token)
+                        .ConfigureAwait(false);
+                    return result.Succeeded ? BackgroundTaskExecutionResult.Success()
+                        : BackgroundTaskExecutionResult.Failure(result.DiagnosticCode ?? "AI_APPLY_FAILED");
+                }), cancellationToken);
+            if (!enqueue.Succeeded) return false;
+            _activeTaskId = enqueue.TaskId;
+            var completion = await _taskManager.WaitForCompletionAsync(enqueue.TaskId, cancellationToken);
+            if (completion?.State != BackgroundTaskState.Succeeded || result?.Succeeded != true
+                || result.Project is null || !ReferenceEquals(_projectSession.Project, project)
+                || !ReferenceEquals(_projectSession.Workspace, workspace))
+            {
+                StatusMessage = result?.Cancelled == true
+                    ? "AI preview Apply was cancelled and rolled back."
+                    : "AI preview Apply failed validation and was rolled back.";
+                return false;
+            }
+            await _projectSession.ActivateAsync(result.Project, workspace);
+            await _selection.RefreshAfterApplyAsync(path, cancellationToken);
+            StatusMessage = "Approved AI preview applied atomically; project history and DDS validation are updated.";
+            return true;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            StatusMessage = "AI preview Apply was cancelled.";
+            return false;
+        }
+        finally
+        {
+            _activeTaskId = default;
+            IsBusy = false;
+            OnPropertyChanged(nameof(CanApprovePreview));
+        }
+    }
+
     public bool CancelCurrent()
     {
         var cancelled = _activeTaskId.IsValid && _taskManager.TryCancel(_activeTaskId);
@@ -313,8 +442,22 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(PromptValidationMessage));
         OnPropertyChanged(nameof(NegativePromptValidationMessage));
+        OnPropertyChanged(nameof(OutputValidationMessage));
         OnPropertyChanged(nameof(CanSubmit));
         OnPropertyChanged(nameof(CanCancel));
+        OnPropertyChanged(nameof(CanApprovePreview));
+    }
+
+    private AiTargetSize? TryCreateExplicitTargetSize()
+    {
+        if (!int.TryParse(OutputWidth, out var width) || !int.TryParse(OutputHeight, out var height)
+            || width is <= 0 or > AiTargetSize.MaximumDimension
+            || height is <= 0 or > AiTargetSize.MaximumDimension
+            || (long)width * height > 100_000_000) return null;
+        var selected = _selection.SelectedTexture;
+        if (selected is null || width < selected.Width || height < selected.Height
+            || width == selected.Width && height == selected.Height) return null;
+        return new(width, height);
     }
 
     private bool Set<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
@@ -327,4 +470,9 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private sealed class CallbackProgress<T>(Action<T> callback) : IProgress<T>
+    {
+        public void Report(T value) => callback(value);
+    }
 }

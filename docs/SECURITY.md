@@ -668,3 +668,21 @@ Hệ quả hiện tại là project/log/settings có thể xuất hiện trong p
   Ghi file tạm ngẫu nhiên trong cùng thư mục, flush và replace atomically; cleanup log chỉ loại exception, không log byte mask.
 - Không serialize mask theo từng stroke và không tự gửi mask ra network. Việc dùng mask trong request, provider execution,
   credit lifecycle và explicit Apply thuộc PLAN 65; PLAN 64 không tạo đường vòng tới game filesystem.
+
+## AI execution boundary từ PLAN 65
+
+- Provider credential, endpoint và trusted model profile chỉ tồn tại server-side. Desktop gửi semantic operation,
+  allowlisted public option, bounded prompt/geometry và opaque content ID; final credit cost vẫn do PLAN 61 resolve tại
+  PLAN 62 enqueue, không có client cost/balance/refund/provider-success authority.
+- Upload/download đều authenticated, body bounded 16 MiB, content type allowlist và owner/kind enforcement. Input/provider
+  output là untrusted: server media validator phải xác nhận bytes/dimensions/pixels, exact mask-source alignment và SHA-256
+  trước execution/download. Raw local path, public provider URL và storage service credential không thuộc contract.
+- Job claim dùng existing `FOR UPDATE SKIP LOCKED` lease. Validated output phải persist private trước atomic complete/capture.
+  Known pre-billable failure/cancel dùng existing fail/cancel release path. Outcome không chắc chắn chuyển migration mới
+  sang `ReconciliationRequired`, xóa lease nhưng giữ reservation; không tự retry/capture/release.
+- Default Gateway thiếu content/provider/media implementation trả unavailable và không charge/success giả. External
+  provider network integration và live PostgreSQL migration/concurrency vẫn NOT VERIFIED; reconciliation tooling là
+  technical debt cần một PLAN/deployment decision riêng.
+- Desktop output dùng bounded streaming và existing `IImageImportService`, chỉ publish immutable `InternalImage` preview.
+  Explicit Approve mới gọi existing atomic Apply/Match Original/DDS validation/history. Backend failure không ảnh hưởng
+  local project editor, DDS, build hoặc export; không có code game install/launch/runtime.

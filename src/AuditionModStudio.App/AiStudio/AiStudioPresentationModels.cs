@@ -15,7 +15,10 @@ public static class AiStudioOptions
     [
         new(AiStudioOperation.Generate, "Generate", "Create a new image from a prompt.", false),
         new(AiStudioOperation.Edit, "Edit reference", "Transform the selected project texture.", true),
+        new(AiStudioOperation.Inpaint, "Inpaint", "Regenerate the source-aligned masked region.", true),
         new(AiStudioOperation.Outpaint, "Outpaint", "Extend the selected project texture.", true),
+        new(AiStudioOperation.RemoveObject, "Remove", "Remove content inside the source-aligned mask.", true),
+        new(AiStudioOperation.ReplaceObject, "Replace", "Replace the source-aligned masked content.", true),
         new(AiStudioOperation.Upscale, "Upscale", "Increase detail while preserving the selected texture.", true),
     ];
 

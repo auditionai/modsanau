@@ -1033,3 +1033,23 @@ Save current project
 - `IAiMaskAssetStore` chỉ ghi khi người dùng chọn Save, vào `ai/masks/current.amsmask` bên trong secure project workspace.
   File tạm cùng thư mục được flush rồi atomic replace; cancellation/failure trước replace giữ nguyên asset trước đó.
 - PLAN 64 không điều phối provider operation, không gọi Apply/Match Original/DDS/archive và không tương tác runtime/game.
+
+## AI operation pipeline từ PLAN 65
+
+- Inpaint/Outpaint/RemoveObject/ReplaceObject/Upscale đi qua `IAiStudioService` tới authenticated Gateway. Desktop mã hóa
+  source và PLAN 64 mask thành PNG transport, upload private content, enqueue PLAN 62 job với idempotency key và poll typed
+  state. Authenticated output được tải với hard cap 16 MiB, allowlist content type và decode bằng `IImageImportService`.
+- `IAiContentStore` dùng opaque `AiContentId` và metadata owner/kind/media/dimensions/bytes/SHA-256/expiry; binary không nằm
+  trong PostgreSQL job/ledger. Store implementation và credential là server deployment concern; default thiếu cấu hình
+  fail closed. Content endpoint luôn derive owner từ verified bearer subject và output download chỉ nhận ProviderOutput.
+- `ITrustedAiProviderCatalog` map `(semantic operation, public option ID)` sang trusted provider/model profile từ server
+  config. `ITrustedAiProvider` là typed privileged boundary; desktop không gửi endpoint/key/model ID/final price. Chưa chọn
+  vendor nên production bind `UnavailableTrustedAiProvider`; fake provider chỉ dùng trong contract tests.
+- `IAiJobWorkerService` expose PLAN 62 SQL claim/complete/fail và PLAN 65 reconciliation transition. Worker atomically claim
+  bằng lease, load content theo owner/kind, validate exact mask dimensions, gọi provider, validate+persistence output rồi
+  mới complete/capture. Clear failure đi fail/release; ambiguous response, invalid success output, uncertain persistence
+  hoặc completion đi `ReconciliationRequired` và không tự capture/release/retry provider.
+- AI output trên desktop chỉ là preview candidate. Nút approval riêng reuse `ITextureApplyService`, do đó Match Original,
+  DDS validation, rollback, thumbnail, Modified state và project edit history vẫn thuộc một pipeline hiện hữu.
+- PLAN 65 không auto Apply/build/export/install, không thêm game path/detection/launch/runtime QA và không triển khai
+  PLAN 66 Prompt Presets.

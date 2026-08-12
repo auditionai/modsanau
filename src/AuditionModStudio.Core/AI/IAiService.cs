@@ -78,7 +78,8 @@ public enum AiOperationPhase
     Receiving,
     Completed,
     Failed,
-    Cancelled
+    Cancelled,
+    ReconciliationRequired
 }
 
 public sealed record AiOperationProgress(
@@ -168,6 +169,24 @@ public sealed record AiStudioJobSummary(
 public sealed record AiStudioHistoryResult(
     bool Succeeded, string DiagnosticCode, IReadOnlyList<AiStudioJobSummary> Jobs);
 
+public sealed record AiStudioExecutionRequest(
+    AiStudioOperation Operation,
+    InternalImage Source,
+    AiMask? Mask,
+    AiPrompt? Prompt,
+    AiTargetSize? TargetSize,
+    string PublicOptionId,
+    string IdempotencyKey);
+
+public sealed record AiStudioExecutionResult(
+    bool Succeeded, bool Cancelled, string DiagnosticCode, InternalImage? Preview);
+
+public interface IAiTransportImageEncoder
+{
+    Task<byte[]?> EncodePngAsync(InternalImage image, CancellationToken cancellationToken = default);
+    Task<byte[]?> EncodeMaskPngAsync(AiMask mask, CancellationToken cancellationToken = default);
+}
+
 public interface IAiStudioService
 {
     Task<AiStudioQuoteResult> GetQuoteAsync(
@@ -179,4 +198,11 @@ public interface IAiStudioService
     Task<AiStudioHistoryResult> CancelJobAsync(
         Guid jobId,
         CancellationToken cancellationToken = default);
+
+    Task<AiStudioExecutionResult> ExecuteAsync(
+        AiStudioExecutionRequest request,
+        IProgress<AiOperationProgress>? progress = null,
+        CancellationToken cancellationToken = default) => Task.FromResult(new AiStudioExecutionResult(
+            false, cancellationToken.IsCancellationRequested,
+            cancellationToken.IsCancellationRequested ? "AI_STUDIO_CANCELLED" : "AI_STUDIO_UNAVAILABLE", null));
 }

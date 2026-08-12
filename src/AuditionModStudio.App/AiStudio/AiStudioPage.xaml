@@ -94,6 +94,17 @@
                             AutomationProperties.Name="AI request progress"
                             Maximum="100"
                             Value="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" />
+                        <Button
+                            Grid.Row="2"
+                            HorizontalAlignment="Right"
+                            AutomationProperties.HelpText="Explicitly runs Match Original, DDS validation and atomic project Apply"
+                            AutomationProperties.Name="Approve and apply AI preview"
+                            Click="OnApprovePreviewClicked"
+                            IsEnabled="{x:Bind ViewModel.CanApprovePreview, Mode=OneWay}"
+                            MinHeight="44"
+                            Style="{StaticResource AmsPrimaryButtonStyle}">
+                            Approve and Apply
+                        </Button>
                     </Grid>
                 </Border>
 
@@ -161,6 +172,24 @@
                             ItemsSource="{x:Bind ViewModel.Aspects}"
                             MinHeight="44"
                             SelectedItem="{x:Bind ViewModel.SelectedAspect, Mode=TwoWay}" />
+                        <Grid ColumnSpacing="{StaticResource AmsSpace8}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBox
+                                Header="Output width (Outpaint/Upscale)"
+                                InputScope="Number"
+                                MaxLength="5"
+                                Text="{x:Bind ViewModel.OutputWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBox
+                                Grid.Column="1"
+                                Header="Output height"
+                                InputScope="Number"
+                                MaxLength="5"
+                                Text="{x:Bind ViewModel.OutputHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <TextBlock
+                            AutomationProperties.LiveSetting="Polite"
+                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                            Text="{x:Bind ViewModel.OutputValidationMessage, Mode=OneWay}" />
                         <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.ReferenceMessage, Mode=OneWay}" />
                         <Border Style="{StaticResource AmsStatusBadgeStyle}">
                             <TextBlock

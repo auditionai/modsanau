@@ -167,7 +167,12 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - Phạm vi PLAN 64: mask bất biến theo đúng tọa độ/kích thước ảnh nguồn, brush/erase deterministic, hardness/opacity,
   clear/invert/show-hide, zoom/pan đồng bộ, undo/redo có giới hạn bộ nhớ và composition có thể hủy. Mask chỉ được lưu
   khi người dùng yêu cầu, bằng atomic replacement trong project workspace; không Apply/DDS, gọi provider hay chạm game.
-- PLAN kế tiếp: PLAN 65 — Inpaint / Outpaint / Remove / Replace / Upscale.
+- PLAN đã hoàn thành kiểm chứng: PLAN 65 — Inpaint / Outpaint / Remove / Replace / Upscale.
+- Phạm vi PLAN 65: năm semantic operation dùng authenticated durable job, opaque private content, trusted
+  provider/profile mapping, lease worker và server credit lifecycle; ambiguous outcome giữ reservation ở
+  `ReconciliationRequired`. Desktop chỉ tải output bounded thành `InternalImage` preview; explicit approval mới reuse
+  Match Original/DDS validation/atomic Apply/history. Concrete external provider và live PostgreSQL chưa được kiểm chứng.
+- PLAN kế tiếp: PLAN 66 — Prompt Presets.
 - Milestone hiện tại: Milestone 4 — AI Workflow & Commercial Backend.
 
 ## Stage Gates

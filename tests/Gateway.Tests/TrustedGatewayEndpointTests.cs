@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Collections.Immutable;
+using System.Security.Cryptography;
 using AuditionModStudio.Gateway.Authentication;
 using AuditionModStudio.Gateway.Endpoints;
 using AuditionModStudio.Gateway.Services;
@@ -27,7 +29,8 @@ public sealed class TrustedGatewayEndpointTests
             client.PostAsJsonAsync("/v1/templates/entitlement", ValidTemplate()),
             client.PostAsJsonAsync("/v1/ai/generate", new AiGatewayRequest("prompt", 1, 1, null, null)),
             PricingQuoteAsync(client),
-            JobEnqueueAsync(client));
+            JobEnqueueAsync(client),
+            client.GetAsync("/v1/ai/content/output_1"));
 
         Assert.All(responses, response => Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode));
         Assert.Equal(0, factory.Ai.CallCount);
@@ -35,6 +38,41 @@ public sealed class TrustedGatewayEndpointTests
         Assert.Equal(0, factory.Entitlement.CallCount);
         Assert.Equal(0, factory.Pricing.CallCount);
         Assert.Equal(0, factory.Jobs.EnqueueCallCount);
+    }
+
+    [Fact]
+    public async Task Content_upload_uses_verified_owner_and_returns_opaque_private_identity()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+        using var content = new ByteArrayContent([1, 2, 3, 4]);
+        content.Headers.ContentType = new("image/png");
+
+        var response = await client.PostAsync("/v1/ai/content/source", content);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(UserId, factory.Content.LastOwner!.UserId);
+        Assert.Equal(AiContentKind.SourceImage, factory.Content.LastKind);
+        Assert.Contains("content_1", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Content_download_enforces_owner_and_expected_output_kind()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+        factory.Content.OutputOwner = Guid.NewGuid();
+
+        var crossOwner = await client.GetAsync("/v1/ai/content/output_1");
+        factory.Content.OutputOwner = UserId;
+        var owned = await client.GetAsync("/v1/ai/content/output_1");
+
+        Assert.Equal(HttpStatusCode.NotFound, crossOwner.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, owned.StatusCode);
+        Assert.Equal("image/png", owned.Content.Headers.ContentType!.MediaType);
+        Assert.Equal(new byte[] { 9, 8, 7 }, await owned.Content.ReadAsByteArrayAsync());
     }
 
     [Fact]
@@ -57,6 +95,7 @@ public sealed class TrustedGatewayEndpointTests
     [InlineData("{\"operation\":\"Generate\",\"inputMetadata\":{\"inputReference\":\"inputs/1\",\"promptLength\":1,\"inputBytes\":0},\"idempotencyKey\":\"one\",\"cost\":1}")]
     [InlineData("{\"operation\":\"Generate\",\"inputMetadata\":{\"inputReference\":\"../secret\",\"promptLength\":1,\"inputBytes\":0},\"idempotencyKey\":\"one\"}")]
     [InlineData("{\"operation\":0,\"inputMetadata\":{\"inputReference\":\"inputs/1\",\"promptLength\":1,\"inputBytes\":0},\"idempotencyKey\":\"one\"}")]
+    [InlineData("{\"operation\":\"Outpaint\",\"inputMetadata\":{\"inputReference\":\"content_1\",\"promptLength\":6,\"targetWidth\":512,\"targetHeight\":512,\"inputBytes\":10,\"publicOptionId\":\"standard\",\"prompt\":\"expand\",\"sourceWidth\":1024,\"sourceHeight\":1024},\"idempotencyKey\":\"one\"}")]
     public async Task Job_enqueue_rejects_client_cost_unsafe_metadata_and_numeric_operation(string payload)
     {
         await using var factory = new GatewayFactory();
@@ -366,6 +405,7 @@ public sealed class TrustedGatewayEndpointTests
         public StubEntitlementService Entitlement { get; } = new();
         public StubPricingService Pricing { get; } = new();
         public StubJobService Jobs { get; } = new();
+        public StubContentStore Content { get; } = new();
         public CapturingLoggerProvider Logs { get; } = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -383,14 +423,56 @@ public sealed class TrustedGatewayEndpointTests
                     services.RemoveAll<ITrustedTemplateEntitlementService>();
                     services.RemoveAll<IAiPricingService>();
                     services.RemoveAll<IAiJobService>();
+                    services.RemoveAll<IAiContentStore>();
+                    services.RemoveAll<IAiMediaValidator>();
                     services.AddSingleton<ITrustedAiGateway>(Ai);
                     services.AddSingleton<ITrustedCreditQueryService>(Credits);
                     services.AddSingleton<ITrustedTemplateEntitlementService>(Entitlement);
                     services.AddSingleton<IAiPricingService>(Pricing);
                     services.AddSingleton<IAiJobService>(Jobs);
+                    services.AddSingleton<IAiContentStore>(Content);
+                    services.AddSingleton<IAiMediaValidator, StubMediaValidator>();
                 }
             });
         }
+    }
+
+    private sealed class StubMediaValidator : IAiMediaValidator
+    {
+        public Task<AiValidatedMedia?> ValidateAsync(string mediaType, ReadOnlyMemory<byte> bytes,
+            CancellationToken cancellationToken = default) => Task.FromResult<AiValidatedMedia?>(
+            new(mediaType, 1, 1, ImmutableArray.CreateRange(bytes.ToArray())));
+    }
+
+    private sealed class StubContentStore : IAiContentStore
+    {
+        private static readonly ImmutableArray<byte> Output = ImmutableArray.Create<byte>(9, 8, 7);
+        public Guid OutputOwner { get; set; } = UserId;
+        public AuthenticatedGatewayUser? LastOwner { get; private set; }
+        public AiContentKind? LastKind { get; private set; }
+        public Task<AiContentStoreResult> PutAsync(AuthenticatedGatewayUser owner, AiContentKind kind,
+            AiValidatedMedia media, CancellationToken cancellationToken = default)
+        {
+            LastOwner = owner;
+            LastKind = kind;
+            var metadata = Metadata(new("content_1"), owner.UserId, kind, media.MediaType,
+                media.Width, media.Height, media.Bytes);
+            return Task.FromResult(new AiContentStoreResult(true, "AI_CONTENT_STORED", metadata));
+        }
+        public Task<AiStoredContent?> GetAsync(AuthenticatedGatewayUser owner, AiContentId contentId,
+            AiContentKind expectedKind, CancellationToken cancellationToken = default)
+        {
+            if (owner.UserId != OutputOwner || contentId.Value != "output_1"
+                || expectedKind != AiContentKind.ProviderOutput) return Task.FromResult<AiStoredContent?>(null);
+            return Task.FromResult<AiStoredContent?>(new(Metadata(contentId, owner.UserId,
+                AiContentKind.ProviderOutput, "image/png", 1, 1, Output), Output));
+        }
+        public Task<bool> DeleteAsync(AuthenticatedGatewayUser owner, AiContentId contentId,
+            CancellationToken cancellationToken = default) => Task.FromResult(true);
+        private static AiContentMetadata Metadata(AiContentId id, Guid owner, AiContentKind kind,
+            string mediaType, int width, int height, ImmutableArray<byte> bytes) => new(id, owner, kind,
+            mediaType, width, height, bytes.Length, Convert.ToHexString(SHA256.HashData(bytes.AsSpan())),
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddHours(1));
     }
 
     private sealed class StubJobService : IAiJobService
