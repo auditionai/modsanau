@@ -271,3 +271,15 @@ Mỗi lần chỉ thực hiện một PLAN:
 - Batch PLAN 86–90 hoàn tất; dừng trước PLAN 91 — Remote Product Catalog (Game/Mod/Template Taxonomy).
   Xem [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md) và
   [RELEASE_PENETRATION_REVIEW.md](RELEASE_PENETRATION_REVIEW.md).
+
+## Cập nhật batch PLAN 91–95
+
+- PLAN 91 — Remote Product Catalog: signed/validated backend taxonomy và atomic offline cache; không game discovery/path.
+- PLAN 92 — File-Only Template Admin Tool: role-first isolated archive scan, encrypted/signed immutable publish boundary.
+- PLAN 93 — Account/Profile/Credit History UI: server-sourced read-only profile/wallet/usage/history với strict client adapter.
+- PLAN 94 — Payment Abstraction: provider-neutral verified webhook orchestration reuse ledger authority; Stripe là adapter hiện có.
+- PLAN 95 — Audition AI Mod Studio Application Installer: single-project MSIX x64 per-user, exact version/publisher,
+  app payload + package signing pipeline, declarative upgrade/uninstall và user-data preservation; không bundle ACV/DirectXTex,
+  fixture/mod/game behavior. Production certificate/HSM/publisher/timestamp/distribution vẫn chưa VERIFIED.
+- Batch PLAN 91–95 dừng sau audit; PLAN kế tiếp là PLAN 96 — Audition AI Mod Studio Application Updater.
+  Xem [APP_INSTALLER.md](APP_INSTALLER.md).

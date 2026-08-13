@@ -997,3 +997,18 @@ liệu này về desktop.
 Refund/partial refund/dispute/chargeback reversal chưa có commercial policy nên PLAN 94 chỉ chứng minh signed refund event không
 tạo grant hoặc client authority. Live Stripe, endpoint secret rotation, production IAM/RLS topology, WAF/distributed limiter,
 monitoring và reconciliation vẫn **NOT VERIFIED**.
+
+## Bảo mật application installer từ PLAN 95
+
+Installer là single-project MSIX x64 per-user chỉ cho Audition AI Mod Studio. Package deployment declarative không có custom
+action hoặc arbitrary script/command; runtime app giữ `asInvoker` và không nhận install authority. Stable identity + monotonic
+four-part version hỗ trợ atomic upgrade và downgrade mặc định bị chặn; không dùng `ForceUpdateFromAnyVersion`.
+
+Protected pipeline fail closed khi thiếu production publisher/certificate/thumbprint/HTTPS timestamp. App-owned EXE/DLL được
+ký trước khi tạo block map; MSIX sau đó được ký/timestamp, verify exact signer và scan content/manifest/hash trước upload.
+Development publisher/unsigned artifact luôn được phân biệt; không có private key file hoặc unsigned production fallback.
+
+Scanner reject traversal, duplicate path, PDB/source/map/test/fixture/log/private key/user data, `acv.exe`, `texconv.exe`,
+`.ab/.acv/.audproj` và shell association/protocol ngoài scope. Uninstall không recursive-delete LocalApplicationData, project,
+export, Credential Manager, DPAPI cache hoặc workspace. ACV redistribution và production signing/legal/deployment evidence vẫn
+**NOT VERIFIED**. Xem [APP_INSTALLER.md](APP_INSTALLER.md).

@@ -1497,6 +1497,12 @@ Signed installer for **Audition AI Mod Studio itself**, clean uninstall, preserv
 deleted, verify prerequisites/application files and follow PLAN 75 privilege decision. It must not detect/install/
 patch Audition game or copy an exported mod into game directories.
 
+**Trạng thái triển khai:** hoàn tất ở PLAN 95 bằng single-project MSIX x64 per-user, dynamic exact version/publisher,
+declarative install/uninstall, downgrade fail-closed, application/user-data separation và protected signing/content-scan
+pipeline. Runtime giữ `asInvoker`; package không có helper/proprietary fixture/mod/game behavior. Development build/content/
+test-sign gate đã được kiểm chứng; actual deployment cần machine-trusted certificate và production certificate/HSM/publisher/
+timestamp/commercial distribution vẫn chưa VERIFIED.
+
 ## PLAN 96 — Audition AI Mod Studio Application Updater
 
 Signed release channel for **Audition AI Mod Studio itself**, staged rollout, rollback strategy and update deferral

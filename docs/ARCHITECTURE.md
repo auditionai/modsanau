@@ -1373,3 +1373,21 @@ Success fulfillment tiếp tục dùng nguyên transaction `private.payment_appl
 Pending event được acknowledge nhưng không grant; provider/config/database outage trả typed `Retryable`/HTTP 503 để provider
 retry, không fabricate success. Signed refund/failure/expiry event được ignore an toàn vì PLAN 94 không định nghĩa credit reversal
 policy. Production Stripe webhook deployment, live endpoint/secret/product và reconciliation vẫn chưa verified.
+
+## Audition AI Mod Studio Application Installer từ PLAN 95
+
+Distribution chọn single-project MSIX x64 per-user đã có sẵn trong WinUI project, không tạo installer stack thứ hai.
+`New-AppInstallerPackage.ps1` bind exact four-part version vào package/assembly/file identity, sinh manifest dưới `obj` với
+stable package name `AuditionAIModStudio` và inject publisher production từ protected environment. Windows package deployment
+quản lý package volume, read-only binaries, Start Menu registration, atomic upgrade và clean uninstall; không custom action,
+service, driver, shell hoặc app self-elevation. Runtime giữ `asInvoker`, `uiAccess=false`.
+
+Application data vẫn nằm dưới `%LocalAppData%\AuditionModStudio` qua `IAppPaths`, ngoài package ownership. Credential Manager,
+DPAPI CurrentUser cache, projects, exports và recoverable workspace không do installer migrate/xóa. MSIX chỉ khai báo Windows
+App Runtime prerequisite; không downloader/bootstrapper/helper URL. Public package scanner reject PDB/source/key/log/script,
+user project/workspace, `acv.exe`, `texconv.exe`, fixture và mọi `.ab/.acv`; không file association/protocol/game behavior.
+
+Protected CI ký/timestamp app-owned EXE/DLL trước package generation, rồi ký/timestamp/verify exact MSIX bằng PLAN 76 identity;
+package được content/identity/version/signature/hash scan trước upload. PLAN 77 vẫn là pre-install update trust boundary; channel,
+staged rollout/rollback/deferral thuộc PLAN 96. Chi tiết tại [APP_INSTALLER.md](APP_INSTALLER.md). Production signer,
+timestamp, exact publisher và redistribution vẫn **NOT VERIFIED**.

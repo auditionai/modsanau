@@ -2,9 +2,10 @@
 
 ## Phạm vi và packaging
 
-PLAN 76 áp dụng cho artifact phát hành của chính Audition AI Mod Studio. Repository hiện hỗ trợ WinUI 3
-single-project MSIX tooling và publish self-contained/unpackaged x64. Installer chính thức chưa tồn tại và thuộc PLAN
-95. Script signing nhận danh sách artifact explicit, chỉ cho `.exe`, `.dll`, `.msix`, `.msixbundle`, `.msi`; `.ab` và
+PLAN 76 áp dụng cho artifact phát hành của chính Audition AI Mod Studio. Repository hỗ trợ WinUI 3
+single-project MSIX tooling và publish self-contained x64. PLAN 95 đã chọn một installer MSIX per-user; protected workflow
+ký app-owned EXE/DLL trước khi đóng package, rồi ký/verify exact MSIX. Script signing nhận danh sách artifact explicit, chỉ
+cho `.exe`, `.dll`, `.msix`, `.msixbundle`, `.msi`; `.ab` và
 `.acv` không bao giờ dùng app code-signing key.
 
 Debug/local build mặc định unsigned. Production release dùng workflow `Protected release signing`, chạy thủ công chỉ
@@ -23,8 +24,8 @@ Workflow nhận:
 - variable `AUDITION_TIMESTAMP_URL`: HTTPS RFC 3161 timestamp endpoint;
 - variable `AUDITION_SIGNTOOL_PATH`: absolute path tới Windows SDK `signtool.exe` đã được runner image quản lý.
 
-`CN=AppPublisher` trong `Package.appxmanifest` hiện là placeholder development, không phải production publisher. Khi
-phát hành MSIX, Identity Publisher phải được release packaging thay bằng exact subject của production certificate;
+`CN=Audition AI Mod Studio Development` trong `Package.appxmanifest` là development identity, không phải production
+publisher. Khi phát hành MSIX, generated manifest thay Identity Publisher bằng exact subject của production certificate;
 pipeline phải fail nếu không khớp. Không đặt fake production CN vào repository.
 
 App code-signing key tách biệt với entitlement ES256 key, premium-template manifest key, payment/provider secrets và
@@ -57,4 +58,6 @@ success không được suy ra chỉ từ exit code của lệnh sign.
 - Dev signing: chưa cấu hình/chưa xác minh bằng certificate local.
 - Production certificate signing: chưa xác minh; repository không có production certificate/service.
 - Live RFC 3161 timestamp: chưa xác minh.
-- Installer/MSIX production signing: chưa xác minh vì artifact/publisher production chưa được cấu hình.
+- Installer MSIX Development unsigned: compatibility build và content scanner đã xác minh ở PLAN 95.
+- Installer/MSIX production signing: kiến trúc fail-closed đã nối CI nhưng chưa xác minh vì certificate/HSM, exact publisher
+  và live timestamp production chưa được cấu hình.

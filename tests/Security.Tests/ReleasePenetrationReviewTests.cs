@@ -33,7 +33,7 @@ public sealed class ReleasePenetrationReviewTests
     }
 
     [Fact]
-    public void Runtime_is_unelevated_client_has_no_gateway_reference_and_release_policy_precedes_signing()
+    public void Runtime_is_unelevated_client_has_no_gateway_reference_and_installer_scan_precedes_publish()
     {
         var root = FindRepositoryRoot();
         var manifest = XDocument.Load(Path.Combine(root, "src", "AuditionModStudio.App", "app.manifest"));
@@ -47,10 +47,13 @@ public sealed class ReleasePenetrationReviewTests
         Assert.DoesNotContain("AuditionModStudio.Gateway", appProject, StringComparison.Ordinal);
 
         var workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "release-signing.yml"));
-        var exposure = workflow.IndexOf("Protect-ReleaseArtifactExposure.ps1", StringComparison.Ordinal);
-        var signing = workflow.IndexOf("Invoke-AppCodeSigning.ps1", StringComparison.Ordinal);
-        Assert.True(exposure >= 0 && signing > exposure);
-        Assert.Contains("DebugSymbols=false", workflow, StringComparison.Ordinal);
+        var builder = File.ReadAllText(Path.Combine(root, "scripts", "New-AppInstallerPackage.ps1"));
+        var packageBuild = workflow.IndexOf("New-AppInstallerPackage.ps1", StringComparison.Ordinal);
+        var packageScan = workflow.IndexOf("Test-AppInstallerPackage.ps1", StringComparison.Ordinal);
+        var upload = workflow.IndexOf("actions/upload-artifact", StringComparison.Ordinal);
+        Assert.True(packageBuild >= 0 && packageScan > packageBuild && upload > packageScan);
+        Assert.Contains("DebugSymbols=false", builder, StringComparison.Ordinal);
+        Assert.Contains("Invoke-AppCodeSigning.ps1", builder, StringComparison.Ordinal);
         Assert.Contains("Invoke-SecretScan.ps1", workflow, StringComparison.Ordinal);
         Assert.True(File.Exists(Path.Combine(root, "scripts", "Invoke-ReleaseSecurityReview.ps1")));
     }

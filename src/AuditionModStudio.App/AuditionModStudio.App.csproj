@@ -12,6 +12,11 @@
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <InstallerPackageIdentityName Condition="'$(InstallerPackageIdentityName)' == ''">AuditionAIModStudio</InstallerPackageIdentityName>
+    <InstallerPackageVersion Condition="'$(InstallerPackageVersion)' == ''">1.0.0.0</InstallerPackageVersion>
+    <InstallerPublisherSubject Condition="'$(InstallerPublisherSubject)' == ''">CN=Audition AI Mod Studio Development</InstallerPublisherSubject>
+    <InstallerPublisherDisplayName Condition="'$(InstallerPublisherDisplayName)' == ''">Audition AI Mod Studio Development</InstallerPublisherDisplayName>
+    <InstallerGeneratedManifest>$(BaseIntermediateOutputPath)Installer\$(Configuration)\$(RuntimeIdentifier)\$(InstallerPackageVersion)\Package.appxmanifest</InstallerGeneratedManifest>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -40,6 +45,47 @@
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <ProjectCapability Include="Msix" />
   </ItemGroup>
+
+  <Target Name="PrepareInstallerPackageManifest"
+          BeforeTargets="_ValidatePresenceOfAppxManifestItems"
+          Condition="'$(WindowsPackageType)' != 'None'">
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(InstallerPackageIdentityName)', '^[A-Za-z0-9.-]{3,50}$'))"
+           Text="INSTALLER_IDENTITY_INVALID" />
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(InstallerPackageVersion)', '^\d{1,5}\.\d{1,5}\.\d{1,5}\.\d{1,5}$'))"
+           Text="INSTALLER_VERSION_INVALID" />
+    <Error Condition="'$(InstallerPublisherSubject)' == ''"
+           Text="INSTALLER_PUBLISHER_SUBJECT_REQUIRED" />
+    <Error Condition="'$(InstallerPublisherDisplayName)' == ''"
+           Text="INSTALLER_PUBLISHER_DISPLAY_NAME_REQUIRED" />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(InstallerGeneratedManifest)'))" />
+    <Copy SourceFiles="Package.appxmanifest" DestinationFiles="$(InstallerGeneratedManifest)" />
+    <XmlPoke XmlInputPath="$(InstallerGeneratedManifest)"
+             Query="/*[local-name()='Package']/*[local-name()='Identity']/@Name"
+             Value="$(InstallerPackageIdentityName)" />
+    <XmlPoke XmlInputPath="$(InstallerGeneratedManifest)"
+             Query="/*[local-name()='Package']/*[local-name()='Identity']/@Publisher"
+             Value="$(InstallerPublisherSubject)" />
+    <XmlPoke XmlInputPath="$(InstallerGeneratedManifest)"
+             Query="/*[local-name()='Package']/*[local-name()='Identity']/@Version"
+             Value="$(InstallerPackageVersion)" />
+    <XmlPoke XmlInputPath="$(InstallerGeneratedManifest)"
+             Query="/*[local-name()='Package']/*[local-name()='Properties']/*[local-name()='PublisherDisplayName']"
+             Value="$(InstallerPublisherDisplayName)" />
+    <ItemGroup>
+      <AppxManifest Remove="@(AppxManifest)" />
+      <AppxManifest Include="$(InstallerGeneratedManifest)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="SignInstallerApplicationPayload"
+          BeforeTargets="_GenerateAppxPackageFile"
+          Condition="'$(InstallerSignPayload)' == 'true'">
+    <Error Condition="!$([System.IO.Path]::IsPathFullyQualified('$(InstallerPowerShellPath)')) or !Exists('$(InstallerPowerShellPath)')"
+           Text="INSTALLER_POWERSHELL_ABSOLUTE_PATH_REQUIRED" />
+    <Error Condition="!$([System.IO.Path]::IsPathFullyQualified('$(InstallerSignToolPath)')) or !Exists('$(InstallerSignToolPath)')"
+           Text="INSTALLER_SIGNTOOL_ABSOLUTE_PATH_REQUIRED" />
+    <Exec Command="&quot;$(InstallerPowerShellPath)&quot; -NoLogo -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Invoke-AppInstallerPayloadSigning.ps1&quot; -PayloadRoot &quot;$(TargetDir)&quot; -SignToolPath &quot;$(InstallerSignToolPath)&quot; -CertificateThumbprint &quot;$(PackageCertificateThumbprint)&quot; -ExpectedPublisherSubject &quot;$(InstallerPublisherSubject)&quot; -TimestampUrl &quot;$(AppxPackageSigningTimestampServerUrl)&quot; -ReportPath &quot;$(InstallerPayloadSigningReportPath)&quot;" />
+  </Target>
 
   <!--
     Microsoft.Windows.SDK.BuildTools.WinApp adds first-class support for

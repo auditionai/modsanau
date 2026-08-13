@@ -382,3 +382,16 @@ risk gồm compromised Stripe secret/account, signed nhưng malicious provider d
 provider API/version drift, missing durable pending/reconciliation queue, refund/dispute policy chưa có và outage nhiều replica.
 Local contract/PostgreSQL evidence không chứng minh live Stripe, Supabase production, TLS/WAF, secret rotation, monitoring hoặc
 incident response.
+
+## Installer residual risk từ PLAN 95
+
+MSIX package identity, read-only package volume, signed app payload/package, exact version/hash/publisher scan và declarative
+per-user deployment giảm nguy cơ binary planting, partial install, unsafe privileged custom action, unsigned production publish
+và uninstall xóa nhầm user content. Scanner fail closed với helper/proprietary fixture/private material; installer không có
+game path, mod install hoặc arbitrary update URL authority.
+
+Residual risk gồm compromised production certificate/HSM/runner/publisher account, malicious dependency nhưng vẫn được ký,
+Windows package deployment vulnerability, prerequisite/license drift, per-user same-user write surface ngoài package và migration
+từ một release production lịch sử chưa tồn tại. Local unsigned/test deployment không chứng minh production trust, timestamp,
+enterprise policy, Store/CDN hoặc revocation/incident response. PLAN 96 phải reuse PLAN 77 verification và không tạo trust domain
+hay downloader thứ hai.
