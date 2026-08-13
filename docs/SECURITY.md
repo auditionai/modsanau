@@ -887,3 +887,15 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - Revoke không xóa wallet/entitlement/payment/project/local artifact. Local edit/build/export không phụ thuộc Gateway gate.
 - Private table ENABLE+FORCE RLS, authenticated SELECT-own safe columns; client DML/private RPC bị revoke. Chi tiết và residual
   risk ở [DEVICE_SESSION_ABUSE_CONTROLS.md](DEVICE_SESSION_ABUSE_CONTROLS.md).
+
+## Privacy và logging security từ PLAN 87
+
+- Desktop file sink và Gateway production console sink đều redact password, auth token/JWT, signed URL, provider secret và
+  payment secret; structured property có tên nhạy cảm bị thay toàn bộ giá trị trước khi format.
+- Diagnostic ZIP dùng allowlist, chỉ gồm safe manifest và tối đa 14 log đã redact lần hai. Project, ảnh, template, archive,
+  workspace, secure cache, settings và credential bị loại trừ; source path/tên log gốc không được đưa vào bundle.
+- Export reject user-content opt-in, traversal/reparse, collision, file quá giới hạn và log không phải UTF-8; temp được cleanup,
+  promote nguyên tử và không tự upload.
+- Redaction không phải DLP tuyệt đối: secret không có nhãn/pattern vẫn có thể lọt qua, nên caller không được log raw content hay
+  secret. Same-user/Administrator vẫn có thể đọc local log/bundle. Support consent/retention/deletion và centralized sink chưa
+  production-verified. Xem [PRIVACY_LOGGING_SECURITY.md](PRIVACY_LOGGING_SECURITY.md).

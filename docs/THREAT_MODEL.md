@@ -291,3 +291,14 @@ failover và distributed abuse monitoring chưa production-verified.
 Gateway không tin client `UserId`, IP hay device metadata. Cross-user revoke/read bị chặn; missing/revoked session fail closed
 trước AI/premium service. Revoke không phá local availability. Account recovery, stolen-bearer response, unusual-login alert,
 support override và Supabase live RLS/role topology vẫn là operational/product work chưa được chứng minh.
+
+## Logging và diagnostic export residual risk từ PLAN 87
+
+Central sink redaction và lớp quét lại khi export làm giảm khả năng password, token/JWT, signed URL, provider secret và payment
+secret xuất hiện trong log/bundle. Allowlist export loại project, ảnh, template, archive, workspace, settings và credential;
+không có auto-upload hoặc user-content opt-in.
+
+Residual risk vẫn gồm secret tùy ý không khớp tên/pattern, dữ liệu đã bị caller render thành chuỗi không có ngữ cảnh, quyền đọc
+của same-user/Administrator và việc người dùng gửi bundle qua kênh không an toàn. Redactor không thay thế nguyên tắc không log
+raw content/secret, OS ACL, support consent/retention/deletion, monitoring hoặc incident response. Các control vận hành này chưa
+production-verified.

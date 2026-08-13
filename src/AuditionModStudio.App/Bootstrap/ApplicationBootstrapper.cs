@@ -5,6 +5,7 @@ using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Auth;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
+using AuditionModStudio.Core.Diagnostics;
 using AuditionModStudio.Core.Exports;
 using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Games;
@@ -66,12 +67,14 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         });
 
         _logSession.ConfigureServices(builder.Services);
+        builder.Services.AddSingleton<ISensitiveDataRedactor>(_logSession.Redactor);
         builder.Services.AddSingleton<IAppPaths>(paths);
         builder.Services.AddSingleton<IPathSecurity>(pathSecurity);
         builder.Services.AddSingleton<IExportDestinationFileSystem, SystemExportDestinationFileSystem>();
         builder.Services.AddSingleton<IArchiveExportDestinationValidator, ArchiveExportDestinationValidator>();
         builder.Services.AddSingleton<IArchiveExportFileOperations, SystemArchiveExportFileOperations>();
         builder.Services.AddSingleton<IArchiveExportService, ArchiveExportService>();
+        builder.Services.AddSingleton<IDiagnosticExportService, DiagnosticExportService>();
         builder.Services.AddSingleton(BatchBuildExportOptions.Default);
         builder.Services.AddSingleton<IBatchBuildExportService, BatchBuildExportService>();
         builder.Services.AddSingleton<SecureWorkspaceService>();

@@ -257,4 +257,6 @@ Mỗi lần chỉ thực hiện một PLAN:
 - PLAN 86 — Device Sessions / Abuse Controls: đã triển khai; Gateway feature-flagged registration/list/revoke, random client
   device identity trong Credential Manager, server session binding, configured device limit, throttled last-seen, private
   PostgreSQL/RLS và immediate cloud deny sau revoke. Local PostgreSQL gate PASS; Supabase live chưa xác minh.
-- PLAN kế tiếp trong batch được phê duyệt: PLAN 87 — Privacy & Logging Security.
+- PLAN 87 — Privacy & Logging Security: đã triển khai central sink redaction cho desktop/Gateway và diagnostic ZIP allowlist
+  chỉ gồm safe manifest + log đã redact; mặc định loại project, ảnh, template, archive, workspace, settings và credential.
+- PLAN kế tiếp trong batch được phê duyệt: PLAN 88 — Dependency / Supply-Chain Security.

@@ -1263,3 +1263,15 @@ throttling và revoke; RLS chỉ cho authenticated SELECT own safe columns, muta
 Desktop Cloud adapter chỉ opt-in khi `AUDITION_DEVICE_SESSIONS_ENABLED=true`; nó dùng Credential Manager binding store riêng,
 không đổi Supabase token store. Archives/DDS/Imaging/Projects không tham chiếu device-session service và local pipeline không
 đi qua Gateway. Xem [DEVICE_SESSION_ABUSE_CONTROLS.md](DEVICE_SESSION_ABUSE_CONTROLS.md).
+
+## Privacy và logging security từ PLAN 87
+
+Contract `ISensitiveDataRedactor` và `IDiagnosticExportService` nằm trong Core, không phụ thuộc UI/hạ tầng. Desktop composition
+dùng một redactor cho file sink và diagnostic export; Gateway production thay provider mặc định bằng redacting console
+provider. Structured property nhạy cảm bị che theo tên, còn message/exception được quét password, auth token/JWT, signed URL,
+provider secret và payment secret trước khi ghi.
+
+Diagnostic export là allowlist `safe manifest + redacted local logs`, không enumerate project/image/template/archive/workspace,
+không đọc settings/credential và không upload. Implementation nằm trong Infrastructure, reuse destination/path security,
+giới hạn file/count/bytes, đổi tên log nguồn, tạo temp cùng filesystem rồi atomic move không overwrite; task hỗ trợ
+cancellation/progress. Xem [PRIVACY_LOGGING_SECURITY.md](PRIVACY_LOGGING_SECURITY.md).

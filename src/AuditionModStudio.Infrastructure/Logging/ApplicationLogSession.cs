@@ -1,4 +1,5 @@
 using AuditionModStudio.Core.Paths;
+using AuditionModStudio.Core.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -17,9 +18,10 @@ public sealed class ApplicationLogSession : IDisposable
     private readonly Serilog.Core.Logger _logger;
     private int _disposed;
 
-    public ApplicationLogSession(IAppPaths paths)
+    public ApplicationLogSession(IAppPaths paths, ISensitiveDataRedactor? redactor = null)
     {
         ArgumentNullException.ThrowIfNull(paths);
+        Redactor = redactor ?? new SensitiveDataRedactor();
         Directory.CreateDirectory(paths.LogsDirectory);
 
         LogFilePattern = Path.Combine(paths.LogsDirectory, "audition-mod-studio-.log");
@@ -27,16 +29,17 @@ public sealed class ApplicationLogSession : IDisposable
             .MinimumLevel.Debug()
             .Enrich.FromLogContext()
             .WriteTo.File(
+                new PrivacyRedactingTextFormatter(OutputTemplate, Redactor),
                 LogFilePattern,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14,
                 fileSizeLimitBytes: 10 * 1024 * 1024,
-                rollOnFileSizeLimit: true,
-                outputTemplate: OutputTemplate)
+                rollOnFileSizeLimit: true)
             .CreateLogger();
     }
 
     public string LogFilePattern { get; }
+    public ISensitiveDataRedactor Redactor { get; }
 
     public void ConfigureServices(IServiceCollection services)
     {
