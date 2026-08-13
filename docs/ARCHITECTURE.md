@@ -1287,3 +1287,13 @@ valid Microsoft Authenticode và official MIT source record. `acv.exe`, pristine
 fixture/integrity evidence, không có authoritative publisher/license/right evidence, nên commercial redistribution fail closed.
 Không binary proprietary nào được track/tải/bundle bởi PLAN 88. Xem
 [DEPENDENCY_AND_REDISTRIBUTION.md](supply-chain/DEPENDENCY_AND_REDISTRIBUTION.md).
+
+## Security test matrix từ PLAN 89
+
+PLAN 89 không thêm runtime service hoặc authority mới. `docs/security-test-matrix.json` là mapping máy đọc được của 12
+negative-security boundary; `scripts/Invoke-SecurityTestMatrix.ps1` thực thi các test thật theo project, real PostgreSQL cho
+idempotency/ownership, real ACV fixture cho malformed archive và secret scan trên source + output App/Gateway.
+
+Runner fail closed khi thiếu dependency môi trường; platform-conditional skip được báo riêng và không được dùng để thay control
+không phụ thuộc platform. Core/local file pipeline vẫn độc lập Gateway; không có game discovery/install/launch/process/runtime
+behavior. Chi tiết tại [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md).

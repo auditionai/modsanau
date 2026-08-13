@@ -68,13 +68,18 @@
 - [ ] Pack with missing keydat can regenerate it using selection `1`.
 - [ ] `Select:` without newline is handled.
 - [ ] Paths with spaces/Vietnamese Unicode work.
-- [ ] Modified acv.exe rejected.
-- [ ] Modified template package rejected.
-- [ ] Wrong user data access rejected.
-- [ ] Forged local credit ignored.
-- [ ] Replay/duplicate AI charge safe.
-- [ ] Concurrent spend safe.
-- [ ] Malformed DDS handled without crash/corruption.
-- [ ] Path traversal rejected.
-- [ ] Update with wrong signature rejected.
-- [ ] Search release files for secrets returns none.
+- [x] Modified acv.exe rejected.
+- [x] Corrupt template/archive source rejected.
+- [x] Modified template package rejected.
+- [x] Wrong user data access rejected.
+- [x] Forged local credit ignored.
+- [x] Expired token rejected.
+- [x] Replay/duplicate AI charge safe.
+- [x] Concurrent spend safe.
+- [x] Malformed DDS/archive handled without crash/corruption or workspace escape.
+- [x] Path traversal rejected.
+- [x] Update with wrong signature rejected.
+- [x] Search source and Release files for secrets returns none.
+
+PLAN 89 ánh xạ 12/12 mục trên tới test thực thi tại `docs/SECURITY_TEST_MATRIX.md`. PostgreSQL local và ACV fixture thật
+được dùng cho các boundary tương ứng; đây không phải bằng chứng Supabase staging/live hay production signing/CDN.

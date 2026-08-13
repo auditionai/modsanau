@@ -913,3 +913,14 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - `acv.exe` không ký/version/publisher; template/game asset không có authoritative rights record. Hash chỉ là identity, vì vậy
   commercial redistribution bị chặn, fixture tiếp tục ngoài Git. Xem
   [DEPENDENCY_AND_REDISTRIBUTION.md](supply-chain/DEPENDENCY_AND_REDISTRIBUTION.md).
+
+## Security test matrix từ PLAN 89
+
+Mười hai abuse/tamper/input cases bắt buộc được ánh xạ tới test executable thay vì checklist khai báo. Hai khoảng trống được
+đóng bằng real PostgreSQL: duplicate AI enqueue cùng idempotency key chỉ reserve một lần, và user khác không thể get/list/cancel
+job của owner. Real `acv.exe` còn được đưa malformed archive trong workspace cô lập; test yêu cầu structured failure, bounded
+diagnostic, input/tool bất biến và không tạo file ngoài workspace.
+
+`Invoke-SecurityTestMatrix.ps1` yêu cầu database loopback, exact ACV hash và App/Gateway build output rồi quét plaintext secret
+trên source, tests, docs, migrations/scripts/workflows, DLL/PDB/log/crash. Pattern scan không phải DLP tuyệt đối; Supabase live,
+production signing/CDN và concrete provider vẫn chưa được xác minh. Xem [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md).

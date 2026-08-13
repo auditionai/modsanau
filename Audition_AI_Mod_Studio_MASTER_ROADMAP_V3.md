@@ -1436,6 +1436,9 @@ Tests must include:
 - tampered template package rejected;
 - app survives malformed DDS/archive inputs safely.
 
+**Trạng thái triển khai:** hoàn tất ở PLAN 89. Ma trận 12/12 có runner fail-closed và bằng chứng unit/integration/real
+PostgreSQL/real ACV tại `docs/SECURITY_TEST_MATRIX.md`; Supabase staging/live vẫn chưa được xác minh.
+
 ## PLAN 90 — Release Penetration / Crack-Resistance Review
 
 Before paid beta, commission/manual review focused on:

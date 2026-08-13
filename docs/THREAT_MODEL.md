@@ -314,3 +314,14 @@ transitive native payload, CI runner compromise và mismatch giữa repository S
 local verification không chứng minh mọi mirror/CDN artifact. `acv.exe` known hash không chứng minh origin/quyền phân phối;
 proprietary commercial distribution hiện bị block. Production HSM, build attestation, immutable artifact repository và legal
 approval vẫn chưa được repository xác minh.
+
+## Negative security matrix từ PLAN 89
+
+Threat regression gate bao phủ tool/template/package/update tamper, traversal, forged credit authority, expired bearer,
+duplicate/concurrent spend, cross-user job access, plaintext-token leakage và malformed DDS/archive. Các oracle kiểm tra cả
+persisted cardinality/state thay vì chỉ HTTP result; malformed archive còn kiểm tra input/tool không đổi và không workspace escape.
+
+Residual risk: local PostgreSQL không đại diện đầy đủ topology/role/proxy của Supabase production; known-hash ACV không chứng minh
+provenance; regex secret scan có thể bỏ sót dữ liệu tùy ý; malformed fuzz corpus còn hữu hạn. PLAN 90 phải review thủ công các
+đường decompile/license patch/API manipulation/template harvesting/temp-cache/RLS/update/DLL loading mà không coi obfuscation là
+authorization boundary.
