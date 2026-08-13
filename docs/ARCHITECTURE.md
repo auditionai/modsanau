@@ -1436,3 +1436,21 @@ Nhánh hủy export được kích hoạt có tính quyết định sau durable 
 transaction temp/backup phải được dọn và retry bằng service bình thường phải thành công. Fixture pristine `015.ab`, `015.keydat`,
 `acv.exe` và DDS gốc được hash lại sau pipeline. Packed archive không được so với golden hash vì container có thể không
 deterministic; correctness dựa trên re-extracted logical inventory và exact content hash.
+
+## DDS File-Pipeline Compatibility Matrix từ PLAN 98
+
+PLAN 98 không thêm runtime service và không mở rộng format production. Một executable evidence model trong IntegrationTests phân
+biệt bốn trạng thái `SUPPORTED`, `UNSUPPORTED`, `INVALID`, `NOT VERIFIED` cho từng stage: metadata, preview + InternalImage import,
+encode, Match Original + validate, re-decode và archive roundtrip. Tài liệu
+[DDS_FILE_PIPELINE_COMPATIBILITY_MATRIX.md](DDS_FILE_PIPELINE_COMPATIBILITY_MATRIX.md) được exact-test với model này để không drift.
+
+Level A dùng synthetic corpus có kiểm soát cho BC1/BC3/RGBA8/BGRA8 qua Legacy/DX10, linear/sRGB, mip, alpha và kích thước không
+power-of-two. Level B dùng working copy của archive thật: 52 DDS được ghi record per-file và preview/import toàn bộ; representative
+của từng format đi qua Match Original, validation và re-decode. Chỉ pointer slot PLAN 97 có full archive roundtrip, nên các format
+hoặc Mod Type khác không thừa hưởng `SUPPORTED`. Production Mod Catalog rỗng đồng nghĩa corpus Mod Type tương lai là
+`NOT VERIFIED`, không được suy đoán từ path/filename.
+
+BC2/BC4/BC5/BC6H/BC7, legacy bitmask khác, Texture1D/3D, array và cubemap vẫn là boundary typed; metadata recognition không phải
+editor support. Matrix là test/evidence layer dùng lại `IDdsMetadataReader`, `IDdsPreviewService`, `IImageImportService`,
+`IDdsEncoder`, `IDdsMatchOriginalService` và `IDdsValidationService`; UI không gọi DirectXTex và archive operation vẫn chỉ qua
+`IAuditionArchiveService`/`IArchiveToolRunner`. Điểm cuối không thay đổi: DDS hoặc standalone `.ab`/`.acv`, không có game runtime.

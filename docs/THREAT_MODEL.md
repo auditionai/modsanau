@@ -421,3 +421,15 @@ same-user/Administrator can thiệp workspace giữa các lần kiểm tra, disk
 Known hash không chứng minh nguồn gốc hoặc quyền phân phối proprietary artifact. Evidence logical inventory không chứng minh game
 runtime compatibility; sản phẩm và test cố ý dừng ở standalone archive. PLAN 98 mới mở rộng ma trận DDS theo Mod Type và không được
 suy diễn là đã hoàn thành bởi PLAN 97.
+
+## DDS compatibility matrix residual risk từ PLAN 98
+
+Typed stage status, exact doc drift gate, malformed corpus, checked resource bounds và re-decode giảm nguy cơ parser-only bị báo
+nhầm thành support, native decoder nhận payload thiếu, metadata bị mất qua encode và archive evidence bị áp dụng sai slot. Real
+working-copy corpus giúp bắt regression trên 52 sample hiện có mà không mutate pristine fixture.
+
+Residual risk còn gồm format/header/vendor variant chưa có trong corpus, DirectXTex/native codec bug, alpha semantic khác giữa
+content thực và header, GPU/runtime implementation khác editor, malicious payload vẫn nằm trong resource bound, và private corpus
+chỉ đại diện một archive. BC2/BC4/BC5/BC6H/BC7 cùng resource array/cube/volume chưa có full editor model nên vẫn
+`UNSUPPORTED`/`NOT VERIFIED`; Mod Type tương lai chưa có authoritative manifest nên không được suy luận support. Bằng chứng local
+không chứng minh provenance, license redistribution, production catalog hoặc game runtime; pipeline vẫn dừng ở file standalone.

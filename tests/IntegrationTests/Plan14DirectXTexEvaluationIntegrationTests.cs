@@ -5,8 +5,10 @@ using System.Security.Cryptography;
 using AuditionModStudio.Archives;
 using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Dds;
+using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Dds;
+using AuditionModStudio.Imaging;
 using AuditionModStudio.Infrastructure.Paths;
 using AuditionModStudio.Infrastructure.Workspaces;
 using AuditionModStudio.Projects;
@@ -104,6 +106,30 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             realMetadata.Add((path, result.Metadata!));
         }
 
+        Assert.Equal(
+            new Dictionary<DdsFormat, int>
+            {
+                [DdsFormat.BC1] = 2,
+                [DdsFormat.BC3] = 4,
+                [DdsFormat.Bgra8] = 23,
+                [DdsFormat.Rgba8] = 23,
+            },
+            realMetadata.GroupBy(item => item.Metadata.Format)
+                .ToDictionary(group => group.Key, group => group.Count()));
+        Assert.Equal(
+            new Dictionary<uint, int> { [1] = 49, [8] = 2, [9] = 1 },
+            realMetadata.GroupBy(item => item.Metadata.EffectiveMipLevelCount)
+                .ToDictionary(group => group.Key, group => group.Count()));
+        Assert.All(realMetadata, item =>
+        {
+            Assert.Equal(DdsFormatSupport.Known, item.Metadata.FormatSupport);
+            Assert.Equal(DdsHeaderType.Legacy, item.Metadata.HeaderType);
+            Assert.True(item.Metadata.SupportsAlpha);
+            Assert.Equal(DdsResourceDimension.Texture2D, item.Metadata.ResourceDimension);
+            Assert.False(item.Metadata.IsCubemap);
+            Assert.Equal(1u, item.Metadata.ArraySize);
+        });
+
         var representatives = realMetadata
             .GroupBy(item => item.Metadata.Format)
             .Select(group => group.OrderByDescending(item => (long)item.Metadata.Width * item.Metadata.Height).First())
@@ -151,6 +177,7 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
                 TimeSpan.FromMinutes(2),
                 DdsPreviewResourcePolicy.Default));
         var previewStopwatch = Stopwatch.StartNew();
+        var imageImport = new ImageImportService(ImageImportResourcePolicy.Default);
         var previewedFormats = new HashSet<DdsFormat>();
         long largestPreviewPixels = 0;
         DdsMetadata? largestPreviewMetadata = null;
@@ -170,6 +197,10 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             Assert.True(preview.Image.EncodedPng.Length >= 24);
             Assert.True(preview.Image.EncodedPng.AsSpan(0, 8).SequenceEqual(
                 new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }));
+            var imported = await imageImport.ImportMemoryAsync(new(preview.Image.EncodedPng.ToArray()));
+            Assert.True(imported.Succeeded, imported.DiagnosticCode);
+            Assert.Equal(item.Metadata.Width, imported.Image!.Width);
+            Assert.Equal(item.Metadata.Height, imported.Image.Height);
             previewedFormats.Add(item.Metadata.Format);
             var pixels = (long)item.Metadata.Width * item.Metadata.Height;
             if (pixels > largestPreviewPixels)
@@ -228,6 +259,7 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             .DistinctBy(item => item.Path, StringComparer.OrdinalIgnoreCase)
             .ToList();
         var encodedProfiles = new List<DdsMetadata>();
+        var matchedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         DdsMatchOriginalResult? cobyRoundtrip = null;
         var cobyStopwatch = new Stopwatch();
         for (var index = 0; index < matchTargets.Count; index++)
@@ -260,6 +292,13 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             Assert.Equal(target.Format, match.OutputMetadata.Format);
             Assert.Equal(target.HeaderType, match.OutputMetadata.HeaderType);
             Assert.Equal(target.EffectiveMipLevelCount, match.OutputMetadata.EffectiveMipLevelCount);
+            var matchedPreview = await previewService.CreateAsync(new(
+                workspace.ArchiveWorkspace.SecureWorkspace,
+                match.OutputRelativePath!));
+            Assert.True(matchedPreview.Succeeded, matchedPreview.DiagnosticCode);
+            Assert.Equal(target.Width, matchedPreview.Image!.Width);
+            Assert.Equal(target.Height, matchedPreview.Image.Height);
+            matchedPaths.Add(representative.Path);
             encodedProfiles.Add(match.OutputMetadata);
         }
 
@@ -377,6 +416,24 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
             "PLAN 19 real DDS roundtrip: target={0}; format=BC3/DXT5; dimensions=6000x1801; mips=1; metadata=PASS; decode-back=PASS; elapsed={1:F2}s",
             RealSampleFixtureCatalog.CobyLogoTexture.FileName,
             cobyStopwatch.Elapsed.TotalSeconds);
+        for (var index = 0; index < realMetadata.Count; index++)
+        {
+            var item = realMetadata[index];
+            var relative = Path.GetRelativePath(extractedRoot, item.Path).Replace('\\', '/');
+            var matched = matchedPaths.Contains(item.Path) ? "SUPPORTED" : "NOT VERIFIED";
+            output.WriteLine(
+                "PLAN 98 REAL MATRIX: case=real-015-{0:D3}; path={1}; dimensions={2}x{3}; format={4}; mips={5}; alpha={6}; header={7}; resource={8}; metadata=SUPPORTED; preview-import=SUPPORTED; match-validate-redecode={9}; archive=NOT VERIFIED",
+                index + 1,
+                relative,
+                item.Metadata.Width,
+                item.Metadata.Height,
+                item.Metadata.Format,
+                item.Metadata.EffectiveMipLevelCount,
+                item.Metadata.AlphaMode,
+                item.Metadata.HeaderType,
+                item.Metadata.ResourceDimension,
+                matched);
+        }
     }
 
     private static string? GetApprovedTexconvPath() =>

@@ -1048,3 +1048,20 @@ export, Credential Manager, DPAPI cache hoặc workspace. ACV redistribution và
 
 Đây là bằng chứng local trên fixture/tool đã biết hash, không chứng minh provenance/quyền phân phối ACV/game asset và không thay đổi
 release blocker tương ứng. Suite không thêm game-install/runtime dependency hay quyền truy cập game process/registry/launcher.
+
+## Bảo mật DDS compatibility matrix từ PLAN 98
+
+- Synthetic malformed corpus kiểm tra bad magic, truncated Legacy/DX10 header, zero dimension, invalid array và truncated payload;
+  input hỏng phải trả failure typed trước native decode và không để lại extracted/build output.
+- Dimension, pixel, mip và payload arithmetic tiếp tục dùng bound/checked policy production; header nhận diện được không tự trở
+  thành encode, Match Original hoặc archive authority.
+- DirectXTex vẫn được pin exact absolute path và SHA-256
+  `DCFDEC10244E02CF5037FBA089C55FB7E1326B1C8181742D77D15FA5CB5EEF06`, chạy isolated, redirected và finite timeout qua boundary
+  hiện hữu. Test không gọi shell, không nhận executable tùy ý và không làm yếu release integrity policy.
+- Private fixture chỉ được hash/đọc/sao chép vào random workspace có Unicode; pristine archive/DDS không bị sửa. Report chỉ ghi
+  relative path và technical metadata, không ghi raw content, absolute private path, key/token hoặc secret.
+- `SUPPORTED` archive là manifest/slot-scoped evidence. Chỉ pointer PLAN 97 được đánh dấu; format, Mod Type, resource hoặc corpus
+  khác giữ `NOT VERIFIED`/`UNSUPPORTED`, chống overclaim và chống ép DDS vào slot không tương thích.
+
+Matrix không chứng minh quyền phân phối fixture/tool, live Mod Type catalog hay game-runtime compatibility. Nó không thêm quyền
+discover/install/patch/launch game và không thay đổi file-only boundary.
