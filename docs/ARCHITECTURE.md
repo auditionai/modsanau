@@ -1327,3 +1327,17 @@ PASS. Offline load luôn verify lại chữ ký/schema; cache thiếu/hỏng kh�
 cancellable; snapshot cũ/project đã tạo không bị mutate hoặc rebind khi revision mới xuất hiện. Cấu hình/key/session/network
 thiếu bind service unavailable và không ảnh hưởng local project/editor/build/export. Live signing key, Gateway deployment và
 catalog production chưa verified.
+
+## File-Only Template Admin Tool từ PLAN 92
+
+`ITemplateAdminWorkflow` là workflow quản trị tin cậy trong lớp Archives, không phải màn hình desktop công khai. Workflow chỉ
+nhận đường dẫn tuyệt đối tới archive do admin chọn rõ ràng, kiểm tra role trước mọi truy cập file, tạo working copy cô lập qua
+`IProjectArchiveWorkspaceService`, rồi gọi `IAuditionArchiveService` để extract. DDS được quét qua `IArchiveAssetScanner`, đọc
+metadata qua `IDdsMetadataReader` và phải có nhãn chính xác theo normalized relative path trước khi publish.
+
+`ITemplateAdminPublisher` là boundary publish. Implementation local ghi package đã mã hóa, metadata đầy đủ label/DDS compatibility
+được ký ES256 và audit tối thiểu vào staging directory, durable-flush từng file rồi atomic directory move tới
+`TemplateId/TemplateVersion`. Exact version
+đã tồn tại là immutable conflict; publish đồng thời chỉ một operation được commit. AES/HMAC/private signing key là cấu hình
+server/admin deployment, không thuộc client hoặc repository. Workflow không dò game, registry, launcher, process hay sửa archive
+template pristine. Production admin identity, object storage/catalog promotion, key custody và deployment vẫn chưa verified.

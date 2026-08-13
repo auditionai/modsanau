@@ -346,3 +346,15 @@ authority, nên client patch hoặc field premium giả không tạo commercial/
 Residual risk gồm catalog signing key hoặc Gateway configuration bị compromise, key rotation sai, authorized metadata độc hại
 nhưng vẫn nằm trong bounded schema, đồng hồ/rollback policy nhiều thiết bị và thiếu live publication/monitoring evidence. Local
 contract tests không chứng minh production signer, TLS edge, CDN, availability hoặc incident response.
+
+## Template admin residual risk từ PLAN 92
+
+Role-first authorization, isolated working copy, strict label/manifest consistency, source-handle hash verification, authenticated
+encryption, ES256 signature và immutable atomic version commit giảm nguy cơ unauthorized scan, traversal, source swap, metadata
+tamper và concurrent overwrite. Audit chỉ giữ subject/identity/count/time/action, không giữ local source path hoặc raw content.
+
+Residual risk còn gồm admin account/host hoặc injected key bị compromise, same-user/Administrator đọc memory/temp workspace,
+malicious nhưng hợp lệ DDS/parser input, mất khóa mã hóa, rollback/retention sai ở storage và operator publish nhầm nội dung có
+bản quyền. CBC-HMAC format là internal at-rest envelope, không thay entitlement, legal authorization hoặc transport security.
+Repository chưa chứng minh production IAM, HSM/KMS, malware scanning sandbox, object-store atomic semantics, centralized audit
+sink/alert hay disaster recovery.

@@ -949,3 +949,20 @@ Catalog không mang executable path/argument, game install path, registry/launch
 entitlement. `RequiresPremiumEntitlement=true` không cấp access; PLAN 70/71 vẫn là authority duy nhất. Server config hiện chỉ
 nhận pre-signed document; private catalog signing key không vào process desktop, repository hoặc log. Production key rotation,
 signed-document publication, live Gateway/TLS và operational rollback policy vẫn **NOT VERIFIED**.
+
+## Bảo mật Template Admin Tool từ PLAN 92
+
+Authorization admin phải hoàn tất trước khi đọc archive. Input bắt buộc là file tuyệt đối được chọn rõ ràng, bị giới hạn kích
+thước, kiểm tra reparse/path và băm SHA-256; extract/scan chỉ diễn ra trong workspace cô lập. Engine vẫn nằm sau
+`IAuditionArchiveService`, DDS sau `IDdsMetadataReader`; không có shell/CMD, game discovery, install hoặc runtime mutation.
+
+Publisher xác thực chéo package manifest, texture manifest, DDS count và audit identity. Nó giữ cùng một file handle từ lúc
+verify hash đến lúc mã hóa để loại khe thay file giữa hai bước. Package at-rest dùng AES-256-CBC với IV ngẫu nhiên và
+HMAC-SHA256 encrypt-then-MAC; package identity, toàn bộ label/DDS metadata và hash audit được ký ES256/P-256. Hai khóa 256-bit và
+private signing key chỉ được inject từ trusted deployment, zero khi dispose và không được log. Publish dùng version directory
+bất biến và atomic move; cancellation,
+conflict, path/IO/crypto failure đều fail closed, không tạo published version.
+
+Mã hóa là bảo vệ at-rest, không phải DRM: admin/distribution service được cấp quyền vẫn có thể phục hồi archive. Quyền pháp lý
+phân phối `acv.exe`, template/game asset chưa được chứng minh và vẫn là release blocker. Live IAM, HSM/KMS, rotation, backup,
+object storage ACL, monitoring và audit retention là **PRODUCTION NOT VERIFIED**.
