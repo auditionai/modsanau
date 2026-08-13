@@ -1032,3 +1032,19 @@ export, Credential Manager, DPAPI cache hoặc workspace. ACV redistribution và
 - Production signer/HSM, timestamp, update public key/feed/CDN và actual trusted deployment vẫn **NOT VERIFIED**. Vì vậy
   default composition dùng `UnavailableAppUpdateService` và không có unsigned/development fallback. Local file editor,
   Apply/build/export vẫn độc lập; updater không có authority với Audition game.
+
+## Archive file-pipeline security evidence từ PLAN 97
+
+- Fixture proprietary chỉ được đọc/hash và sao chép; test không ghi vào `015.ab`, `015.keydat`, `acv.exe` hay cây `015` pristine.
+- ACV vẫn chạy qua runner production bằng executable tuyệt đối, exact trusted hash, structured arguments, redirected streams và
+  isolated workspace; suite không dùng shell/UI automation và không nhận raw argument từ test data.
+- Workspace thực có khoảng trắng và tiếng Việt Unicode. Evidence verifier từ chối relative path traversal, identity trùng sau
+  normalization, entry thêm/mất, target hash sai và mọi mutation ngoài allowlist chính xác.
+- DDS hỏng được tạo từ bản sao riêng và bị metadata reader từ chối; fixture gốc được hash lại để chứng minh không bị corruption.
+- Hủy export sau durable copy không promote partial bytes, không làm đổi destination tốt và không để lại transaction artifact;
+  clean retry thành công. Build/export vẫn fail closed theo validator và atomic transaction production hiện có.
+- Log evidence chỉ chứa phase duration, relative target, kích thước/format/mip, số file và SHA-256 fixture/artifact; không log raw
+  content, local credential, token hay secret.
+
+Đây là bằng chứng local trên fixture/tool đã biết hash, không chứng minh provenance/quyền phân phối ACV/game asset và không thay đổi
+release blocker tương ứng. Suite không thêm game-install/runtime dependency hay quyền truy cập game process/registry/launcher.

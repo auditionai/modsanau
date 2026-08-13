@@ -71,7 +71,7 @@
 - [ ] Extract with existing `015.keydat` does not wait forever for `Select:`.
 - [ ] Pack with missing keydat can regenerate it using selection `1`.
 - [ ] `Select:` without newline is handled.
-- [ ] Paths with spaces/Vietnamese Unicode work.
+- [x] Paths with spaces/Vietnamese Unicode work (PLAN 97 real extract/build/export/re-extract gate).
 - [x] Modified acv.exe rejected.
 - [x] Corrupt template/archive source rejected.
 - [x] Modified template package rejected.

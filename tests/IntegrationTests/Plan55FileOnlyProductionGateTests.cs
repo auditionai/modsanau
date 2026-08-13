@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using AuditionModStudio.Archives;
 using AuditionModStudio.Core.Archives;
@@ -32,6 +33,7 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
     [Trait("Category", "Integration")]
     [Trait("Platform", "WindowsOnly")]
     [Trait("Fixture", "RequiresPrivateFixture")]
+    [Trait("Coverage", "Plan97")]
     public async Task File_only_pipeline_creates_applies_builds_exports_and_reextracts_standalone_archive()
     {
         var prerequisites = RequirePrerequisites();
@@ -49,7 +51,12 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
         var originalInventory = await HashTreeAsync(originalExtracted);
         Assert.Equal(320, originalInventory.Count);
 
-        var testRoot = Path.Combine(Path.GetTempPath(), "Audition PLAN 55 File Gate", Guid.NewGuid().ToString("N"));
+        var testRoot = Path.Combine(
+            Path.GetTempPath(),
+            "Audition PLAN 97 Cổng tệp có dấu và khoảng trắng",
+            Guid.NewGuid().ToString("N"));
+        var phaseClock = Stopwatch.StartNew();
+        var durations = new Dictionary<string, TimeSpan>(StringComparer.Ordinal);
         var appPaths = new AppPaths(testRoot);
         var pathSecurity = new PathSecurity();
         appPaths.EnsureDirectoriesExist();
@@ -108,6 +115,8 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
                 Path.Combine(preparationWorkspace.Paths.WorkingDirectory, "015.keydat"),
                 Path.Combine(preparedTemplateRoot, "015.keydat"));
         }
+        durations["prepare"] = phaseClock.Elapsed;
+        phaseClock.Restart();
 
         var gameId = new GameId("audition");
         var modId = new ModId("plan55_pointer");
@@ -182,15 +191,26 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
         try
         {
             var creationProgress = new List<ProjectCreationPhase>();
+            var creationTimeline = new List<(ProjectCreationPhase Phase, TimeSpan Elapsed)>();
+            var creationClock = Stopwatch.StartNew();
             var created = await creationService.CreateAsync(
                 new(gameId, modId, "PLAN 55 File-Only Gate"),
-                new CallbackProgress<ProjectCreationProgress>(item => creationProgress.Add(item.Phase)));
+                new CallbackProgress<ProjectCreationProgress>(item =>
+                {
+                    creationProgress.Add(item.Phase);
+                    creationTimeline.Add((item.Phase, creationClock.Elapsed));
+                }));
             Assert.True(created.Succeeded, created.DiagnosticCode);
             Assert.NotNull(created.Project);
             Assert.NotNull(created.Workspace);
             Assert.Contains(ProjectCreationPhase.ExtractingArchive, creationProgress);
             Assert.Contains(ProjectCreationPhase.ScanningTextures, creationProgress);
             Assert.Contains(ProjectCreationPhase.Completed, creationProgress);
+            durations["extract"] = PhaseStart(creationTimeline, ProjectCreationPhase.ScanningTextures)
+                - PhaseStart(creationTimeline, ProjectCreationPhase.ExtractingArchive);
+            durations["scan"] = PhaseStart(creationTimeline, ProjectCreationPhase.CachingMetadata)
+                - PhaseStart(creationTimeline, ProjectCreationPhase.ScanningTextures);
+            phaseClock.Restart();
 
             await using var workspace = created.Workspace!;
             var project = created.Project!;
@@ -207,6 +227,9 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
             Assert.Equal(128, selected.Metadata.Height);
             Assert.Equal(DdsFormat.BC3, selected.Metadata.Format);
             Assert.Equal(1u, selected.Metadata.EffectiveMipLevelCount);
+            Assert.True(selected.Metadata.SupportsAlpha);
+            Assert.True(selected.Metadata.HasAlphaChannel);
+            Assert.Equal(DdsAlphaMode.Interpolated, selected.Metadata.AlphaMode);
 
             var evaluationHarness = new DirectXTexEvaluationHarness(
                 pathSecurity,
@@ -246,6 +269,7 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
                 new TextureStateMachine(),
                 thumbnailCache,
                 projectStore);
+            phaseClock.Restart();
             var applyProgress = new List<TextureApplyPhase>();
             var pattern = CreateGatePattern(164, 128);
             var applied = await applyService.ApplyAsync(
@@ -274,6 +298,16 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
             Assert.Equal(128, replacementMetadata.Metadata.Height);
             Assert.Equal(DdsFormat.BC3, replacementMetadata.Metadata.Format);
             Assert.Equal(1u, replacementMetadata.Metadata.EffectiveMipLevelCount);
+            Assert.Equal(selected.Metadata.HeaderType, replacementMetadata.Metadata.HeaderType);
+            Assert.Equal(selected.Metadata.SupportsAlpha, replacementMetadata.Metadata.SupportsAlpha);
+            Assert.Equal(selected.Metadata.HasAlphaChannel, replacementMetadata.Metadata.HasAlphaChannel);
+            Assert.Equal(selected.Metadata.AlphaMode, replacementMetadata.Metadata.AlphaMode);
+            Assert.Equal(selected.Metadata.ColorSpace, replacementMetadata.Metadata.ColorSpace);
+            Assert.Equal(selected.Metadata.ResourceDimension, replacementMetadata.Metadata.ResourceDimension);
+            Assert.Equal(selected.Metadata.IsCubemap, replacementMetadata.Metadata.IsCubemap);
+            Assert.Equal(selected.Metadata.ArraySize, replacementMetadata.Metadata.ArraySize);
+            durations["apply_validate_dds"] = phaseClock.Elapsed;
+            phaseClock.Restart();
 
             var projectToolValidator = new ProjectArchiveToolIntegrityValidator(
                 toolIntegrityPolicy,
@@ -285,6 +319,8 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
                 projectToolValidator);
             var validation = await projectValidator.ValidateAsync(new(project, workspace));
             Assert.True(validation.CanBuild, string.Join(',', validation.Issues.Select(item => item.DiagnosticCode)));
+            durations["project_validate"] = phaseClock.Elapsed;
+            phaseClock.Restart();
 
             using var buildService = new ProjectBuildService(
                 projectStore,
@@ -303,9 +339,11 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
             Assert.Contains(ProjectBuildPhase.Packing, buildProgress);
             Assert.Contains(ProjectBuildPhase.Verifying, buildProgress);
             project = build.Project!;
+            durations["build_pack"] = phaseClock.Elapsed;
+            phaseClock.Restart();
 
             Directory.CreateDirectory(prerequisites.OutputDirectory);
-            var artifactName = "015-plan55-pointer.ab";
+            var artifactName = "015-plan97-pointer.ab";
             using var exportService = new ArchiveExportService(
                 new ArchiveExportDestinationValidator(
                     pathSecurity,
@@ -325,6 +363,39 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
             Assert.True(File.Exists(artifactPath));
             Assert.Equal(exported.Size, new FileInfo(artifactPath).Length);
             Assert.Equal(exported.Sha256!.Value.Value, await HashAsync(artifactPath));
+
+            var stableArtifactHash = await HashAsync(artifactPath);
+            using (var cancellation = new CancellationTokenSource())
+            using (var cancelledExportService = new ArchiveExportService(
+                       new ArchiveExportDestinationValidator(
+                           pathSecurity,
+                           new SystemExportDestinationFileSystem()),
+                       pathSecurity,
+                       new CancelAfterDurableCopyExportFileOperations(cancellation)))
+            {
+                var cancelled = await cancelledExportService.ExportAsync(
+                    new(
+                        project,
+                        workspace,
+                        prerequisites.OutputDirectory,
+                        artifactName,
+                        ArchiveExportOverwritePolicy.ReplaceExisting),
+                    cancellationToken: cancellation.Token);
+                Assert.True(cancelled.Cancelled, cancelled.DiagnosticCode);
+            }
+            Assert.Equal(stableArtifactHash, await HashAsync(artifactPath));
+            Assert.Empty(Directory.EnumerateFiles(prerequisites.OutputDirectory, ".*.export.*"));
+
+            var retry = await exportService.ExportAsync(new(
+                project,
+                workspace,
+                prerequisites.OutputDirectory,
+                artifactName,
+                ArchiveExportOverwritePolicy.ReplaceExisting));
+            Assert.True(retry.Succeeded, retry.DiagnosticCode);
+            Assert.Equal(stableArtifactHash, await HashAsync(artifactPath));
+            durations["export_cancel_retry"] = phaseClock.Elapsed;
+            phaseClock.Restart();
 
             var verifySourceRoot = Path.Combine(testRoot, "VerifySource");
             Directory.CreateDirectory(verifySourceRoot);
@@ -350,16 +421,24 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
             Assert.True(extracted.Command.Succeeded, FormatFailure(extracted.Command));
             var verifiedRoot = Path.Combine(verifyWorkspace.Paths.ExtractedDirectory, "015");
             var verifiedInventory = await HashTreeAsync(verifiedRoot);
-            Assert.Equal(originalInventory.Keys.Order(), verifiedInventory.Keys.Order());
-            Assert.Equal(320, verifiedInventory.Count);
-            foreach (var item in originalInventory)
-            {
-                Assert.Equal(
-                    item.Key.Equals(TargetRelativePath, StringComparison.OrdinalIgnoreCase)
-                        ? replacementHash
-                        : item.Value,
-                    verifiedInventory[item.Key]);
-            }
+            var evidence = ArchiveFilePipelineEvidence.Verify(
+                originalInventory,
+                verifiedInventory,
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [TargetRelativePath] = replacementHash,
+                });
+            Assert.True(evidence.Succeeded, evidence.DiagnosticCode);
+            Assert.Equal(320, evidence.FileCount);
+            Assert.Equal(319, evidence.NonTargetIdenticalCount);
+            Assert.Equal([TargetRelativePath], evidence.ActualChangedPaths);
+            var verifiedTarget = Path.Combine(
+                verifiedRoot,
+                TargetRelativePath.Replace('/', Path.DirectorySeparatorChar));
+            var verifiedMetadata = await metadataReader.ReadAsync(verifiedTarget);
+            Assert.True(verifiedMetadata.IsSuccess, verifiedMetadata.ErrorCode);
+            Assert.Equal(replacementMetadata.Metadata, verifiedMetadata.Metadata);
+            durations["reextract_verify"] = phaseClock.Elapsed;
 
             var workingArchive = workspace.ArchiveWorkspace.SecureWorkspace.ResolveRelativePath(
                 workspace.Descriptor.WorkingArchiveRelativePath);
@@ -369,15 +448,23 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
             Assert.Equal(ToolHash, await HashAsync(originalTool));
             Assert.Equal(OriginalTargetHash, await HashAsync(originalTarget));
             output.WriteLine(
-                "PLAN 55 FILE GATE: artifact={0}; size={1}; sha256={2}; files={3}; target={4}; replacement={5}; nonTarget={6}; template={7}",
+                "PLAN 97 FILE PIPELINE: artifact={0}; size={1}; sha256={2}; files={3}; target={4}; original={5}; replacement={6}; metadata={7}x{8}/{9}/mips:{10}/alpha:{11}/header:{12}; nonTarget={13}; template={14}; durations={15}",
                 artifactPath,
                 exported.Size,
                 exported.Sha256.Value.Value,
-                verifiedInventory.Count,
+                evidence.FileCount,
                 TargetRelativePath,
+                OriginalTargetHash,
                 replacementHash,
-                verifiedInventory.Count - 1,
-                preparedTemplateHash);
+                replacementMetadata.Metadata.Width,
+                replacementMetadata.Metadata.Height,
+                replacementMetadata.Metadata.Format,
+                replacementMetadata.Metadata.EffectiveMipLevelCount,
+                replacementMetadata.Metadata.AlphaMode,
+                replacementMetadata.Metadata.HeaderType,
+                evidence.NonTargetIdenticalCount,
+                preparedTemplateHash,
+                string.Join(",", durations.Select(item => $"{item.Key}:{item.Value.TotalMilliseconds:F0}ms")));
         }
         finally
         {
@@ -508,6 +595,11 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
     private static string FormatFailure(ArchiveCommandResult result) =>
         $"state={result.FinalState}; reason={result.FailureReason}; diagnostics={string.Join(" | ", result.Diagnostics.Select(item => $"{item.Code}:{item.Message}"))}";
 
+    private static TimeSpan PhaseStart(
+        IEnumerable<(ProjectCreationPhase Phase, TimeSpan Elapsed)> timeline,
+        ProjectCreationPhase phase) =>
+        timeline.First(item => item.Phase == phase).Elapsed;
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
@@ -544,6 +636,32 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
     private sealed class CallbackProgress<T>(Action<T> callback) : IProgress<T>
     {
         public void Report(T value) => callback(value);
+    }
+
+    private sealed class CancelAfterDurableCopyExportFileOperations(CancellationTokenSource cancellation)
+        : IArchiveExportFileOperations
+    {
+        private readonly SystemArchiveExportFileOperations _inner = new();
+
+        public bool FileExists(string path) => _inner.FileExists(path);
+        public long GetFileLength(string path) => _inner.GetFileLength(path);
+        public Task<string> ComputeSha256Async(string path, CancellationToken cancellationToken) =>
+            _inner.ComputeSha256Async(path, cancellationToken);
+        public void Move(string sourcePath, string destinationPath) => _inner.Move(sourcePath, destinationPath);
+        public void Replace(string sourcePath, string destinationPath, string backupPath) =>
+            _inner.Replace(sourcePath, destinationPath, backupPath);
+        public void Delete(string path) => _inner.Delete(path);
+
+        public async Task CopyDurablyAsync(
+            string sourcePath,
+            string destinationPath,
+            CancellationToken cancellationToken)
+        {
+            await ((IArchiveExportFileOperations)_inner)
+                .CopyDurablyAsync(sourcePath, destinationPath, cancellationToken);
+            cancellation.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
+        }
     }
 
     private sealed record GatePrerequisites(

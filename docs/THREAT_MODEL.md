@@ -408,3 +408,16 @@ Residual risk gồm compromised update-signing key, production app certificate/H
 TOCTOU, Windows deployment vulnerability, rollout cohort tampering trên compromised client và outage. Default production updater
 fail closed vì live public key/feed/CDN/signer/timestamp chưa được cấu hình; local unsigned test evidence không chứng minh
 production update hay rollback thực tế.
+
+## Archive file-pipeline residual risk từ PLAN 97
+
+Exact fixture hashes, isolated working copies, strict changed-set oracle và re-extracted inventory giảm nguy cơ sửa pristine,
+path confusion, silent file loss, unintended non-target mutation và false-positive build success. Deterministic cancellation test
+chứng minh partial export không thay destination tốt, transaction residue được dọn và operation có thể retry. Corrupt DDS copy bị
+từ chối trước khi trở thành replacement hợp lệ.
+
+Residual risk còn gồm parser/native-tool bug chưa gặp trong corpus, ACV crash/hang ngoài timeout, nondeterministic container bytes,
+same-user/Administrator can thiệp workspace giữa các lần kiểm tra, disk/filesystem failure và corpus chỉ đại diện một archive/target.
+Known hash không chứng minh nguồn gốc hoặc quyền phân phối proprietary artifact. Evidence logical inventory không chứng minh game
+runtime compatibility; sản phẩm và test cố ý dừng ở standalone archive. PLAN 98 mới mở rộng ma trận DDS theo Mod Type và không được
+suy diễn là đã hoàn thành bởi PLAN 97.

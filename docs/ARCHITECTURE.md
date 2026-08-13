@@ -1417,3 +1417,22 @@ Không có automatic scheduler, mandatory update, repair/same-version reinstall,
 trong PLAN 96. Production feed/CDN/public verification key/certificate/HSM/timestamp và trusted deployment vẫn
 **NOT VERIFIED**; App đăng ký unavailable service có structured fail-closed result, nên open/edit/Apply/build/export offline
 không thay đổi. Updater chỉ cập nhật Audition AI Mod Studio và không có game path/process/registry/archive/install authority.
+
+## Archive File-Pipeline Integration Test Suite từ PLAN 97
+
+PLAN 97 không thêm runtime service hay thay đổi production pipeline. Cổng tích hợp dùng lại đúng composition hiện có:
+`IAuditionArchiveService`/`IArchiveToolRunner`, project workspace, scanner, DDS Match Original, Apply, validator, build và export.
+Fixture thật được hash trước, chỉ được sao chép vào workspace ngẫu nhiên có khoảng trắng/Unicode, rồi đi hết chuỗi
+extract → scan → replace → validate → pack/build → export → re-extract. Điểm kết thúc vẫn là một archive standalone `.ab`;
+không có phát hiện, cài đặt hay chạy Audition.
+
+Oracle `ArchiveFilePipelineEvidence` chỉ nằm trong IntegrationTests. Nó chuẩn hóa texture identity theo relative path, từ chối
+path traversal/identity trùng, yêu cầu inventory trước và sau giống hệt, yêu cầu tập file thay đổi bằng chính xác tập dự kiến và
+đối chiếu hash replacement sau re-extract. Cổng thật hiện chứng minh 320 file, chỉ
+`texture/hud/pointer.dds` thay đổi và 319 file ngoài target byte-identical; DDS target giữ 164×128, BC3, một mip, alpha
+interpolated cùng header/resource semantics gốc.
+
+Nhánh hủy export được kích hoạt có tính quyết định sau durable copy nhưng trước promote. Destination đã tốt phải giữ nguyên hash,
+transaction temp/backup phải được dọn và retry bằng service bình thường phải thành công. Fixture pristine `015.ab`, `015.keydat`,
+`acv.exe` và DDS gốc được hash lại sau pipeline. Packed archive không được so với golden hash vì container có thể không
+deterministic; correctness dựa trên re-extracted logical inventory và exact content hash.
