@@ -48,6 +48,7 @@
     <Compile Include="..\..\src\AuditionModStudio.App\AiStudio\AiStudioPresentationModels.cs" Link="AiStudio\AiStudioPresentationModels.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\AiStudio\AiStudioViewModel.cs" Link="AiStudio\AiStudioViewModel.cs" />
     <Compile Include="..\..\src\AuditionModStudio.App\AiStudio\AiMaskEditorViewModel.cs" Link="AiStudio\AiMaskEditorViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Account\AccountViewModel.cs" Link="Account\AccountViewModel.cs" />
   </ItemGroup>
 
 </Project>

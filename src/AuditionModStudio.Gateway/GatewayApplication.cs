@@ -78,6 +78,7 @@ public static class GatewayApplication
                 provider.GetRequiredService<PostgresCreditLedgerService>());
             services.AddSingleton<ITrustedCreditQueryService>(provider =>
                 provider.GetRequiredService<PostgresCreditLedgerService>());
+            services.AddSingleton<ITrustedAccountQueryService, PostgresAccountQueryService>();
             services.AddSingleton<PostgresAiJobService>();
             services.AddSingleton<IAiJobService>(provider =>
                 provider.GetRequiredService<PostgresAiJobService>());
@@ -93,6 +94,7 @@ public static class GatewayApplication
                 provider.GetRequiredService<UnavailableCreditLedgerService>());
             services.AddSingleton<ITrustedCreditQueryService>(provider =>
                 provider.GetRequiredService<UnavailableCreditLedgerService>());
+            services.AddSingleton<ITrustedAccountQueryService, UnavailableTrustedAccountQueryService>();
             services.AddSingleton<IAiJobService, UnavailableAiJobService>();
             services.AddSingleton<IAiJobWorkerService, UnavailableAiJobWorkerService>();
             services.AddSingleton<IPaymentFulfillmentService, UnavailablePaymentFulfillmentService>();

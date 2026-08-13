@@ -1341,3 +1341,19 @@ metadata qua `IDdsMetadataReader` và phải có nhãn chính xác theo normaliz
 đã tồn tại là immutable conflict; publish đồng thời chỉ một operation được commit. AES/HMAC/private signing key là cấu hình
 server/admin deployment, không thuộc client hoặc repository. Workflow không dò game, registry, launcher, process hay sửa archive
 template pristine. Production admin identity, object storage/catalog promotion, key custody và deployment vẫn chưa verified.
+
+## Account/Profile/Credit History UI từ PLAN 93
+
+`IAccountOverviewService` là read-only client boundary cho một server snapshot gồm profile, wallet, usage và tối đa 50 credit
+transaction mới nhất. Desktop adapter chỉ gọi authenticated `GET /v1/account`, giới hạn response 256 KiB, strict-parse toàn bộ
+shape/value/order và không cache snapshot. Khi session thiếu/hết hạn nó dùng luồng refresh PLAN 58; response lỗi/cancel không giữ
+balance/history cũ làm authority.
+
+Gateway derive `UserId`, email và display name từ Supabase-authenticated principal; query string/body không có user hoặc balance
+authority. `PostgresAccountQueryService` reuse `private.credit_wallets` và append-only `private.credit_ledger` của PLAN 60, đọc
+wallet/usage/history trong một `REPEATABLE READ, READ ONLY` transaction và sắp history theo timestamp/transaction ID. Không có
+migration, mutation endpoint hoặc ledger thứ hai. `/v1/credits` giữ nguyên để tương thích.
+
+WinUI thêm route Account theo MVVM/design tokens, responsive cards, keyboard-focusable Refresh, polite live status và các trạng
+thái loading/error/empty/success riêng. Shell badge chỉ cập nhật từ snapshot đã được adapter validate. Account/cloud failure không
+đi vào Core file pipeline và không chặn mở project, edit, Apply, build, pack hay export.

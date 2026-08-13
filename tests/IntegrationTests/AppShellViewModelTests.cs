@@ -18,6 +18,7 @@ public sealed class AppShellViewModelTests
                 AppRoute.ModLibrary,
                 AppRoute.Batch,
                 AppRoute.Cloud,
+                AppRoute.Account,
                 AppRoute.Settings
             ],
             viewModel.NavigationItems.Select(item => item.Route));

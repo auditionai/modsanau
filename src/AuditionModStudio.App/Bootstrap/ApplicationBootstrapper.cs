@@ -1,6 +1,7 @@
 using AuditionModStudio.Archives;
 using AuditionModStudio.AI;
 using AuditionModStudio.Core.AI;
+using AuditionModStudio.Core.Accounts;
 using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Auth;
 using AuditionModStudio.Core.Catalog;
@@ -35,6 +36,7 @@ using AuditionModStudio.App.Home;
 using AuditionModStudio.App.Editor;
 using AuditionModStudio.App.Workspace;
 using AuditionModStudio.App.AiStudio;
+using AuditionModStudio.App.Account;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -252,6 +254,18 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<IPathSecurity>())
                 : new UnavailableProductCatalogService();
         });
+        builder.Services.AddSingleton<IAccountOverviewService>(services =>
+        {
+            var url = Environment.GetEnvironmentVariable("AUDITION_GATEWAY_URL");
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var gatewayUri))
+                return new UnavailableAccountOverviewService();
+            var accountOptions = new GatewayAccountOptions(gatewayUri);
+            return accountOptions.IsValid
+                ? new GatewayAccountOverviewService(services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(),
+                    services.GetRequiredService<IAuthenticationService>(), accountOptions)
+                : new UnavailableAccountOverviewService();
+        });
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
         builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();
@@ -278,6 +292,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<AiStudioViewModel>();
         builder.Services.AddSingleton<AiMaskEditorViewModel>();
         builder.Services.AddTransient<AiStudioPage>();
+        builder.Services.AddSingleton<AccountViewModel>();
+        builder.Services.AddTransient<AccountPage>();
         builder.Services.AddSingleton<AppShellViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddSingleton<MainWindow>();

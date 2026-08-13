@@ -41,12 +41,21 @@ public sealed class CreditConcurrencyIntegrationTests
         var refund = await database.Service.RefundAsync(user, capture.TransactionId!.Value,
             Amount(15), Key("refund-lifecycle"));
         var snapshot = await database.Service.GetAsync(user);
+        var account = await database.Account.GetAsync(user);
 
         AssertApplied(grant);
         AssertApplied(reservation);
         AssertApplied(capture);
         AssertApplied(refund);
         Assert.Equal(new TrustedCreditSnapshot(75, 0), snapshot.Snapshot);
+        Assert.Equal(TrustedServiceStatus.Succeeded, account.Status);
+        Assert.Equal(75, account.Snapshot!.AvailableCredits);
+        Assert.Equal(0, account.Snapshot.ReservedCredits);
+        Assert.Equal(100, account.Snapshot.CreditsGranted);
+        Assert.Equal(25, account.Snapshot.CreditsUsed);
+        Assert.Equal(4, account.Snapshot.TransactionCount);
+        Assert.Equal(["refund", "capture", "reserve", "grant"],
+            account.Snapshot.Transactions.Select(item => item.Kind));
         Assert.Equal(["grant", "reserve", "capture", "refund"],
             await database.StringsAsync("SELECT entry_type FROM private.credit_ledger WHERE user_id=$1 ORDER BY created_at",
                 user.UserId));
@@ -270,6 +279,7 @@ public sealed class CreditConcurrencyIntegrationTests
         NpgsqlDataSource dataSource) : IAsyncDisposable
     {
         public PostgresCreditLedgerService Service { get; } = new(dataSource);
+        public PostgresAccountQueryService Account { get; } = new(dataSource);
         public PostgresPaymentFulfillmentService PaymentFulfillment { get; } = new(dataSource);
 
         public static async Task<CreditDatabase> CreateAsync()

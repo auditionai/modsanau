@@ -25,14 +25,15 @@ public enum AccessTokenValidationStatus
 public sealed record AccessTokenValidationResult(
     AccessTokenValidationStatus Status,
     Guid UserId,
-    string? Email)
+    string? Email,
+    string? DisplayName)
 {
-    public static AccessTokenValidationResult Valid(Guid userId, string? email) =>
-        new(AccessTokenValidationStatus.Valid, userId, email);
+    public static AccessTokenValidationResult Valid(Guid userId, string? email, string? displayName = null) =>
+        new(AccessTokenValidationStatus.Valid, userId, email, displayName);
     public static AccessTokenValidationResult Invalid() =>
-        new(AccessTokenValidationStatus.Invalid, Guid.Empty, null);
+        new(AccessTokenValidationStatus.Invalid, Guid.Empty, null, null);
     public static AccessTokenValidationResult Unavailable() =>
-        new(AccessTokenValidationStatus.Unavailable, Guid.Empty, null);
+        new(AccessTokenValidationStatus.Unavailable, Guid.Empty, null, null);
 }
 
 public interface ISupabaseAccessTokenValidator
@@ -130,7 +131,7 @@ public sealed class SupabaseAccessTokenValidator : ISupabaseAccessTokenValidator
                    && Guid.TryParse(user.Id, out var userId)
                    && userId != Guid.Empty
                    && userId == claims.Subject
-                ? AccessTokenValidationResult.Valid(userId, NormalizeEmail(user.Email))
+                ? AccessTokenValidationResult.Valid(userId, NormalizeEmail(user.Email), NormalizeDisplayName(user.Metadata))
                 : AccessTokenValidationResult.Invalid();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -239,7 +240,22 @@ public sealed class SupabaseAccessTokenValidator : ISupabaseAccessTokenValidator
             ? email.Trim()
             : null;
 
-    private sealed record SupabaseUser(string? Id, string? Email);
+    private static string? NormalizeDisplayName(Dictionary<string, JsonElement>? metadata)
+    {
+        if (metadata is null) return null;
+        foreach (var key in new[] { "display_name", "full_name", "name" })
+        {
+            if (!metadata.TryGetValue(key, out var value) || value.ValueKind != JsonValueKind.String) continue;
+            var displayName = value.GetString()?.Trim();
+            return !string.IsNullOrWhiteSpace(displayName) && displayName.Length <= 128
+                && !displayName.Any(char.IsControl) ? displayName : null;
+        }
+        return null;
+    }
+
+    private sealed record SupabaseUser(string? Id, string? Email,
+        [property: System.Text.Json.Serialization.JsonPropertyName("user_metadata")]
+        Dictionary<string, JsonElement>? Metadata);
     private readonly record struct AccessTokenClaims(
         Guid Subject,
         DateTimeOffset IssuedAt,
@@ -291,6 +307,10 @@ public sealed class GatewayAuthenticationHandler(
         if (validation.Email is not null)
         {
             claims.Add(new(ClaimTypes.Email, validation.Email));
+        }
+        if (validation.DisplayName is not null)
+        {
+            claims.Add(new(ClaimTypes.Name, validation.DisplayName));
         }
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);

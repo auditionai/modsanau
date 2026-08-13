@@ -27,6 +27,7 @@ public sealed class TrustedGatewayEndpointTests
 
         var responses = await Task.WhenAll(
             client.GetAsync("/v1/credits"),
+            client.GetAsync("/v1/account"),
             client.PostAsJsonAsync("/v1/templates/entitlement", ValidTemplate()),
             client.PostAsJsonAsync("/v1/entitlements/grants", new EntitlementGrantRequest(
                 PremiumEntitlementScope.PremiumAi, null, null, null)),
@@ -41,6 +42,7 @@ public sealed class TrustedGatewayEndpointTests
         Assert.All(responses, response => Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode));
         Assert.Equal(0, factory.Ai.CallCount);
         Assert.Equal(0, factory.Credits.CallCount);
+        Assert.Equal(0, factory.Account.CallCount);
         Assert.Equal(0, factory.Entitlement.CallCount);
         Assert.Equal(0, factory.Grants.CallCount);
         Assert.Equal(0, factory.Distribution.CallCount);
@@ -208,6 +210,41 @@ public sealed class TrustedGatewayEndpointTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(UserId, factory.Credits.LastUser!.UserId);
         Assert.Equal(1, factory.Credits.CallCount);
+    }
+
+    [Fact]
+    public async Task Account_snapshot_uses_verified_identity_and_exposes_only_read_only_bounded_history()
+    {
+        await using var factory = new GatewayFactory();
+        using var client = AuthenticatedClient(factory);
+
+        var response = await client.GetAsync("/v1/account?userId=" + Guid.NewGuid());
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("no-store", response.Headers.CacheControl?.ToString(), StringComparison.Ordinal);
+        Assert.Equal(UserId, factory.Account.LastUser!.UserId);
+        Assert.Contains("person@example.com", body, StringComparison.Ordinal);
+        Assert.Contains("\"availableCredits\":10", body, StringComparison.Ordinal);
+        Assert.Contains("\"kind\":\"capture\"", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("authorityReference", body, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Inconsistent_account_snapshot_is_rejected_without_fabricating_balance()
+    {
+        await using var factory = new GatewayFactory();
+        factory.Account.Result = factory.Account.Result with
+        {
+            Snapshot = factory.Account.Result.Snapshot! with { AvailableCredits = 999 },
+        };
+        using var client = AuthenticatedClient(factory);
+
+        var response = await client.GetAsync("/v1/account");
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.DoesNotContain("999", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -531,6 +568,7 @@ public sealed class TrustedGatewayEndpointTests
         public int ChargedOperationPermitLimit { get; init; } = 10;
         public StubAiGateway Ai { get; } = new();
         public StubCreditService Credits { get; } = new();
+        public StubAccountService Account { get; } = new();
         public StubEntitlementService Entitlement { get; } = new();
         public StubGrantService Grants { get; } = new();
         public StubPremiumTemplateDistribution Distribution { get; } = new();
@@ -558,6 +596,7 @@ public sealed class TrustedGatewayEndpointTests
                 {
                     services.RemoveAll<ITrustedAiGateway>();
                     services.RemoveAll<ITrustedCreditQueryService>();
+                    services.RemoveAll<ITrustedAccountQueryService>();
                     services.RemoveAll<ITrustedTemplateEntitlementService>();
                     services.RemoveAll<IEntitlementGrantService>();
                     services.RemoveAll<IPremiumTemplateDistributionService>();
@@ -567,6 +606,7 @@ public sealed class TrustedGatewayEndpointTests
                     services.RemoveAll<IAiMediaValidator>();
                     services.AddSingleton<ITrustedAiGateway>(Ai);
                     services.AddSingleton<ITrustedCreditQueryService>(Credits);
+                    services.AddSingleton<ITrustedAccountQueryService>(Account);
                     services.AddSingleton<ITrustedTemplateEntitlementService>(Entitlement);
                     services.AddSingleton<IEntitlementGrantService>(Grants);
                     services.AddSingleton<IPremiumTemplateDistributionService>(Distribution);
@@ -687,7 +727,7 @@ public sealed class TrustedGatewayEndpointTests
             string accessToken,
             CancellationToken cancellationToken = default) =>
             Task.FromResult(status == AccessTokenValidationStatus.Valid
-                ? AccessTokenValidationResult.Valid(userId, "person@example.com")
+                ? AccessTokenValidationResult.Valid(userId, "person@example.com", "Person")
                 : status == AccessTokenValidationStatus.Invalid
                     ? AccessTokenValidationResult.Invalid()
                     : AccessTokenValidationResult.Unavailable());
@@ -728,6 +768,24 @@ public sealed class TrustedGatewayEndpointTests
             LastUser = user;
             return Task.FromResult(new TrustedCreditResult(TrustedServiceStatus.Succeeded,
                 "CREDIT_READ", new(10, 2)));
+        }
+    }
+
+    private sealed class StubAccountService : ITrustedAccountQueryService
+    {
+        private static readonly TrustedAccountTransaction Item = new(
+            Guid.Parse("f56b54be-06c0-49e0-a1be-139e8017192f"),
+            "capture", 2, 0, -2, 10, 0, DateTimeOffset.UnixEpoch);
+        public TrustedAccountResult Result { get; set; } = new(TrustedServiceStatus.Succeeded, "ACCOUNT_READ",
+            new(10, 0, 12, 2, 1, [Item], DateTimeOffset.UnixEpoch));
+        public int CallCount { get; private set; }
+        public AuthenticatedGatewayUser? LastUser { get; private set; }
+        public Task<TrustedAccountResult> GetAsync(AuthenticatedGatewayUser user,
+            CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            LastUser = user;
+            return Task.FromResult(Result);
         }
     }
 

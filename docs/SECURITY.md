@@ -966,3 +966,18 @@ conflict, path/IO/crypto failure đều fail closed, không tạo published vers
 Mã hóa là bảo vệ at-rest, không phải DRM: admin/distribution service được cấp quyền vẫn có thể phục hồi archive. Quyền pháp lý
 phân phối `acv.exe`, template/game asset chưa được chứng minh và vẫn là release blocker. Live IAM, HSM/KMS, rotation, backup,
 object storage ACL, monitoring và audit retention là **PRODUCTION NOT VERIFIED**.
+
+## Account/Profile/Credit History từ PLAN 93
+
+Endpoint `/v1/account` yêu cầu bearer authentication và rate limit hiện hữu. Gateway bỏ qua mọi client `userId`, derive owner từ
+principal đã được Supabase `/auth/v1/user` xác minh, chỉ trả profile tối thiểu, wallet, aggregate usage và tối đa 50 ledger row
+thuộc owner. Không trả authority reference, idempotency key, payment/provider identifier hay server credential.
+
+Database read dùng một transaction `REPEATABLE READ, READ ONLY`; service kiểm tra enum/khoảng số/thứ tự và Gateway kiểm tra lại
+latest post-balance khớp wallet trước khi serialize. Desktop giới hạn 256 KiB, đòi exact JSON properties, bounded text/count,
+known transaction kind, descending time và balance consistency. Invalid/offline/cancelled response xóa presentation snapshot;
+không có client cache hay optimistic balance.
+
+Email, display name và transaction history là dữ liệu cá nhân: không được ghi vào log/audit/diagnostic tự động. UI chỉ đọc và
+không có purchase/grant/refund control. Live Supabase role topology, production IAM, centralized audit/retention và privacy
+operations vẫn **NOT VERIFIED**.

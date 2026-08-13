@@ -78,6 +78,18 @@ public static class TrustedGatewayEndpoints
             .RequireAuthorization()
             .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
 
+        endpoints.MapGet("/v1/account", async (HttpContext context,
+                ClaimsPrincipal principal,
+                ITrustedAccountQueryService service,
+                CancellationToken cancellationToken) =>
+            {
+                context.Response.Headers.CacheControl = "private, no-store";
+                return MapAccountResult(principal,
+                    await service.GetAsync(User(principal), cancellationToken).ConfigureAwait(false));
+            })
+            .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
+
         endpoints.MapGet("/v1/product-catalog", async (HttpContext context,
                 IProductCatalogDocumentService service, CancellationToken cancellationToken) =>
             {
@@ -350,6 +362,61 @@ public static class TrustedGatewayEndpoints
             _ => SafeProblem(StatusCodes.Status503ServiceUnavailable,
                 "Credit service is unavailable.", result.DiagnosticCode),
         };
+    }
+
+    private static IResult MapAccountResult(ClaimsPrincipal principal, TrustedAccountResult result)
+    {
+        if (!Enum.IsDefined(result.Status) || !IsSafeDiagnosticCode(result.DiagnosticCode))
+            return InvalidTrustedResponse();
+        if (result.Status != TrustedServiceStatus.Succeeded)
+            return result.Status == TrustedServiceStatus.Rejected
+                ? SafeProblem(StatusCodes.Status403Forbidden, "Account request was rejected.", result.DiagnosticCode)
+                : SafeProblem(StatusCodes.Status503ServiceUnavailable, "Account service is unavailable.", result.DiagnosticCode);
+        var snapshot = result.Snapshot;
+        var email = principal.FindFirstValue(ClaimTypes.Email);
+        var displayName = principal.FindFirstValue(ClaimTypes.Name);
+        if (snapshot is null || snapshot.AvailableCredits < 0 || snapshot.ReservedCredits < 0
+            || snapshot.CreditsGranted < 0 || snapshot.CreditsUsed < 0 || snapshot.TransactionCount < 0
+            || snapshot.ObservedAt == default || snapshot.Transactions.IsDefault
+            || snapshot.Transactions.Length > PostgresAccountQueryService.MaximumHistoryEntries
+            || email is not null && (email.Length > 320 || email.Any(char.IsControl))
+            || displayName is not null && (displayName.Length > 128 || displayName.Any(char.IsControl))
+            || snapshot.Transactions.Any(item => item.TransactionId == Guid.Empty
+                || item.Kind is not ("grant" or "reserve" or "capture" or "release" or "refund")
+                || item.Amount <= 0 || item.AvailableAfter < 0 || item.ReservedAfter < 0
+                || item.CreatedAt == default || item.CreatedAt > snapshot.ObservedAt)
+            || snapshot.Transactions.Length != Math.Min(snapshot.TransactionCount,
+                PostgresAccountQueryService.MaximumHistoryEntries)
+            || snapshot.Transactions.Length > 0
+            && (snapshot.Transactions[0].AvailableAfter != snapshot.AvailableCredits
+                || snapshot.Transactions[0].ReservedAfter != snapshot.ReservedCredits)
+            || !IsAccountHistoryDescending(snapshot.Transactions))
+            return InvalidTrustedResponse();
+        return Results.Ok(new
+        {
+            Profile = new { UserId = User(principal).UserId, Email = email, DisplayName = displayName },
+            Wallet = new { snapshot.AvailableCredits, snapshot.ReservedCredits },
+            Usage = new { snapshot.CreditsGranted, snapshot.CreditsUsed, snapshot.TransactionCount },
+            Transactions = snapshot.Transactions.Select(item => new
+            {
+                item.TransactionId,
+                item.Kind,
+                item.Amount,
+                item.AvailableDelta,
+                item.ReservedDelta,
+                item.AvailableAfter,
+                item.ReservedAfter,
+                item.CreatedAt,
+            }),
+            snapshot.ObservedAt,
+        });
+    }
+
+    private static bool IsAccountHistoryDescending(ImmutableArray<TrustedAccountTransaction> history)
+    {
+        for (var index = 1; index < history.Length; index++)
+            if (history[index - 1].CreatedAt < history[index].CreatedAt) return false;
+        return true;
     }
 
     private static IResult MapPricingResult(AiPricingResult result)

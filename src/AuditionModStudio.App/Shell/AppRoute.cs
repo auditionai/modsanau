@@ -9,5 +9,6 @@ public enum AppRoute
     ModLibrary,
     Batch,
     Cloud,
+    Account,
     Settings
 }

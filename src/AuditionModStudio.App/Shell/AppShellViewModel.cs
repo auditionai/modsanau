@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using AuditionModStudio.App.Account;
 
 namespace AuditionModStudio.App.Shell;
 
@@ -15,10 +16,18 @@ public sealed class AppShellViewModel : INotifyPropertyChanged
         new(AppRoute.ModLibrary, "Mod Library", "\uE8F1", "Mod Library", "Browse supported mod definitions and templates."),
         new(AppRoute.Batch, "Batch", "\uE8FD", "Batch", "Batch workflows will be available in a later plan."),
         new(AppRoute.Cloud, "Cloud", "\uE753", "Cloud", "Cloud services are not connected in this build."),
+        new(AppRoute.Account, "Account", "\uE77B", "Account", "View your server profile, wallet, usage and credit history."),
         new(AppRoute.Settings, "Settings", "\uE713", "Settings", "Application settings will be available in a later plan.")
     ];
 
     private ShellNavigationItem _currentItem = RouteCatalog[0];
+    private readonly AccountViewModel? _account;
+
+    public AppShellViewModel(AccountViewModel? account = null)
+    {
+        _account = account;
+        if (_account is not null) _account.PropertyChanged += OnAccountPropertyChanged;
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -30,13 +39,17 @@ public sealed class AppShellViewModel : INotifyPropertyChanged
 
     public string CurrentDescription => _currentItem.Description;
 
-    public string AccountStatus => "Signed out";
+    public string AccountStatus => _account?.HasSnapshot == true
+        ? _account.DisplayName != "Not provided" ? _account.DisplayName : _account.Email
+        : "Signed out";
 
-    public string CreditsStatus => "Credits unavailable";
+    public string CreditsStatus => _account?.HasSnapshot == true
+        ? $"{_account.AvailableCredits} credits" : "Credits unavailable";
 
     public string NotificationStatus => "No notifications";
 
-    public string ConnectionStatus => "Offline";
+    public string ConnectionStatus => _account?.IsLoading == true ? "Connecting"
+        : _account?.HasSnapshot == true ? "Online" : "Offline";
 
     public bool Navigate(AppRoute route)
     {
@@ -55,4 +68,14 @@ public sealed class AppShellViewModel : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private void OnAccountPropertyChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is nameof(AccountViewModel.HasSnapshot) or nameof(AccountViewModel.DisplayName)
+            or nameof(AccountViewModel.Email)) OnPropertyChanged(nameof(AccountStatus));
+        if (args.PropertyName is nameof(AccountViewModel.HasSnapshot) or nameof(AccountViewModel.AvailableCredits))
+            OnPropertyChanged(nameof(CreditsStatus));
+        if (args.PropertyName is nameof(AccountViewModel.HasSnapshot) or nameof(AccountViewModel.IsLoading))
+            OnPropertyChanged(nameof(ConnectionStatus));
+    }
 }

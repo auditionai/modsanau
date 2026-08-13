@@ -358,3 +358,14 @@ malicious nhưng hợp lệ DDS/parser input, mất khóa mã hóa, rollback/ret
 bản quyền. CBC-HMAC format là internal at-rest envelope, không thay entitlement, legal authorization hoặc transport security.
 Repository chưa chứng minh production IAM, HSM/KMS, malware scanning sandbox, object-store atomic semantics, centralized audit
 sink/alert hay disaster recovery.
+
+## Account/profile/history residual risk từ PLAN 93
+
+Verified-principal ownership, read-only repeatable snapshot, bounded history, response consistency checks và no-cache UI giảm
+nguy cơ forged user, cross-user disclosure, client-forged balance, stale optimistic state và resource exhaustion. Endpoint không
+nhận mutation/price/payment-success field và không mở quyền ledger mới.
+
+Residual risk gồm stolen bearer đọc được account data đến khi token hết hạn/revoke, compromised Gateway/service-role vượt owner
+filter, traffic/memory capture bởi same-user/Administrator, inference từ transaction timing và sai lệch semantics nếu production
+schema drift. Local/test evidence không chứng minh live Supabase RLS/IAM, TLS edge, distributed rate limit, monitoring, retention,
+account deletion/export workflow hay incident response.

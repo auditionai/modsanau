@@ -64,16 +64,16 @@
                         HorizontalAlignment="Right"
                         Orientation="Horizontal"
                         Spacing="{StaticResource AmsSpace8}">
-                        <Border AutomationProperties.Name="Account status: Signed out" Style="{StaticResource AmsStatusBadgeStyle}">
+                        <Border AutomationProperties.Name="Account status" Style="{StaticResource AmsStatusBadgeStyle}">
                             <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
                                 <FontIcon Glyph="&#xE77B;" />
-                                <TextBlock x:Name="AccountStatusText" Text="{x:Bind ViewModel.AccountStatus}" />
+                                <TextBlock x:Name="AccountStatusText" Text="{x:Bind ViewModel.AccountStatus, Mode=OneWay}" />
                             </StackPanel>
                         </Border>
-                        <Border AutomationProperties.Name="Credits status: unavailable" Style="{StaticResource AmsStatusBadgeStyle}">
+                        <Border AutomationProperties.Name="Credits status" Style="{StaticResource AmsStatusBadgeStyle}">
                             <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
                                 <FontIcon Glyph="&#xE8C7;" />
-                                <TextBlock x:Name="CreditsStatusText" Text="{x:Bind ViewModel.CreditsStatus}" />
+                                <TextBlock x:Name="CreditsStatusText" Text="{x:Bind ViewModel.CreditsStatus, Mode=OneWay}" />
                             </StackPanel>
                         </Border>
                         <Border AutomationProperties.Name="Notifications: none" Style="{StaticResource AmsStatusBadgeStyle}">
@@ -82,10 +82,10 @@
                                 <TextBlock x:Name="NotificationStatusText" Text="{x:Bind ViewModel.NotificationStatus}" />
                             </StackPanel>
                         </Border>
-                        <Border AutomationProperties.Name="Connection status: Offline" Style="{StaticResource AmsStatusBadgeStyle}">
+                        <Border AutomationProperties.Name="Connection status" Style="{StaticResource AmsStatusBadgeStyle}">
                             <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
                                 <FontIcon Glyph="&#xEB55;" />
-                                <TextBlock x:Name="ConnectionStatusText" Text="{x:Bind ViewModel.ConnectionStatus}" />
+                                <TextBlock x:Name="ConnectionStatusText" Text="{x:Bind ViewModel.ConnectionStatus, Mode=OneWay}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -97,6 +97,7 @@
                 <ContentControl x:Name="WorkspaceContent" />
                 <ContentControl x:Name="AiStudioContent" />
                 <ContentControl x:Name="ImageEditorContent" />
+                <ContentControl x:Name="AccountContent" />
                 <ScrollViewer x:Name="PlaceholderContent">
                     <Grid Padding="{StaticResource AmsShellContentPadding}">
                     <Border

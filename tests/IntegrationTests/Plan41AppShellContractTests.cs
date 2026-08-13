@@ -13,7 +13,7 @@ public sealed class Plan41AppShellContractTests
         var labels = new[]
         {
             "Home", "Projects", "AI Studio", "Image Editor",
-            "Mod Library", "Batch", "Cloud", "Settings"
+            "Mod Library", "Batch", "Cloud", "Account", "Settings"
         };
 
         foreach (var label in labels)

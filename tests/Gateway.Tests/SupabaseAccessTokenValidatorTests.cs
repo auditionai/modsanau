@@ -19,7 +19,8 @@ public sealed class SupabaseAccessTokenValidatorTests
             captured = new(request.RequestUri!, request.Headers.Authorization?.ToString(),
                 request.Headers.GetValues("apikey").Single());
             return Task.FromResult(Json(HttpStatusCode.OK,
-                $$"""{"id":"{{UserId}}","email":"person@example.com"}"""));
+                $"{{\"id\":\"{UserId}\",\"email\":\"person@example.com\"," +
+                "\"user_metadata\":{\"display_name\":\"Person\"}}"));
         });
         var validator = Create(client);
 
@@ -27,6 +28,8 @@ public sealed class SupabaseAccessTokenValidatorTests
 
         Assert.Equal(AccessTokenValidationStatus.Valid, result.Status);
         Assert.Equal(UserId, result.UserId);
+        Assert.Equal("person@example.com", result.Email);
+        Assert.Equal("Person", result.DisplayName);
         Assert.Equal("https://project.example/auth/v1/user", captured!.Uri.ToString());
         Assert.Equal($"Bearer {token}", captured.Authorization);
         Assert.Equal("publishable-key", captured.ApiKey);
