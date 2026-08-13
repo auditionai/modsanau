@@ -1073,3 +1073,9 @@ Fault injection chỉ tồn tại trong test hoặc observer `internal` được
 Recovery inventory không coi tên file là authority duy nhất. Hash, marker, exact managed root, lock state và reparse checks quyết định trạng thái; unknown/corrupt residue không được materialize, follow hoặc auto-promote. Payment/account recovery tiếp tục dựa trên PostgreSQL transaction, unique idempotency key và server authority, không thêm client credit state.
 
 Chi tiết ma trận và non-guarantees tại [CRASH_RECOVERY_EVIDENCE.md](CRASH_RECOVERY_EVIDENCE.md). Bằng chứng local không loại bỏ rủi ro filesystem/hardware power-loss, production signer/provider outage hoặc deployment platform behavior ngoài contract đã kiểm thử.
+
+## Bất biến bảo mật của kiểm thử hiệu năng từ PLAN 100
+
+Harness chỉ đo service boundary hiện hữu và không thêm shell, raw command, executable discovery hoặc security bypass. `acv.exe`, `texconv.exe`, archive, keydat và DDS fixture phải khớp exact SHA-256; native tool chạy qua runner/service với absolute path, redirected I/O, isolated working directory, timeout hữu hạn và structured arguments. Fixture pristine được hash lại, global template không bị sửa và output tạm được dọn sau kiểm tra.
+
+Performance evidence không làm yếu path traversal, reparse, resource, transaction, signature hoặc entitlement policy. Log chỉ ghi số đo, kích thước, count, relative identity và hash công khai cho integrity evidence; không ghi raw asset, token, credential hay secret. Không có game discovery/install/patch/launch/process/registry authority. Các số đo là local **INFORMATIONAL**, không được dùng để overclaim production trust hoặc provenance; xem [PERFORMANCE_TEST_REPORT.md](PERFORMANCE_TEST_REPORT.md).

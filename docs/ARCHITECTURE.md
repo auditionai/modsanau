@@ -1462,3 +1462,9 @@ PLAN 99 giữ nguyên các transaction boundary hiện hữu và bổ sung bằn
 Trạng thái recovery được phân loại thành committed, recoverable workspace, incomplete transaction, stale residue, corrupt artifact và unknown/untrusted. Unknown hoặc reparse-backed residue không bao giờ được tự trust hay promote. Workspace retained chỉ được phát hiện không mutation và reopen bằng exact ID sau hành động tường minh. Checkpoint observer của publisher là `internal`, không đọc environment/config và production constructor mặc định không có observer.
 
 Nguồn sự thật thực thi và checklist nằm tại [CRASH_RECOVERY_EVIDENCE.md](CRASH_RECOVERY_EVIDENCE.md) và [CRASH_RECOVERY_CHECKLIST.md](CRASH_RECOVERY_CHECKLIST.md). Kiến trúc vẫn file-only, không thêm game discovery/install/patch/launch hoặc runtime validation.
+
+## Kiến trúc bằng chứng hiệu năng từ PLAN 100
+
+PLAN 100 không thêm runtime service và không đổi production pipeline. Executable evidence nằm trong IntegrationTests, dùng lại đúng `IDdsMetadataReader`, `ThumbnailCache`, image resize/adjustment service, DirectXTex Match Original, Background Task Manager và full archive file pipeline. Test archive/DDS chỉ đọc fixture pristine hoặc working copy cô lập; điểm cuối vẫn là standalone `.ab`.
+
+Phép đo phân biệt first pass với repeated pass, cache `Generated`/`Memory`/`Disk`, single-flight đồng thời và bounded batch orchestration. Không gọi first pass là cold vì OS page cache không được kiểm soát. UI responsiveness chỉ có bằng chứng ở service/dispatch contract; GUI frame/input latency và startup end-to-end chưa được instrument. Số đo, môi trường, giới hạn working-set/allocation và non-goals nằm tại [PERFORMANCE_TEST_REPORT.md](PERFORMANCE_TEST_REPORT.md).

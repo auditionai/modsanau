@@ -26,6 +26,7 @@ public sealed class Plan14DirectXTexEvaluationIntegrationTests(ITestOutputHelper
 
     [Fact]
     [Trait("Category", "Integration")]
+    [Trait("Coverage", "Plan100")]
     [Trait("Platform", "WindowsOnly")]
     [Trait("Fixture", "RequiresPrivateFixtureAndDirectXTex")]
     public async Task Official_texconv_evaluates_real_decode_and_plan19_roundtrip_gate()

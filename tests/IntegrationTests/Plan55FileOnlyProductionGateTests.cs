@@ -34,6 +34,7 @@ public sealed class Plan55FileOnlyProductionGateTests(ITestOutputHelper output)
     [Trait("Platform", "WindowsOnly")]
     [Trait("Fixture", "RequiresPrivateFixture")]
     [Trait("Coverage", "Plan97")]
+    [Trait("Coverage", "Plan100")]
     public async Task File_only_pipeline_creates_applies_builds_exports_and_reextracts_standalone_archive()
     {
         var prerequisites = RequirePrerequisites();
