@@ -7,8 +7,19 @@ using NpgsqlTypes;
 
 namespace AuditionModStudio.Gateway.Services;
 
-public enum PaymentWebhookStatus { Verified, Ignored, Invalid, Unavailable }
+public enum PaymentProviderEventStatus { Verified, Pending, Ignored, Invalid, Retryable }
 public enum PaymentApplyStatus { Applied, Replay, Rejected, Unavailable }
+public enum PaymentProcessingStatus
+{
+    Applied,
+    Replay,
+    Pending,
+    Ignored,
+    Invalid,
+    Conflict,
+    Retryable,
+    Failed,
+}
 
 public sealed record VerifiedPaymentEvent(
     string Provider,
@@ -22,16 +33,32 @@ public sealed record VerifiedPaymentEvent(
     string PayloadSha256,
     string GrantRequestSha256);
 
-public sealed record PaymentWebhookResult(
-    PaymentWebhookStatus Status,
+public sealed record PaymentProviderEventResult(
+    PaymentProviderEventStatus Status,
     string DiagnosticCode,
     VerifiedPaymentEvent? Payment = null);
 
 public sealed record PaymentApplyResult(PaymentApplyStatus Status, string DiagnosticCode);
+public sealed record PaymentProcessingResult(PaymentProcessingStatus Status, string DiagnosticCode);
 
-public interface IPaymentWebhookVerifier
+public interface IPaymentProvider
 {
-    PaymentWebhookResult Verify(ReadOnlySpan<byte> rawBody, string? signatureHeader);
+    string ProviderId { get; }
+    PaymentProviderEventResult VerifyWebhook(ReadOnlyMemory<byte> rawBody, string? signatureHeader);
+}
+
+public interface IPaymentProviderResolver
+{
+    bool TryResolve(string providerId, out IPaymentProvider provider);
+}
+
+public interface IPaymentApplicationService
+{
+    Task<PaymentProcessingResult> ProcessWebhookAsync(
+        string providerId,
+        ReadOnlyMemory<byte> rawBody,
+        string? signatureHeader,
+        CancellationToken cancellationToken = default);
 }
 
 public interface IPaymentFulfillmentService
@@ -88,6 +115,92 @@ public sealed class PaymentProductCatalog
         long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0;
 }
 
+public sealed class PaymentProviderResolver : IPaymentProviderResolver
+{
+    private readonly IReadOnlyDictionary<string, IPaymentProvider> _providers;
+
+    public PaymentProviderResolver(IEnumerable<IPaymentProvider> providers)
+    {
+        var resolved = new Dictionary<string, IPaymentProvider>(StringComparer.Ordinal);
+        foreach (var provider in providers)
+        {
+            if (!IsValidProviderId(provider.ProviderId)
+                || !resolved.TryAdd(provider.ProviderId, provider))
+            {
+                resolved.Clear();
+                break;
+            }
+        }
+        _providers = resolved;
+    }
+
+    public bool TryResolve(string providerId, out IPaymentProvider provider) =>
+        _providers.TryGetValue(providerId, out provider!);
+
+    internal static bool IsValidProviderId(string? providerId) =>
+        !string.IsNullOrWhiteSpace(providerId) && providerId.Length <= 32
+        && providerId.All(character => char.IsAsciiLetterLower(character) || char.IsAsciiDigit(character));
+}
+
+public sealed class PaymentApplicationService(
+    IPaymentProviderResolver providers,
+    IPaymentFulfillmentService fulfillment) : IPaymentApplicationService
+{
+    public async Task<PaymentProcessingResult> ProcessWebhookAsync(
+        string providerId,
+        ReadOnlyMemory<byte> rawBody,
+        string? signatureHeader,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!PaymentProviderResolver.IsValidProviderId(providerId))
+            return new(PaymentProcessingStatus.Invalid, "PAYMENT_PROVIDER_INVALID");
+        if (!providers.TryResolve(providerId, out var provider))
+            return new(PaymentProcessingStatus.Retryable, "PAYMENT_PROVIDER_UNAVAILABLE");
+
+        var providerResult = provider.VerifyWebhook(rawBody, signatureHeader);
+        if (!Enum.IsDefined(providerResult.Status) || !IsSafeCode(providerResult.DiagnosticCode))
+            return Failed();
+        if (providerResult.Status != PaymentProviderEventStatus.Verified)
+        {
+            if (providerResult.Payment is not null) return Failed();
+            return providerResult.Status switch
+            {
+                PaymentProviderEventStatus.Pending =>
+                    new(PaymentProcessingStatus.Pending, providerResult.DiagnosticCode),
+                PaymentProviderEventStatus.Ignored =>
+                    new(PaymentProcessingStatus.Ignored, providerResult.DiagnosticCode),
+                PaymentProviderEventStatus.Invalid =>
+                    new(PaymentProcessingStatus.Invalid, providerResult.DiagnosticCode),
+                PaymentProviderEventStatus.Retryable =>
+                    new(PaymentProcessingStatus.Retryable, providerResult.DiagnosticCode),
+                _ => Failed(),
+            };
+        }
+
+        var payment = providerResult.Payment;
+        if (payment is null || payment.Provider != provider.ProviderId || payment.Provider != providerId)
+            return Failed();
+        var applied = await fulfillment.ApplyAsync(payment, cancellationToken).ConfigureAwait(false);
+        if (!Enum.IsDefined(applied.Status) || !IsSafeCode(applied.DiagnosticCode)) return Failed();
+        return applied.Status switch
+        {
+            PaymentApplyStatus.Applied => new(PaymentProcessingStatus.Applied, applied.DiagnosticCode),
+            PaymentApplyStatus.Replay => new(PaymentProcessingStatus.Replay, applied.DiagnosticCode),
+            PaymentApplyStatus.Rejected => new(PaymentProcessingStatus.Conflict, applied.DiagnosticCode),
+            PaymentApplyStatus.Unavailable => new(PaymentProcessingStatus.Retryable, applied.DiagnosticCode),
+            _ => Failed(),
+        };
+    }
+
+    private static bool IsSafeCode(string code) => !string.IsNullOrWhiteSpace(code)
+        && code.Length <= 128
+        && code.All(character => character is >= 'A' and <= 'Z' or >= '0' and <= '9' or '_');
+
+    private static PaymentProcessingResult Failed() =>
+        new(PaymentProcessingStatus.Failed, "PAYMENT_PROVIDER_RESPONSE_INVALID");
+}
+
 public sealed class StripeWebhookOptions
 {
     public string EndpointSecret { get; init; } = string.Empty;
@@ -113,17 +226,19 @@ public sealed class StripeWebhookOptions
     public override string ToString() => "StripeWebhookOptions { [REDACTED] }";
 }
 
-public sealed class StripePaymentWebhookVerifier(
+public sealed class StripePaymentProvider(
     StripeWebhookOptions options,
     PaymentProductCatalog products,
-    TimeProvider timeProvider) : IPaymentWebhookVerifier
+    TimeProvider timeProvider) : IPaymentProvider
 {
     private const int MaximumSignatureHeaderLength = 2_048;
     private const int MaximumJsonDepth = 16;
 
-    public PaymentWebhookResult Verify(ReadOnlySpan<byte> rawBody, string? signatureHeader)
+    public string ProviderId => "stripe";
+
+    public PaymentProviderEventResult VerifyWebhook(ReadOnlyMemory<byte> rawBody, string? signatureHeader)
     {
-        if (!options.IsValid) return Unavailable();
+        if (!options.IsValid) return Retryable();
         if (rawBody.IsEmpty || string.IsNullOrWhiteSpace(signatureHeader)
             || signatureHeader.Length > MaximumSignatureHeaderLength
             || !TryParseSignature(signatureHeader, out var timestamp, out var signatures))
@@ -141,7 +256,7 @@ public sealed class StripePaymentWebhookVerifier(
         var signedPayload = new byte[timestampBytes.Length + 1 + rawBody.Length];
         timestampBytes.CopyTo(signedPayload, 0);
         signedPayload[timestampBytes.Length] = (byte)'.';
-        rawBody.CopyTo(signedPayload.AsSpan(timestampBytes.Length + 1));
+        rawBody.Span.CopyTo(signedPayload.AsSpan(timestampBytes.Length + 1));
         var key = Encoding.UTF8.GetBytes(options.EndpointSecret);
         byte[] expected;
         try { expected = HMACSHA256.HashData(key, signedPayload); }
@@ -156,7 +271,7 @@ public sealed class StripePaymentWebhookVerifier(
 
         try
         {
-            using var document = JsonDocument.Parse(rawBody.ToArray(), new JsonDocumentOptions
+            using var document = JsonDocument.Parse(rawBody, new JsonDocumentOptions
             {
                 AllowTrailingCommas = false,
                 CommentHandling = JsonCommentHandling.Disallow,
@@ -170,7 +285,7 @@ public sealed class StripePaymentWebhookVerifier(
         }
     }
 
-    private PaymentWebhookResult ParseVerifiedEvent(JsonElement root, ReadOnlySpan<byte> rawBody)
+    private PaymentProviderEventResult ParseVerifiedEvent(JsonElement root, ReadOnlyMemory<byte> rawBody)
     {
         if (root.ValueKind != JsonValueKind.Object
             || !TryString(root, "id", 128, out var eventId)
@@ -180,8 +295,12 @@ public sealed class StripePaymentWebhookVerifier(
             || liveModeElement.GetBoolean() != options.LiveMode)
             return Invalid("PAYMENT_WEBHOOK_PAYLOAD_INVALID");
 
+        if (eventType is "charge.refunded" or "refund.created" or "refund.updated")
+            return new(PaymentProviderEventStatus.Ignored, "PAYMENT_REFUND_EVENT_IGNORED");
+        if (eventType is "checkout.session.async_payment_failed" or "checkout.session.expired")
+            return new(PaymentProviderEventStatus.Ignored, "PAYMENT_EVENT_FAILED");
         if (eventType is not ("checkout.session.completed" or "checkout.session.async_payment_succeeded"))
-            return new(PaymentWebhookStatus.Ignored, "PAYMENT_EVENT_IGNORED");
+            return new(PaymentProviderEventStatus.Ignored, "PAYMENT_EVENT_IGNORED");
         if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object
             || !data.TryGetProperty("object", out var session) || session.ValueKind != JsonValueKind.Object
             || !TryString(session, "id", 120, out var paymentId)
@@ -190,8 +309,10 @@ public sealed class StripePaymentWebhookVerifier(
             || !PaymentProduct.IsIdentifier(eventId, 128)
             || !PaymentProduct.IsIdentifier(paymentId, 120))
             return Invalid("PAYMENT_WEBHOOK_PAYLOAD_INVALID");
-        if (paymentStatus != "paid" || mode != "payment")
-            return new(PaymentWebhookStatus.Ignored, "PAYMENT_EVENT_NOT_FULFILLABLE");
+        if (mode != "payment")
+            return new(PaymentProviderEventStatus.Ignored, "PAYMENT_EVENT_NOT_FULFILLABLE");
+        if (paymentStatus != "paid")
+            return new(PaymentProviderEventStatus.Pending, "PAYMENT_EVENT_PENDING");
         if (!TryString(session, "client_reference_id", 64, out var userText)
             || !Guid.TryParse(userText, out var userId) || userId == Guid.Empty
             || !session.TryGetProperty("amount_total", out var amountElement)
@@ -204,12 +325,12 @@ public sealed class StripePaymentWebhookVerifier(
             || product.AmountMinor != amountMinor || product.Currency != currency)
             return Invalid("PAYMENT_WEBHOOK_PAYLOAD_INVALID");
 
-        var payloadHash = Convert.ToHexString(SHA256.HashData(rawBody));
+        var payloadHash = Convert.ToHexString(SHA256.HashData(rawBody.Span));
         var grantCanonical = string.Join('|', "stripe", paymentId, userId.ToString("D"),
             product.ProductId, amountMinor.ToString(CultureInfo.InvariantCulture), currency,
             product.Credits.ToString(CultureInfo.InvariantCulture));
         var grantHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(grantCanonical)));
-        return new(PaymentWebhookStatus.Verified, "PAYMENT_WEBHOOK_VERIFIED",
+        return new(PaymentProviderEventStatus.Verified, "PAYMENT_WEBHOOK_VERIFIED",
             new("stripe", eventId, paymentId, userId, product.ProductId, amountMinor,
                 currency, product.Credits, payloadHash, grantHash));
     }
@@ -248,9 +369,10 @@ public sealed class StripePaymentWebhookVerifier(
             && !value.Any(char.IsControl);
     }
 
-    private static PaymentWebhookResult Invalid(string code) => new(PaymentWebhookStatus.Invalid, code);
-    private static PaymentWebhookResult Unavailable() =>
-        new(PaymentWebhookStatus.Unavailable, "PAYMENT_WEBHOOK_VERIFIER_UNAVAILABLE");
+    private static PaymentProviderEventResult Invalid(string code) =>
+        new(PaymentProviderEventStatus.Invalid, code);
+    private static PaymentProviderEventResult Retryable() =>
+        new(PaymentProviderEventStatus.Retryable, "PAYMENT_PROVIDER_UNAVAILABLE");
 }
 
 public sealed class UnavailablePaymentFulfillmentService : IPaymentFulfillmentService

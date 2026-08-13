@@ -981,3 +981,19 @@ không có client cache hay optimistic balance.
 Email, display name và transaction history là dữ liệu cá nhân: không được ghi vào log/audit/diagnostic tự động. UI chỉ đọc và
 không có purchase/grant/refund control. Live Supabase role topology, production IAM, centralized audit/retention và privacy
 operations vẫn **NOT VERIFIED**.
+
+## Payment abstraction từ PLAN 94
+
+Provider abstraction không thay authority của PLAN 84: exact raw body vẫn được verify trước parse, timestamp/signature/live mode
+và trusted product mapping vẫn thuộc `StripePaymentProvider`. Resolver production chỉ đăng ký Stripe adapter; missing/duplicate
+provider fail closed. Application service kiểm tra enum, diagnostic grammar và provider identity trước fulfillment, nên fake/test
+provider không phải production fallback và provider result bất nhất không thể cấp credit.
+
+Stripe không đảm bảo event delivery order và có thể retry/duplicate; vì vậy pending/refund/failure không rollback hay grant,
+success xử lý độc lập và PostgreSQL unique identity/advisory lock quyết định replay/conflict. Provider/DB outage trả 503 typed
+`Retryable`; invalid signature trả 400; replay hợp lệ trả 200. Không log raw body/signature/secret/payment PII và không trả các dữ
+liệu này về desktop.
+
+Refund/partial refund/dispute/chargeback reversal chưa có commercial policy nên PLAN 94 chỉ chứng minh signed refund event không
+tạo grant hoặc client authority. Live Stripe, endpoint secret rotation, production IAM/RLS topology, WAF/distributed limiter,
+monitoring và reconciliation vẫn **NOT VERIFIED**.

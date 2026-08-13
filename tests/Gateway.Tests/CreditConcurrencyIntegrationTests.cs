@@ -85,6 +85,26 @@ public sealed class CreditConcurrencyIntegrationTests
     }
 
     [PostgresFact]
+    public async Task Concurrent_verified_payment_delivery_applies_once_and_replays_without_double_credit()
+    {
+        await using var database = await CreditDatabase.CreateAsync();
+        var userId = Guid.NewGuid();
+        var payment = new VerifiedPaymentEvent("stripe", "evt_plan94_race", "cs_plan94_race", userId,
+            "credits.small", 499, "usd", 50, new string('C', 64), new string('D', 64));
+
+        var results = await StartTogetherAsync(8, _ => database.PaymentFulfillment.ApplyAsync(payment));
+
+        Assert.Single(results, result => result.Status == PaymentApplyStatus.Applied);
+        Assert.Equal(7, results.Count(result => result.Status == PaymentApplyStatus.Replay));
+        Assert.Equal(new TrustedCreditSnapshot(50, 0),
+            (await database.Service.GetAsync(new AuthenticatedGatewayUser(userId))).Snapshot);
+        Assert.Equal(1L, await database.LongAsync(
+            "SELECT count(*) FROM private.payment_events WHERE user_id=$1", userId));
+        Assert.Equal(1L, await database.LongAsync(
+            "SELECT count(*) FROM private.credit_ledger WHERE user_id=$1 AND entry_type='grant'", userId));
+    }
+
+    [PostgresFact]
     public async Task Parallel_reservations_cannot_overspend_one_wallet()
     {
         await using var database = await CreditDatabase.CreateAsync();
@@ -233,8 +253,7 @@ public sealed class CreditConcurrencyIntegrationTests
             captureTransactionId));
     }
 
-    private static async Task<CreditLedgerOperationResult[]> StartTogetherAsync(
-        int count, Func<int, Task<CreditLedgerOperationResult>> action)
+    private static async Task<T[]> StartTogetherAsync<T>(int count, Func<int, Task<T>> action)
     {
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var tasks = Enumerable.Range(0, count).Select(index => Task.Run(async () =>

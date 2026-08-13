@@ -7,8 +7,9 @@ Stripe là caller, nhưng không anonymous về mặt trust: chỉ raw body có 
 5 phút mới đi tới fulfillment. Client desktop, browser redirect và màn hình “payment success” không có route/contract cấp
 credit và không phải bằng chứng thanh toán.
 
-PLAN 84 triển khai concrete Stripe Checkout webhook, chưa tạo payment-provider abstraction; abstraction thuộc PLAN 94.
-Không có checkout UI, subscription, dispute/refund provider hay thay đổi game/runtime trong phạm vi này.
+PLAN 84 triển khai concrete Stripe Checkout webhook. PLAN 94 giữ nguyên ingress/authority đó nhưng đặt Stripe verifier sau
+`IPaymentProvider`, `IPaymentProviderResolver` và `IPaymentApplicationService`. Không có checkout UI, subscription,
+dispute/refund mutation hay thay đổi game/runtime trong phạm vi này.
 
 ## Luồng authority
 
@@ -20,7 +21,8 @@ Không có checkout UI, subscription, dispute/refund provider hay thay đổi ga
    không fulfill; async success hợp lệ sau đó vẫn được xử lý.
 4. `client_reference_id` phải là UUID khác rỗng. `metadata.credit_product_id` chỉ là selector; server catalog bind exact
    product với `amount_total`, currency và số credit. Payload/provider không tự chọn số credit.
-5. Gateway tạo SHA-256 của exact payload và canonical grant request, rồi gọi duy nhất
+5. Provider-neutral application service chỉ nhận typed verified event có provider identity khớp resolver. Gateway tạo SHA-256
+   của exact payload và canonical grant request, rồi gọi duy nhất
    `private.payment_apply_verified` qua server database connection.
 6. PostgreSQL advisory-lock theo provider/payment identity. Unique `(provider,event)` và `(provider,payment)` cùng stored
    hashes tạo idempotency bền vững; replay đúng trả success cũ, conflict payload fail closed.
@@ -46,12 +48,17 @@ Function là `SECURITY DEFINER` với fixed `search_path`; input có grammar/len
 ## Evidence và giới hạn tuyên bố
 
 `PaymentSecurityTests` kiểm HMAC trên exact raw bytes, tamper/secret/timestamp, live/test mismatch, product/amount/currency,
-event ignore, fail-closed configuration, anonymous HTTP ingress, size/type gate, không có success authority route và SQL
-idempotency/privilege contract.
+provider resolution/mismatch, pending/refund/order, typed retryable outage, cancellation, anonymous HTTP ingress, size/type gate,
+không có success authority route và SQL idempotency/privilege contract. Real PostgreSQL gate còn chạy tám concurrent deliveries
+của cùng verified payment và chứng minh đúng một apply, bảy replay, một payment row và một credit grant row.
 
 Thiết kế bám theo tài liệu Stripe về [xác minh chữ ký trên raw body](https://docs.stripe.com/webhooks/signature),
 [retry, duplicate event và timestamp tolerance](https://docs.stripe.com/webhooks), cùng
 [Checkout event types](https://docs.stripe.com/api/events/types).
+
+Stripe không đảm bảo thứ tự delivery và có thể gửi duplicate. PLAN 94 vì vậy classify Checkout chưa paid là `Pending`,
+failure/expiry/refund là `Ignored`, outage là `Retryable`; chỉ independent signed success đi tới fulfillment. Refund không tự động
+đảo credit vì roadmap chưa định nghĩa partial-refund/dispute/reversal policy.
 
 Chưa có Stripe live endpoint/secret/product/observability evidence; trạng thái là
 `IMPLEMENTED CONTRACT / PRODUCTION PAYMENT NOT VERIFIED`. PLAN 85 đã sửa ambiguity PLAN 60 và real PostgreSQL test chứng

@@ -16,8 +16,7 @@ public static class PaymentWebhookEndpoints
 
     private static async Task<IResult> HandleStripeAsync(
         HttpRequest request,
-        IPaymentWebhookVerifier verifier,
-        IPaymentFulfillmentService fulfillment,
+        IPaymentApplicationService payments,
         CancellationToken cancellationToken)
     {
         if (request.ContentLength is <= 0 or > MaximumWebhookBytes)
@@ -31,28 +30,20 @@ public static class PaymentWebhookEndpoints
         if (rawBody is null)
             return Results.StatusCode(StatusCodes.Status413PayloadTooLarge);
 
-        var verification = verifier.Verify(rawBody, signatureValues[0]);
-        if (!Enum.IsDefined(verification.Status) || !IsSafeCode(verification.DiagnosticCode)
-            || verification.Status == PaymentWebhookStatus.Verified && verification.Payment is null)
+        var result = await payments.ProcessWebhookAsync("stripe", rawBody, signatureValues[0], cancellationToken)
+            .ConfigureAwait(false);
+        if (!Enum.IsDefined(result.Status) || !IsSafeCode(result.DiagnosticCode))
             return Results.StatusCode(StatusCodes.Status500InternalServerError);
-
-        if (verification.Status == PaymentWebhookStatus.Invalid)
-            return Results.BadRequest(new GatewayErrorResponse(verification.DiagnosticCode));
-        if (verification.Status == PaymentWebhookStatus.Unavailable)
-            return Results.Json(new GatewayErrorResponse(verification.DiagnosticCode),
-                statusCode: StatusCodes.Status503ServiceUnavailable);
-        if (verification.Status == PaymentWebhookStatus.Ignored)
-            return Results.Ok(new { Received = true });
-
-        var applied = await fulfillment.ApplyAsync(verification.Payment!, cancellationToken).ConfigureAwait(false);
-        if (!Enum.IsDefined(applied.Status) || !IsSafeCode(applied.DiagnosticCode))
-            return Results.StatusCode(StatusCodes.Status500InternalServerError);
-        return applied.Status switch
+        return result.Status switch
         {
-            PaymentApplyStatus.Applied or PaymentApplyStatus.Replay => Results.Ok(new { Received = true }),
-            PaymentApplyStatus.Rejected => Results.Conflict(new GatewayErrorResponse(applied.DiagnosticCode)),
-            _ => Results.Json(new GatewayErrorResponse(applied.DiagnosticCode),
+            PaymentProcessingStatus.Applied or PaymentProcessingStatus.Replay
+                or PaymentProcessingStatus.Pending or PaymentProcessingStatus.Ignored =>
+                Results.Ok(new { Received = true }),
+            PaymentProcessingStatus.Invalid => Results.BadRequest(new GatewayErrorResponse(result.DiagnosticCode)),
+            PaymentProcessingStatus.Conflict => Results.Conflict(new GatewayErrorResponse(result.DiagnosticCode)),
+            PaymentProcessingStatus.Retryable => Results.Json(new GatewayErrorResponse(result.DiagnosticCode),
                 statusCode: StatusCodes.Status503ServiceUnavailable),
+            _ => Results.StatusCode(StatusCodes.Status500InternalServerError),
         };
     }
 

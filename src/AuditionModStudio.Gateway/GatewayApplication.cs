@@ -35,7 +35,9 @@ public static class GatewayApplication
         services.AddSingleton<ITrustedAiProvider, UnavailableTrustedAiProvider>();
         services.AddSingleton(PaymentProductCatalog.FromConfiguration(configuration));
         services.AddSingleton(StripeWebhookOptions.FromConfiguration(configuration));
-        services.AddSingleton<IPaymentWebhookVerifier, StripePaymentWebhookVerifier>();
+        services.AddSingleton<IPaymentProvider, StripePaymentProvider>();
+        services.AddSingleton<IPaymentProviderResolver, PaymentProviderResolver>();
+        services.AddSingleton<IPaymentApplicationService, PaymentApplicationService>();
         var providerProfiles = configuration.GetSection("Gateway:AiProviderProfiles").GetChildren()
             .Select(section => Enum.TryParse<TrustedAiOperation>(section["Operation"], out var operation)
                 ? new TrustedAiProviderProfile(operation, section["PublicOptionId"] ?? string.Empty,

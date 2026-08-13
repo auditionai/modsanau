@@ -369,3 +369,16 @@ Residual risk gồm stolen bearer đọc được account data đến khi token 
 filter, traffic/memory capture bởi same-user/Administrator, inference từ transaction timing và sai lệch semantics nếu production
 schema drift. Local/test evidence không chứng minh live Supabase RLS/IAM, TLS edge, distributed rate limit, monitoring, retention,
 account deletion/export workflow hay incident response.
+
+## Payment abstraction residual risk từ PLAN 94
+
+Provider-neutral typed result, fail-closed resolver và application orchestration giảm nguy cơ provider-specific object trở thành
+domain authority, test adapter lọt vào production, pending/outage bị đoán thành success hoặc provider mismatch đi tới ledger.
+Stripe adapter vẫn giữ exact raw-body HMAC/timestamp/live-mode/catalog binding; PLAN 84/85 PostgreSQL identity, lock và append-only
+grant tiếp tục xử lý duplicate/concurrent/out-of-order success.
+
+Refund/failure/expiry event hiện chỉ được acknowledge không mutation vì reversal policy chưa được roadmap định nghĩa. Residual
+risk gồm compromised Stripe secret/account, signed nhưng malicious provider data, delayed events ngoài tolerance với signature mới,
+provider API/version drift, missing durable pending/reconciliation queue, refund/dispute policy chưa có và outage nhiều replica.
+Local contract/PostgreSQL evidence không chứng minh live Stripe, Supabase production, TLS/WAF, secret rotation, monitoring hoặc
+incident response.

@@ -24,9 +24,9 @@ public sealed class PaymentSecurityTests
         var verifier = Verifier();
         var body = ValidPayload();
 
-        var result = verifier.Verify(body, Signature(body, Now));
+        var result = verifier.VerifyWebhook(body, Signature(body, Now));
 
-        Assert.Equal(PaymentWebhookStatus.Verified, result.Status);
+        Assert.Equal(PaymentProviderEventStatus.Verified, result.Status);
         Assert.NotNull(result.Payment);
         Assert.Equal("stripe", result.Payment.Provider);
         Assert.Equal(UserId, result.Payment.UserId);
@@ -45,14 +45,14 @@ public sealed class PaymentSecurityTests
         var body = ValidPayload();
         var modified = body.Concat(" "u8.ToArray()).ToArray();
 
-        Assert.Equal(PaymentWebhookStatus.Invalid,
-            verifier.Verify(modified, Signature(body, Now)).Status);
-        Assert.Equal(PaymentWebhookStatus.Invalid,
-            verifier.Verify(body, Signature(body, Now, "whsec_wrong_1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ")).Status);
+        Assert.Equal(PaymentProviderEventStatus.Invalid,
+            verifier.VerifyWebhook(modified, Signature(body, Now)).Status);
+        Assert.Equal(PaymentProviderEventStatus.Invalid,
+            verifier.VerifyWebhook(body, Signature(body, Now, "whsec_wrong_1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ")).Status);
         Assert.Equal("PAYMENT_WEBHOOK_TIMESTAMP_INVALID",
-            verifier.Verify(body, Signature(body, Now.AddMinutes(-6))).DiagnosticCode);
+            verifier.VerifyWebhook(body, Signature(body, Now.AddMinutes(-6))).DiagnosticCode);
         Assert.Equal("PAYMENT_WEBHOOK_TIMESTAMP_INVALID",
-            verifier.Verify(body, Signature(body, Now.AddMinutes(6))).DiagnosticCode);
+            verifier.VerifyWebhook(body, Signature(body, Now.AddMinutes(6))).DiagnosticCode);
     }
 
     [Theory]
@@ -65,9 +65,9 @@ public sealed class PaymentSecurityTests
     {
         var body = ValidPayload(amount, currency, product, liveMode: liveMode);
 
-        var result = Verifier().Verify(body, Signature(body, Now));
+        var result = Verifier().VerifyWebhook(body, Signature(body, Now));
 
-        Assert.Equal(PaymentWebhookStatus.Invalid, result.Status);
+        Assert.Equal(PaymentProviderEventStatus.Invalid, result.Status);
         Assert.Null(result.Payment);
     }
 
@@ -76,9 +76,9 @@ public sealed class PaymentSecurityTests
     {
         var body = ValidPayload(eventType: "customer.created");
 
-        var result = Verifier().Verify(body, Signature(body, Now));
+        var result = Verifier().VerifyWebhook(body, Signature(body, Now));
 
-        Assert.Equal(PaymentWebhookStatus.Ignored, result.Status);
+        Assert.Equal(PaymentProviderEventStatus.Ignored, result.Status);
         Assert.Null(result.Payment);
     }
 
@@ -87,10 +87,24 @@ public sealed class PaymentSecurityTests
     {
         var body = ValidPayload(paymentStatus: "unpaid");
 
-        var result = Verifier().Verify(body, Signature(body, Now));
+        var result = Verifier().VerifyWebhook(body, Signature(body, Now));
 
-        Assert.Equal(PaymentWebhookStatus.Ignored, result.Status);
-        Assert.Equal("PAYMENT_EVENT_NOT_FULFILLABLE", result.DiagnosticCode);
+        Assert.Equal(PaymentProviderEventStatus.Pending, result.Status);
+        Assert.Equal("PAYMENT_EVENT_PENDING", result.DiagnosticCode);
+        Assert.Null(result.Payment);
+    }
+
+    [Theory]
+    [InlineData("checkout.session.async_payment_failed")]
+    [InlineData("checkout.session.expired")]
+    public void Signed_failed_or_expired_checkout_is_ignored_without_a_payment(string eventType)
+    {
+        var body = ValidPayload(eventType: eventType);
+
+        var result = Verifier().VerifyWebhook(body, Signature(body, Now));
+
+        Assert.Equal(PaymentProviderEventStatus.Ignored, result.Status);
+        Assert.Equal("PAYMENT_EVENT_FAILED", result.DiagnosticCode);
         Assert.Null(result.Payment);
     }
 
@@ -102,9 +116,9 @@ public sealed class PaymentSecurityTests
     {
         var body = Encoding.UTF8.GetBytes(json);
 
-        var result = Verifier().Verify(body, Signature(body, Now));
+        var result = Verifier().VerifyWebhook(body, Signature(body, Now));
 
-        Assert.Equal(PaymentWebhookStatus.Invalid, result.Status);
+        Assert.Equal(PaymentProviderEventStatus.Invalid, result.Status);
         Assert.Null(result.Payment);
     }
 
@@ -112,18 +126,113 @@ public sealed class PaymentSecurityTests
     public void Missing_configuration_fails_closed_and_options_never_print_secret()
     {
         var options = new StripeWebhookOptions { EndpointSecret = Secret, LiveMode = true };
-        var unconfigured = new StripePaymentWebhookVerifier(new StripeWebhookOptions(), Catalog(),
+        var unconfigured = new StripePaymentProvider(new StripeWebhookOptions(), Catalog(),
             new FixedTimeProvider(Now));
 
         Assert.DoesNotContain(Secret, options.ToString(), StringComparison.Ordinal);
-        Assert.Equal(PaymentWebhookStatus.Unavailable,
-            unconfigured.Verify(ValidPayload(), "t=1,v1=" + new string('0', 64)).Status);
+        Assert.Equal(PaymentProviderEventStatus.Retryable,
+            unconfigured.VerifyWebhook(ValidPayload(), "t=1,v1=" + new string('0', 64)).Status);
+    }
+
+    [Fact]
+    public void Provider_resolver_is_provider_neutral_and_fails_closed_for_missing_or_duplicate_ids()
+    {
+        var provider = Verifier();
+        var resolver = new PaymentProviderResolver([provider]);
+        var duplicateResolver = new PaymentProviderResolver([provider, Verifier()]);
+
+        Assert.True(resolver.TryResolve("stripe", out var resolved));
+        Assert.Same(provider, resolved);
+        Assert.False(resolver.TryResolve("unknown", out _));
+        Assert.False(duplicateResolver.TryResolve("stripe", out _));
+    }
+
+    [Fact]
+    public async Task Pending_success_and_refund_order_only_fulfills_verified_success()
+    {
+        var provider = Verifier();
+        var fulfillment = new StubFulfillment(new(PaymentApplyStatus.Applied, "PAYMENT_APPLIED"));
+        var service = new PaymentApplicationService(new PaymentProviderResolver([provider]), fulfillment);
+        var pendingBody = ValidPayload(paymentStatus: "unpaid");
+        var paidBody = ValidPayload();
+        var refundBody = ValidPayload(eventType: "charge.refunded");
+
+        var pending = await service.ProcessWebhookAsync("stripe", pendingBody, Signature(pendingBody, Now));
+        var paid = await service.ProcessWebhookAsync("stripe", paidBody, Signature(paidBody, Now));
+        var refund = await service.ProcessWebhookAsync("stripe", refundBody, Signature(refundBody, Now));
+
+        Assert.Equal(PaymentProcessingStatus.Pending, pending.Status);
+        Assert.Equal(PaymentProcessingStatus.Applied, paid.Status);
+        Assert.Equal(PaymentProcessingStatus.Ignored, refund.Status);
+        Assert.Equal("PAYMENT_REFUND_EVENT_IGNORED", refund.DiagnosticCode);
+        Assert.Equal(1, fulfillment.CallCount);
+    }
+
+    [Fact]
+    public async Task Missing_or_unavailable_provider_is_typed_retryable_without_fulfillment()
+    {
+        var fulfillment = new StubFulfillment(new(PaymentApplyStatus.Applied, "PAYMENT_APPLIED"));
+        var missing = new PaymentApplicationService(new PaymentProviderResolver([]), fulfillment);
+        var unavailable = new PaymentApplicationService(
+            new PaymentProviderResolver([new StubProvider(new(
+                PaymentProviderEventStatus.Retryable, "PAYMENT_PROVIDER_UNAVAILABLE"))]), fulfillment);
+
+        var missingResult = await missing.ProcessWebhookAsync("stripe", "{}"u8.ToArray(), "signature");
+        var unavailableResult = await unavailable.ProcessWebhookAsync("stripe", "{}"u8.ToArray(), "signature");
+
+        Assert.Equal(PaymentProcessingStatus.Retryable, missingResult.Status);
+        Assert.Equal(PaymentProcessingStatus.Retryable, unavailableResult.Status);
+        Assert.Equal(0, fulfillment.CallCount);
+    }
+
+    [Fact]
+    public async Task Fulfillment_outage_is_typed_retryable_and_never_fabricates_applied_state()
+    {
+        var provider = new StubProvider(new(PaymentProviderEventStatus.Verified,
+            "PAYMENT_WEBHOOK_VERIFIED", VerifiedPayment()));
+        var service = new PaymentApplicationService(new PaymentProviderResolver([provider]),
+            new StubFulfillment(new(PaymentApplyStatus.Unavailable, "PAYMENT_FULFILLMENT_UNAVAILABLE")));
+
+        var result = await service.ProcessWebhookAsync("stripe", "{}"u8.ToArray(), "signature");
+
+        Assert.Equal(PaymentProcessingStatus.Retryable, result.Status);
+        Assert.Equal("PAYMENT_FULFILLMENT_UNAVAILABLE", result.DiagnosticCode);
+    }
+
+    [Fact]
+    public async Task Provider_identity_mismatch_is_internal_failure_and_never_reaches_credit_fulfillment()
+    {
+        var mismatchedPayment = VerifiedPayment() with { Provider = "other" };
+        var provider = new StubProvider(new(PaymentProviderEventStatus.Verified,
+            "PAYMENT_WEBHOOK_VERIFIED", mismatchedPayment));
+        var fulfillment = new StubFulfillment(new(PaymentApplyStatus.Applied, "PAYMENT_APPLIED"));
+        var service = new PaymentApplicationService(new PaymentProviderResolver([provider]), fulfillment);
+
+        var result = await service.ProcessWebhookAsync("stripe", "{}"u8.ToArray(), "signature");
+
+        Assert.Equal(PaymentProcessingStatus.Failed, result.Status);
+        Assert.Equal("PAYMENT_PROVIDER_RESPONSE_INVALID", result.DiagnosticCode);
+        Assert.Equal(0, fulfillment.CallCount);
+    }
+
+    [Fact]
+    public async Task Cancellation_during_verified_fulfillment_never_returns_fabricated_success()
+    {
+        var provider = new StubProvider(new(PaymentProviderEventStatus.Verified,
+            "PAYMENT_WEBHOOK_VERIFIED", VerifiedPayment()));
+        var service = new PaymentApplicationService(new PaymentProviderResolver([provider]),
+            new StubFulfillment(new(PaymentApplyStatus.Applied, "PAYMENT_APPLIED")));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => service.ProcessWebhookAsync(
+            "stripe", "{}"u8.ToArray(), "signature", cancellation.Token));
     }
 
     [Fact]
     public async Task Anonymous_webhook_is_signature_authenticated_and_applied_once()
     {
-        var verifier = new StubVerifier(new(PaymentWebhookStatus.Verified, "PAYMENT_WEBHOOK_VERIFIED",
+        var verifier = new StubProvider(new(PaymentProviderEventStatus.Verified, "PAYMENT_WEBHOOK_VERIFIED",
             VerifiedPayment()));
         var fulfillment = new StubFulfillment(new(PaymentApplyStatus.Applied, "PAYMENT_APPLIED"));
         await using var factory = new PaymentFactory(verifier, fulfillment);
@@ -158,7 +267,7 @@ public sealed class PaymentSecurityTests
     [Fact]
     public async Task Invalid_signature_never_reaches_fulfillment()
     {
-        var verifier = new StubVerifier(new(PaymentWebhookStatus.Invalid,
+        var verifier = new StubProvider(new(PaymentProviderEventStatus.Invalid,
             "PAYMENT_WEBHOOK_SIGNATURE_INVALID"));
         var fulfillment = new StubFulfillment(new(PaymentApplyStatus.Applied, "PAYMENT_APPLIED"));
         await using var factory = new PaymentFactory(verifier, fulfillment);
@@ -172,9 +281,27 @@ public sealed class PaymentSecurityTests
     }
 
     [Fact]
+    public async Task Provider_outage_returns_structured_retryable_http_failure_without_fulfillment()
+    {
+        var provider = new StubProvider(new(PaymentProviderEventStatus.Retryable,
+            "PAYMENT_PROVIDER_UNAVAILABLE"));
+        var fulfillment = new StubFulfillment(new(PaymentApplyStatus.Applied, "PAYMENT_APPLIED"));
+        await using var factory = new PaymentFactory(provider, fulfillment);
+        using var client = SecureClient(factory);
+        using var request = Request("{}", "t=1,v1=" + new string('0', 64));
+
+        var response = await client.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Contains("PAYMENT_PROVIDER_UNAVAILABLE", body, StringComparison.Ordinal);
+        Assert.Equal(0, fulfillment.CallCount);
+    }
+
+    [Fact]
     public async Task Webhook_enforces_json_size_and_has_no_client_success_authority_route()
     {
-        var verifier = new StubVerifier(new(PaymentWebhookStatus.Ignored, "PAYMENT_EVENT_IGNORED"));
+        var verifier = new StubProvider(new(PaymentProviderEventStatus.Ignored, "PAYMENT_EVENT_IGNORED"));
         var fulfillment = new StubFulfillment(new(PaymentApplyStatus.Applied, "PAYMENT_APPLIED"));
         await using var factory = new PaymentFactory(verifier, fulfillment);
         using var client = SecureClient(factory);
@@ -218,7 +345,7 @@ public sealed class PaymentSecurityTests
         Assert.Equal(1, Count(sql, "GRANT EXECUTE ON FUNCTION private.payment_apply_verified"));
     }
 
-    private static StripePaymentWebhookVerifier Verifier() => new(
+    private static StripePaymentProvider Verifier() => new(
         new StripeWebhookOptions { EndpointSecret = Secret, LiveMode = true },
         Catalog(), new FixedTimeProvider(Now));
 
@@ -299,10 +426,11 @@ public sealed class PaymentSecurityTests
         public override DateTimeOffset GetUtcNow() => value;
     }
 
-    private sealed class StubVerifier(PaymentWebhookResult result) : IPaymentWebhookVerifier
+    private sealed class StubProvider(PaymentProviderEventResult result) : IPaymentProvider
     {
+        public string ProviderId => "stripe";
         public int CallCount { get; private set; }
-        public PaymentWebhookResult Verify(ReadOnlySpan<byte> rawBody, string? signatureHeader)
+        public PaymentProviderEventResult VerifyWebhook(ReadOnlyMemory<byte> rawBody, string? signatureHeader)
         {
             CallCount++;
             return result;
@@ -316,13 +444,14 @@ public sealed class PaymentSecurityTests
         public Task<PaymentApplyResult> ApplyAsync(VerifiedPaymentEvent payment,
             CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             CallCount++;
             LastPayment = payment;
             return Task.FromResult(result);
         }
     }
 
-    private sealed class PaymentFactory(IPaymentWebhookVerifier? verifier, IPaymentFulfillmentService fulfillment)
+    private sealed class PaymentFactory(IPaymentProvider? verifier, IPaymentFulfillmentService fulfillment)
         : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -340,7 +469,7 @@ public sealed class PaymentSecurityTests
                 services.AddSingleton<TimeProvider>(new FixedTimeProvider(Now));
                 if (verifier is not null)
                 {
-                    services.RemoveAll<IPaymentWebhookVerifier>();
+                    services.RemoveAll<IPaymentProvider>();
                     services.AddSingleton(verifier);
                 }
                 services.RemoveAll<IPaymentFulfillmentService>();

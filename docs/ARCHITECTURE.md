@@ -1357,3 +1357,19 @@ migration, mutation endpoint hoặc ledger thứ hai. `/v1/credits` giữ nguyê
 WinUI thêm route Account theo MVVM/design tokens, responsive cards, keyboard-focusable Refresh, polite live status và các trạng
 thái loading/error/empty/success riêng. Shell badge chỉ cập nhật từ snapshot đã được adapter validate. Account/cloud failure không
 đi vào Core file pipeline và không chặn mở project, edit, Apply, build, pack hay export.
+
+## Payment provider abstraction từ PLAN 94
+
+`IPaymentProvider` là provider-neutral boundary nhận exact raw webhook bytes và trả typed event result
+`Verified/Pending/Ignored/Invalid/Retryable`. `PaymentProviderResolver` chỉ resolve provider ID server-side và fail closed khi
+provider thiếu, sai ID hoặc đăng ký trùng. `IPaymentApplicationService` là orchestration duy nhất: chỉ typed `Verified` event có
+provider identity nhất quán mới được chuyển tới `IPaymentFulfillmentService`; mọi trạng thái khác không chạm ledger.
+
+`StripePaymentProvider` là adapter cụ thể hiện có của PLAN 84. Stripe signature header, HMAC/timestamp, event taxonomy, live mode
+và Checkout JSON không rò vào contract provider-neutral. Route duy nhất vẫn là `POST /v1/payments/webhooks/stripe`; không có
+checkout/status/success mutation endpoint, provider thứ hai, webhook thứ hai, wallet hoặc ledger thứ hai.
+
+Success fulfillment tiếp tục dùng nguyên transaction `private.payment_apply_verified → private.credit_grant` của PLAN 60/84/85.
+Pending event được acknowledge nhưng không grant; provider/config/database outage trả typed `Retryable`/HTTP 503 để provider
+retry, không fabricate success. Signed refund/failure/expiry event được ignore an toàn vì PLAN 94 không định nghĩa credit reversal
+policy. Production Stripe webhook deployment, live endpoint/secret/product và reconciliation vẫn chưa verified.
