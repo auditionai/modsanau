@@ -46,11 +46,11 @@ Các biện pháp RLS, credit concurrency, payment webhook, template encryption,
 
 ## Elevation và logging từ PLAN 02
 
-- Executable dùng Windows manifest chuẩn với `requestedExecutionLevel="requireAdministrator"` và `uiAccess="false"`.
+- Executable dùng Windows manifest chuẩn với `requestedExecutionLevel="asInvoker"` và `uiAccess="false"` từ PLAN 90.
 - Không có self-relaunch, `cmd.exe`, PowerShell, giả lập hoặc bypass UAC.
-- Toàn ứng dụng hiện chạy elevated theo yêu cầu sản phẩm; điều này làm tăng blast radius. Business/domain contract không phụ thuộc elevation để có thể tách `normal UI + elevated broker` về sau.
-- Product file-only hiện không còn cần ghi game installation, vì vậy `requireAdministrator` là technical debt cần
-  dedicated security/runtime review. Không thay manifest/elevation policy trong PLAN 51.
+- Toàn ứng dụng chạy unelevated; business/domain contract không phụ thuộc elevation. Installer/update tương lai là boundary riêng.
+- Product file-only không cần ghi game installation; PLAN 90 đã loại app-wide elevation sau compatibility gate dưới
+  medium-integrity token.
 - Normal application data chỉ nằm dưới `%LocalAppData%\AuditionModStudio`, không nằm trong installation directory.
 - Log rolling file có timestamp, level, structured properties và exception stack trace.
 - Source code không được ghi password, token, API/payment/encryption/signing secret vào log. Thông báo lỗi cho người dùng không hiển thị stack trace.
@@ -70,7 +70,8 @@ Policy PLAN 03 là application data thuộc Windows identity đang chạy proces
 - UAC consent bằng cùng administrator account: elevated process vẫn thuộc cùng identity, nên root vẫn là LocalAppData của tài khoản đó.
 - UAC credential prompt dùng administrator account khác: process elevated chạy bằng alternate credentials; LocalAppData có thể thuộc profile của administrator đó, không phải tài khoản đang sở hữu desktop ban đầu. Ứng dụng không tự đoán hoặc hard-code profile của desktop user.
 
-Hệ quả hiện tại là project/log/settings có thể xuất hiện trong profile của alternate administrator. Đây là technical debt do yêu cầu toàn app `requireAdministrator`. Hướng dài hạn là UI chạy unelevated và chỉ privileged operation đi qua elevated broker có protocol/path allowlist; PLAN 03 không thay đổi yêu cầu elevation.
+Các dữ liệu cũ từng được tạo bằng alternate administrator có thể nằm trong profile khác và không được auto-discover/copy.
+Runtime hiện unelevated; privileged operation tương lai chỉ được thêm qua PLAN riêng và broker có protocol/path allowlist.
 
 ## Settings boundary từ PLAN 04
 
@@ -730,7 +731,8 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 ## Privilege model review từ PLAN 75
 
 - Inventory không tìm thấy runtime operation cần high integrity: managed user paths, Credential Manager/DPAPI, owned ACL, archive/DDS child tools và writable export đều có thể chạy current-user. App-wide elevation tăng blast radius và alternate-admin UAC có thể đổi profile/data context.
-- ADR-0002 chọn migration future sang `asInvoker`; PLAN 75 không đổi manifest hiện tại, không implement broker và không silent self-elevate. Một PLAN compatibility riêng phải chạy standard-user real-tool/file pipeline trước khi thay manifest.
+- ADR-0002 chọn `asInvoker`; PLAN 90 đã chạy standard-user real-tool/file pipeline và đổi manifest, không implement broker
+  hoặc silent self-elevate.
 - Nếu privileged app install/update thật sự cần broker, protocol phải closed/versioned, operation/path/signature allowlisted, explicit UAC và atomic failure; không arbitrary command/copy/delete, credential hopping hoặc game path/install authority.
 - Existing same-user project/settings/cache/session giữ schema và profile. Alternate-admin-profile data không auto-scan/copy/take ownership; recovery chỉ explicit user-selected theo PLAN riêng.
 
@@ -811,7 +813,7 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - ACV workspace cwd chỉ phục vụ relative data protocol. Unexpected DLL cạnh standalone `acv.exe` bị reject. DirectXTex
   tool directory phải chỉ có exact re-hashed `texconv.exe` ngay trước launch.
 - `UseShellExecute=false`, raw `Arguments` rỗng, switches code-owned qua `ArgumentList`; không CMD/PowerShell/SendKeys.
-- Current `requireAdministrator` không đổi nên blast radius còn cao. Hash/DLL policy giảm planting nhưng không loại bỏ
+- Runtime `asInvoker` từ PLAN 90 giảm blast radius. Hash/DLL policy giảm planting nhưng không loại bỏ
   Administrator/same-user TOCTOU; đây không phải sandbox/anti-debug. Production signed package/native inventory chưa verified.
 
 ## API replay và abuse protection từ PLAN 82
@@ -924,3 +926,14 @@ diagnostic, input/tool bất biến và không tạo file ngoài workspace.
 `Invoke-SecurityTestMatrix.ps1` yêu cầu database loopback, exact ACV hash và App/Gateway build output rồi quét plaintext secret
 trên source, tests, docs, migrations/scripts/workflows, DLL/PDB/log/crash. Pattern scan không phải DLP tuyệt đối; Supabase live,
 production signing/CDN và concrete provider vẫn chưa được xác minh. Xem [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md).
+
+## Release penetration/crack-resistance review từ PLAN 90
+
+Internal manual review đủ tám path đã phát hiện và sửa hai finding: app-wide elevation và public PDB/source-path exposure.
+Runtime `asInvoker` giảm blast radius của parser/native tool; public artifact policy fail closed trước signing nếu còn symbol,
+source, private map/key hoặc fixture ACV/template đã biết. Không adopt obfuscation/AOT/anti-tamper làm security boundary.
+
+Patched desktop không tạo cloud authority vì Gateway vẫn xác thực/derive owner, price, entitlement, job/content/package/payment.
+Forged PostgreSQL role claim không đổi authenticated DB role/BYPASSRLS. Authorized plaintext workspace/output, same-user/Admin
+memory/TOCTOU và managed-code decompilation vẫn là residual risk được chấp nhận/ghi rõ. Paid beta production NO-GO cho tới khi
+đóng các blocker deployment/signing/redistribution/sign-off tại [RELEASE_PENETRATION_REVIEW.md](RELEASE_PENETRATION_REVIEW.md).

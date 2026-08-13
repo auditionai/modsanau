@@ -1100,7 +1100,7 @@ Open/recovery xác minh no-reparse tree rồi re-apply/read-back policy trước
 
 ## Privilege model decision từ PLAN 75
 
-[ADR-0002](ADR/0002-privilege-model.md) kết luận runtime file-only không có operation chứng minh cần Administrator toàn ứng dụng và chọn migration future sang unelevated `asInvoker`. PLAN 75 là review/ADR nên manifest vẫn `requireAdministrator`, `uiAccess=false`; không có broker hoặc self-elevation implementation.
+[ADR-0002](ADR/0002-privilege-model.md) kết luận runtime file-only không có operation chứng minh cần Administrator toàn ứng dụng. PLAN 90 đã hoàn tất migration sang unelevated `asInvoker`, `uiAccess=false`; không có broker hoặc self-elevation implementation.
 
 LocalApplicationData, Credential Manager/DPAPI, owned workspace ACL, ACV Tool 5/DirectXTex trong isolated workspace và writable user-selected export đều thuộc user context. Nếu future installer/update có privileged operation thật, broker phải separate/signed, explicit UAC, closed versioned protocol và exact canonical path/operation allowlist; không arbitrary command/path và không game authority. Migration phải giữ schema/data cùng identity, fail safely với alternate-admin profile và chạy standard-user/real-tool compatibility matrix trước manifest change.
 
@@ -1114,7 +1114,7 @@ khi upload. Script đã sẵn sàng cho `.exe/.dll/.msix/.msixbundle/.msi`; inst
 Private key chỉ thuộc certificate store/HSM/managed signing service trên protected runner; repository/workspace/CI
 artifact không nhận PFX/PEM/password. PR/push test workflow không tham chiếu production signing environment hoặc secret.
 Debug/local build unsigned vẫn hợp lệ; production workflow thiếu identity/tool/timestamp hoặc verify lỗi thì fail closed.
-`Package.appxmanifest` vẫn có publisher placeholder development và manifest runtime vẫn `requireAdministrator`; PLAN 76
+`Package.appxmanifest` vẫn có publisher placeholder development; runtime manifest dùng `asInvoker` từ PLAN 90. PLAN 76
 không đổi packaging/privilege. Xem `docs/APP_CODE_SIGNING.md` cho vận hành, rotation/revocation và trạng thái verification.
 
 ## App update signing và verification từ PLAN 77
@@ -1184,7 +1184,8 @@ verified executable, structured arguments, shell disabled và sanitized minimal 
 ACV giữ workspace cwd vì data/keydat protocol nhưng standalone tool policy reject unexpected adjacent DLL. DirectXTex
 rehash/no-reparse và yêu cầu exact single-file tool directory ngay trước start. Timeout/cancellation/process-tree kill và
 stdout/stderr semantics giữ nguyên. Xem [PROCESS_LAUNCH_HARDENING.md](PROCESS_LAUNCH_HARDENING.md) cho inventory và residual
-TOCTOU. Không có game process/install/launcher behavior; privilege manifest và signing/update authority không đổi.
+TOCTOU. Không có game process/install/launcher behavior; PLAN 90 chuyển runtime manifest sang `asInvoker`, còn
+signing/update authority không đổi.
 
 ## API replay và abuse protection từ PLAN 82
 
@@ -1297,3 +1298,14 @@ idempotency/ownership, real ACV fixture cho malformed archive và secret scan tr
 Runner fail closed khi thiếu dependency môi trường; platform-conditional skip được báo riêng và không được dùng để thay control
 không phụ thuộc platform. Core/local file pipeline vẫn độc lập Gateway; không có game discovery/install/launch/process/runtime
 behavior. Chi tiết tại [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md).
+
+## Release penetration/crack-resistance review từ PLAN 90
+
+Manual review tám attack path giữ crack-resistance tại server-authority boundary: patched client/local flag không cấp user,
+entitlement, price, credit, AI profile, package URL hoặc payment authority. Runtime đã chuyển sang `asInvoker`; không có broker,
+self-elevation hay privileged file/game operation. Release pipeline chuẩn bị public layout bằng exposure policy trước signing,
+loại symbols/source/private material và proprietary fixture thay vì giả định obfuscation bảo vệ authorization.
+
+Real PostgreSQL forged role claim không đổi `current_user`/BYPASSRLS hoặc cross-user visibility. ACV/DirectXTex vẫn dùng exact
+absolute verified process boundary dưới medium-integrity token. Production deployment/external review blockers không được đổi
+thành local PASS. Xem [RELEASE_PENETRATION_REVIEW.md](RELEASE_PENETRATION_REVIEW.md).

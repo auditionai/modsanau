@@ -13,13 +13,13 @@ public sealed class PrivilegeModelAdrTests
             "Credential Manager", "DPAPI", "ACV Tool 5", "DirectXTex", "user-selected",
             "least-privilege broker", "Protocol đóng", "Path allowlist", "UAC", "uiAccess=false",
             "Upgrade và backward compatibility", "alternate administrator", "Test plan",
-            "Rollback", "không đổi manifest", "game installation", "silent self-elevation",
+            "Rollback", "PLAN 90", "game installation", "silent self-elevation",
         ];
         foreach (var value in required) Assert.Contains(value, text, StringComparison.OrdinalIgnoreCase);
 
         var manifest = File.ReadAllText(Path.Combine(root, "src", "AuditionModStudio.App", "app.manifest"));
-        Assert.Contains("requireAdministrator", manifest, StringComparison.Ordinal);
-        Assert.DoesNotContain("asInvoker", manifest, StringComparison.Ordinal);
+        Assert.Contains("asInvoker", manifest, StringComparison.Ordinal);
+        Assert.DoesNotContain("requireAdministrator", manifest, StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot()

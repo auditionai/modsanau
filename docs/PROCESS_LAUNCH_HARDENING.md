@@ -47,7 +47,7 @@ Microsoft ghi nhận `SetDefaultDllDirectories` chỉ tác động process gọi
 Policy không phải sandbox. Same-user/Administrator có đủ quyền vẫn có thể race/replace file giữa final verification và
 OS image open. Defense hiện có là randomized protected workspace, canonical/no-reparse path, code-owned package identity,
 hash sát launch, restricted DLL search/environment và PLAN 80 monitoring. Không dùng anti-debug, kernel hook hoặc can thiệp
-process khác. Current `requireAdministrator` chưa đổi; ADR-0002 future `asInvoker` vẫn là hướng giảm blast radius.
+process khác. PLAN 90 đã chuyển runtime sang `asInvoker`; real ACV/DirectXTex gate PASS dưới medium-integrity token.
 
 Real ACV Tool 5 và DirectXTex may2026 x64 gates là compatibility authority. Production packaging/signing/SBOM và exact
 native dependency inventory của signed release vẫn `PRODUCTION NOT VERIFIED`.

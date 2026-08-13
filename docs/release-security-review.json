@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "plan": 90,
+  "reviewType": "internal-manual",
+  "independentCommissionedReview": false,
+  "attackPaths": [
+    { "id": "RPR-01", "name": "decompilation exposure", "status": "mitigated-with-residual-risk" },
+    { "id": "RPR-02", "name": "local license patch attempts", "status": "pass-server-authority" },
+    { "id": "RPR-03", "name": "API request manipulation", "status": "pass-local-not-live-verified" },
+    { "id": "RPR-04", "name": "template harvesting paths", "status": "accepted-product-residual" },
+    { "id": "RPR-05", "name": "temp/cache extraction", "status": "mitigated-with-residual-risk" },
+    { "id": "RPR-06", "name": "RLS bypass attempts", "status": "pass-local-not-live-verified" },
+    { "id": "RPR-07", "name": "update tampering", "status": "pass-contract-not-production-verified" },
+    { "id": "RPR-08", "name": "DLL search/path attacks", "status": "pass-local-with-toctou-residual" }
+  ],
+  "findings": [
+    { "id": "F-90-01", "severity": "high", "status": "fixed", "summary": "App-wide elevation increased parser and native-tool blast radius." },
+    { "id": "F-90-02", "severity": "medium", "status": "fixed", "summary": "Public Release publish exposed portable PDBs and absolute source paths." },
+    { "id": "F-90-03", "severity": "high", "status": "release-blocker", "summary": "Production signer, updater/CDN, Supabase/Stripe deployment and independent external review have no deployment evidence." }
+  ]
+}

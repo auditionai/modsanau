@@ -27,7 +27,8 @@ Model Review và renumber phần sau thành PLAN 76–101. Không có PLAN game 
 - PLAN đã hoàn thành: PLAN 74 — Protected Workspace Hardening.
 - Phạm vi PLAN 74: random managed workspace được harden bằng exact protected NTFS DACL owner/SYSTEM/Administrators, reparse/read-back gates, fail-safe partial cleanup và existing crash/concurrency ownership semantics; không plaintext global cache, raw-key logging hoặc secure-delete claim.
 - PLAN đã hoàn thành: PLAN 75 — Privilege Model Review.
-- Quyết định ADR-0002: runtime file-only không chứng minh nhu cầu app-wide elevation; thiết kế migration future sang unelevated `asInvoker`, broker chỉ khi có privileged operation thật với closed protocol/path allowlist. PLAN 75 không đổi manifest hoặc implement broker/UAC.
+- ADR-0002/PLAN 90: runtime file-only dùng unelevated `asInvoker`; broker chỉ khi có privileged operation thật với closed
+  protocol/path allowlist. Không implement broker/UAC trong runtime.
 - PLAN đã hoàn thành: PLAN 76 — App Code Signing.
 - Phạm vi PLAN 76: protected release signing workflow và fail-closed Authenticode/timestamp verification cho explicit
   app-owned EXE/DLL/package/installer artifact; private key chỉ ở certificate store/HSM/service ngoài repository.
@@ -264,5 +265,9 @@ Mỗi lần chỉ thực hiện một PLAN:
   vẫn fail-closed do thiếu authoritative written rights/provenance.
 - PLAN 89 — Security Test Matrix: đã triển khai ma trận 12/12 có runner fail-closed; bổ sung real PostgreSQL duplicate-charge/
   cross-user ownership và real ACV malformed-archive evidence. Không thay local evidence thành production claim.
-- PLAN kế tiếp trong batch được phê duyệt: PLAN 90 — Release Penetration / Crack-Resistance Review.
-  Xem [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md).
+- PLAN 90 — Release Penetration / Crack-Resistance Review: internal manual review đủ 8/8; sửa app-wide elevation bằng
+  `asInvoker`, loại public PDB/source/private artifact và tăng forged-role RLS evidence. Paid beta production vẫn NO-GO theo
+  các blocker live/signing/redistribution/external sign-off đã ghi trong review.
+- Batch PLAN 86–90 hoàn tất; dừng trước PLAN 91 — Remote Product Catalog (Game/Mod/Template Taxonomy).
+  Xem [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md) và
+  [RELEASE_PENETRATION_REVIEW.md](RELEASE_PENETRATION_REVIEW.md).

@@ -1453,6 +1453,11 @@ Before paid beta, commission/manual review focused on:
 
 Fix architectural weaknesses first; do not rely on adding more obfuscation to hide broken authorization.
 
+**Trạng thái triển khai:** internal manual review hoàn tất ở PLAN 90 với 8/8 attack path. Runtime chuyển sang unelevated
+`asInvoker`; public Release artifact loại/reject PDB/source/private map/key/proprietary fixture trước signing. Server authority
+không đổi. Paid beta vẫn NO-GO khi thiếu production signer/updater/CDN, live Supabase/Stripe evidence, redistribution approval
+và security-owner/external review theo risk policy. Xem `docs/RELEASE_PENETRATION_REVIEW.md`.
+
 ---
 
 # PHASE M — COMMERCIAL PLATFORM

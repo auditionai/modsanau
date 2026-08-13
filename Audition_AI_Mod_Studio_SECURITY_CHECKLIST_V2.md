@@ -61,6 +61,10 @@
 - [ ] Signing key not in repo/runner disk as plaintext.
 - [x] Third-party license inventory reviewed; `NOASSERTION` entries remain a commercial release blocker.
 - [x] Redistribution rights reviewed; ACV Tool/templates/game assets remain blocked pending written approval.
+- [x] Internal manual release penetration/crack-resistance review covers the exact eight PLAN 90 attack paths.
+- [x] Public Release artifact excludes PDB/source/private maps/keys and proprietary fixtures before signing.
+- [x] Runtime manifest is `asInvoker`; real file-only tools were tested from a medium-integrity standard-user token.
+- [ ] Independent commissioned penetration test/security-owner production sign-off completed if required by risk policy.
 
 ## Tests
 - [ ] First extract without `015.keydat` automatically provides AuditionVN selection `1`.

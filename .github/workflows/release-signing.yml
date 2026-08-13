@@ -58,9 +58,17 @@ jobs:
           -p:Version=${{ inputs.version }}
           -p:FileVersion=${{ inputs.version }}
           -p:AssemblyVersion=${{ inputs.version }}
+          -p:DebugType=None
+          -p:DebugSymbols=false
           -o artifacts/release/win-x64
           --no-restore
           --nologo
+      - name: Remove private symbols and reject public artifact exposure
+        shell: pwsh
+        run: >-
+          ./scripts/Protect-ReleaseArtifactExposure.ps1
+          -ArtifactRoot artifacts/release/win-x64
+          -Prepare
       - name: Include supply-chain records
         shell: pwsh
         run: |

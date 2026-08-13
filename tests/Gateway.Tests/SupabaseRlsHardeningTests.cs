@@ -117,6 +117,7 @@ public sealed class SupabaseRlsHardeningTests
             await AssertCatalogPolicyAsync(database);
             await AssertOwnerReadsAsync(database, owner, expectedRows: true);
             await AssertOwnerReadsAsync(database, stranger, expectedRows: false);
+            await AssertForgedRoleClaimCannotBypassAsync(database, stranger);
             await AssertDeniedAsync(database, owner,
                 "SELECT request_hash FROM private.credit_idempotency LIMIT 1");
             await AssertDeniedAsync(database, owner,
@@ -247,6 +248,26 @@ public sealed class SupabaseRlsHardeningTests
                 subject.ToString("D"));
             var exception = await Assert.ThrowsAsync<PostgresException>(() => ExecuteAsync(connection, sql));
             Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, exception.SqlState);
+        }
+        finally
+        {
+            await ExecuteAsync(connection, "RESET ROLE;");
+        }
+    }
+
+    private static async Task AssertForgedRoleClaimCannotBypassAsync(NpgsqlConnection connection, Guid stranger)
+    {
+        await ExecuteAsync(connection, "SET ROLE authenticated;");
+        try
+        {
+            await ScalarAsync(connection, "SELECT set_config('request.jwt.claim.sub', $1, false)",
+                stranger.ToString("D"));
+            await ScalarAsync(connection, "SELECT set_config('request.jwt.claim.role', 'service_role', false)");
+
+            Assert.Equal("authenticated", await ScalarAsync(connection, "SELECT current_user"));
+            Assert.Equal(false, await ScalarAsync(connection,
+                "SELECT rolbypassrls FROM pg_roles WHERE rolname=current_user"));
+            Assert.Equal(0L, await ScalarAsync(connection, "SELECT count(user_id) FROM private.credit_wallets"));
         }
         finally
         {

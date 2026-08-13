@@ -201,7 +201,8 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 7. Parser/native/tool zero-day và supply-chain compromise vẫn có thể tồn tại dù input bounds/hash pin.
 8. App binary/IP có thể bị decompile. Bảo vệ business authority bằng server boundary quan trọng hơn cố giữ client code bí mật.
 9. Prompt và AI output có thể chứa sensitive user content; retention/deletion policy phải được deployment/product owner chốt trước production.
-10. Runtime hiện vẫn `requireAdministrator` theo PLAN 02 cho đến migration gate sau PLAN 75; app-wide elevation làm tăng blast radius và có thể đổi profile khi UAC dùng alternate credential. ADR-0002 đã chọn future `asInvoker`, nhưng chưa triển khai.
+10. PLAN 90 đã chuyển runtime sang `asInvoker` và verify file-only/real-tool gates dưới medium-integrity token. Dữ liệu lịch
+    sử trong alternate-admin profile không được auto-discover; installer/update elevation vẫn là boundary chưa production-verified.
 
 ## Security gates tối thiểu trước production
 
@@ -325,3 +326,13 @@ Residual risk: local PostgreSQL không đại diện đầy đủ topology/role/
 provenance; regex secret scan có thể bỏ sót dữ liệu tùy ý; malformed fuzz corpus còn hữu hạn. PLAN 90 phải review thủ công các
 đường decompile/license patch/API manipulation/template harvesting/temp-cache/RLS/update/DLL loading mà không coi obfuscation là
 authorization boundary.
+
+## Release adversarial review từ PLAN 90
+
+Review tám path xác nhận business authority không nằm trong managed client. Hai mitigation mới giảm attack surface/exposure:
+runtime `asInvoker` thay app-wide elevation, và public Release layout không mang PDB/source/private map/key/proprietary fixture.
+RLS adversarial test còn chứng minh string claim `service_role` không đổi actual authenticated role, BYPASSRLS hay visibility.
+
+Residual risk còn lại: decompile managed IL/IP, authorized template/plaintext output recovery, same-user/Admin memory/TOCTOU,
+production authenticator/role topology, signer/HSM/CDN/installer, live TLS/WAF/rate limit/Supabase/Stripe và external independent
+review. Đây là release blockers/accepted product limits tương ứng, không được “fix” bằng client anti-tamper hoặc hardware DRM.

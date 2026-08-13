@@ -1,12 +1,15 @@
 # ADR-0002: Privilege model cho file-only editor
 
-- Trạng thái: Accepted migration design; manifest hiện tại chưa đổi trong PLAN 75
+- Trạng thái: Implemented ở PLAN 90; runtime manifest dùng `asInvoker`
 - Ngày: 2026-08-12
 - Chủ sở hữu: Product Architecture, Desktop Security, Release Engineering
 
 ## Quyết định
 
-V1 hiện tại vẫn giữ `requestedExecutionLevel="requireAdministrator"` để bảo toàn backward compatibility của PLAN 02 trong PLAN review-only này. Tuy nhiên inventory không chứng minh nhu cầu elevation cho toàn ứng dụng file-only. Release direction được chấp nhận là migration sang **unelevated desktop app (`asInvoker`)** ở PLAN riêng sau compatibility gate.
+PLAN 90 đã hoàn tất migration từ `requestedExecutionLevel="requireAdministrator"` sang **unelevated desktop app
+(`asInvoker`)** sau khi inventory không tìm thấy operation runtime nào cần elevation. Full Debug/Release, real ACV Tool 5,
+real DirectXTex, App XAML/build và file-only Product Gate C đều PASS dưới Windows medium-integrity token không thuộc
+Administrators. Installer/updater vẫn là boundary riêng và chưa production-verified.
 
 Không implement broker chỉ để biện minh cho elevation. Nếu một operation tương lai thật sự cần privilege, nó phải có PLAN/ADR riêng và dùng least-privilege broker; UI/editor, network/auth, parsing, image/DDS, archive build trong owned workspace và export tới writable user-selected destination vẫn unelevated.
 
@@ -31,7 +34,7 @@ Không silent self-elevation, credential hopping, UAC bypass hoặc game-install
 
 Không có Registry HKLM write, service/driver installation, protected Program Files mutation, firewall/system configuration, process injection hoặc game-folder mutation trong runtime inventory.
 
-## Rủi ro của toàn-app elevation hiện tại
+## Rủi ro của toàn-app elevation đã được loại khỏi runtime
 
 - Parser, native tool, image/archive input và UI đều chạy với high integrity, làm tăng blast radius của bug hoặc malicious file.
 - Drag/drop, shell integration và IPC với unelevated process có thể bị hạn chế bởi integrity boundary.
@@ -41,7 +44,7 @@ Không có Registry HKLM write, service/driver installation, protected Program F
 
 ## Migration sang unelevated app
 
-1. PLAN riêng đổi manifest từ `requireAdministrator` sang `asInvoker`; PLAN 75 không sửa manifest.
+1. PLAN 90 đổi manifest từ `requireAdministrator` sang `asInvoker`; PLAN 75 trước đó chỉ đưa ra quyết định.
 2. Chạy compatibility matrix trên supported Windows/x64 với standard user, admin user không elevated và UAC alternate credentials.
 3. Chứng minh read/write LocalApplicationData, Credential Manager, DPAPI cache, protected workspace, `acv.exe`, DirectXTex, Create/Open/Edit/Apply/Build/Export.
 4. Export tới directory writable phải PASS; protected destination phải trả structured access-denied và không UAC prompt tự phát.
@@ -76,7 +79,7 @@ Protocol đóng, versioned và authenticated theo process/session:
 - User từ chối/cancel UAC: operation privileged fail/cancel; local editor tiếp tục hoạt động.
 - Không auto-relaunch toàn app elevated sau access-denied export.
 
-## Test plan bắt buộc cho migration
+## Test plan và evidence migration
 
 1. Static manifest `asInvoker`, `uiAccess=false`; không `runas`, self-relaunch, PowerShell/CMD elevation.
 2. Standard-user smoke: startup/settings/log/auth/session/cache/workspace/create/open/edit/apply/build/export.
@@ -98,4 +101,6 @@ Protocol đóng, versioned và authenticated theo process/session:
 
 ## Non-scope
 
-PLAN 75 không đổi manifest, không implement broker/installer/updater, không thêm UAC code và không cấp quyền game installation, registry/game discovery, launch, patch, backup/restore hoặc runtime automation.
+PLAN 90 không implement broker/installer/updater, không thêm UAC code và không cấp quyền game installation,
+registry/game discovery, launch, patch, backup/restore hoặc runtime automation. Một số compatibility scenario lịch sử
+(alternate-admin profile và upgrade từ bản phát hành thực tế) vẫn cần release QA, nhưng không phải lý do nâng toàn app.
