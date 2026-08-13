@@ -336,3 +336,13 @@ RLS adversarial test còn chứng minh string claim `service_role` không đổi
 Residual risk còn lại: decompile managed IL/IP, authorized template/plaintext output recovery, same-user/Admin memory/TOCTOU,
 production authenticator/role topology, signer/HSM/CDN/installer, live TLS/WAF/rate limit/Supabase/Stripe và external independent
 review. Đây là release blockers/accepted product limits tương ứng, không được “fix” bằng client anti-tamper hoặc hardware DRM.
+
+## Remote catalog residual risk từ PLAN 91
+
+Authenticated Gateway cộng chữ ký document, strict schema/relationship validation, monotonic revision và atomic verified cache
+giảm nguy cơ catalog giả, tamper, rollback và cache corruption. Catalog không cấp entitlement và không chứa executable/game-path
+authority, nên client patch hoặc field premium giả không tạo commercial/runtime capability.
+
+Residual risk gồm catalog signing key hoặc Gateway configuration bị compromise, key rotation sai, authorized metadata độc hại
+nhưng vẫn nằm trong bounded schema, đồng hồ/rollback policy nhiều thiết bị và thiếu live publication/monitoring evidence. Local
+contract tests không chứng minh production signer, TLS edge, CDN, availability hoặc incident response.

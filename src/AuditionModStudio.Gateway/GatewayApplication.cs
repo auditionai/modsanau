@@ -55,6 +55,10 @@ public static class GatewayApplication
         services.AddSingleton<IPremiumTemplatePrivateStorage, UnavailablePremiumTemplatePrivateStorage>();
         services.AddSingleton<IPremiumTemplateDistributionService,
             UnavailablePremiumTemplateDistributionService>();
+        services.AddSingleton<IProductCatalogDocumentService>(
+            ConfiguredProductCatalogDocumentService.TryCreate(configuration, out var productCatalog)
+                ? productCatalog!
+                : new UnavailableProductCatalogDocumentService());
         services.AddSingleton(TimeProvider.System);
         if (AiPricingCatalog.TryFromConfiguration(configuration, out var pricingCatalog))
         {

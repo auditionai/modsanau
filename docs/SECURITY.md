@@ -937,3 +937,15 @@ Patched desktop không tạo cloud authority vì Gateway vẫn xác thực/deriv
 Forged PostgreSQL role claim không đổi authenticated DB role/BYPASSRLS. Authorized plaintext workspace/output, same-user/Admin
 memory/TOCTOU và managed-code decompilation vẫn là residual risk được chấp nhận/ghi rõ. Paid beta production NO-GO cho tới khi
 đóng các blocker deployment/signing/redistribution/sign-off tại [RELEASE_PENETRATION_REVIEW.md](RELEASE_PENETRATION_REVIEW.md).
+
+## Remote Product Catalog từ PLAN 91
+
+Catalog chính thức là server/release metadata đã ký, không phải arbitrary JSON hoặc client setting. Desktop chỉ chấp nhận
+envelope schema-v1 có key ID nằm trong pinned verification set, chữ ký ES256 hợp lệ, revision không rollback, quan hệ
+Game/Mod/Template/Manifest đầy đủ và exact trusted template hash. Cache local là derived data và phải verify lại khi offline;
+tamper/corrupt/unknown schema không được publish hoặc thay cache hợp lệ.
+
+Catalog không mang executable path/argument, game install path, registry/launcher authority, secret, URL tải private hoặc quyền
+entitlement. `RequiresPremiumEntitlement=true` không cấp access; PLAN 70/71 vẫn là authority duy nhất. Server config hiện chỉ
+nhận pre-signed document; private catalog signing key không vào process desktop, repository hoặc log. Production key rotation,
+signed-document publication, live Gateway/TLS và operational rollback policy vẫn **NOT VERIFIED**.

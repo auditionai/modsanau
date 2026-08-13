@@ -78,6 +78,25 @@ public static class TrustedGatewayEndpoints
             .RequireAuthorization()
             .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
 
+        endpoints.MapGet("/v1/product-catalog", async (HttpContext context,
+                IProductCatalogDocumentService service, CancellationToken cancellationToken) =>
+            {
+                var result = await service.GetAsync(cancellationToken).ConfigureAwait(false);
+                if (!IsSafeDiagnosticCode(result.DiagnosticCode)
+                    || result.Status == ProductCatalogDocumentStatus.Succeeded
+                    && (result.Document.IsDefaultOrEmpty || result.Document.Length > 4 * 1024 * 1024
+                        || string.IsNullOrWhiteSpace(result.ETag)))
+                    return InvalidTrustedResponse();
+                if (result.Status != ProductCatalogDocumentStatus.Succeeded)
+                    return SafeProblem(StatusCodes.Status503ServiceUnavailable,
+                        "Product catalog is unavailable.", result.DiagnosticCode);
+                context.Response.Headers.ETag = result.ETag;
+                context.Response.Headers.CacheControl = "private, no-cache";
+                return Results.Bytes(result.Document.ToArray(), "application/json; charset=utf-8");
+            })
+            .RequireAuthorization()
+            .RequireRateLimiting(GatewayAbuseProtectionDefaults.AuthenticatedPolicy);
+
         endpoints.MapPost("/v1/ai/pricing/quote", async (ClaimsPrincipal principal,
                 AiPricingQuoteRequest? request,
                 IAiPricingService service,

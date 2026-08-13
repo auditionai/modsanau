@@ -3,6 +3,7 @@ using AuditionModStudio.AI;
 using AuditionModStudio.Core.AI;
 using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Auth;
+using AuditionModStudio.Core.Catalog;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Diagnostics;
@@ -232,6 +233,24 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<IImageImportService>(),
                     services.GetRequiredService<IDeviceSessionBindingStore>())
                 : new UnavailableAiStudioService();
+        });
+        builder.Services.AddSingleton<IProductCatalogService>(services =>
+        {
+            var url = Environment.GetEnvironmentVariable("AUDITION_GATEWAY_URL");
+            var keyId = Environment.GetEnvironmentVariable("AUDITION_PRODUCT_CATALOG_KEY_ID");
+            var publicKey = Environment.GetEnvironmentVariable("AUDITION_PRODUCT_CATALOG_PUBLIC_KEY_PEM");
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var gatewayUri)
+                || string.IsNullOrWhiteSpace(keyId) || keyId.Length > 64
+                || string.IsNullOrWhiteSpace(publicKey) || publicKey.Length > 16_384)
+                return new UnavailableProductCatalogService();
+            var catalogOptions = new ProductCatalogOptions(gatewayUri,
+                paths.CacheDirectory,
+                System.Collections.Immutable.ImmutableDictionary<string, string>.Empty.Add(keyId, publicKey));
+            return catalogOptions.IsValid
+                ? new ProductCatalogService(services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(), catalogOptions,
+                    services.GetRequiredService<IPathSecurity>())
+                : new UnavailableProductCatalogService();
         });
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();

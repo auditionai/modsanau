@@ -1309,3 +1309,21 @@ loại symbols/source/private material và proprietary fixture thay vì giả đ
 Real PostgreSQL forged role claim không đổi `current_user`/BYPASSRLS hoặc cross-user visibility. ACV/DirectXTex vẫn dùng exact
 absolute verified process boundary dưới medium-integrity token. Production deployment/external review blockers không được đổi
 thành local PASS. Xem [RELEASE_PENETRATION_REVIEW.md](RELEASE_PENETRATION_REVIEW.md).
+
+## Remote Product Catalog từ PLAN 91
+
+`IProductCatalogService` là boundary read-only cho taxonomy chính thức `Game → Mod → Template/Manifest`. Document schema-v1
+dùng canonical `GameId`, `ModId`, `TemplateId`, `TemplateVersion` và exact template SHA-256/build; revision monotonic của catalog
+khác template version opaque. Metadata không chứa executable, argument, install path, registry, launcher, secret hoặc storage
+credential. Cờ premium chỉ mô tả yêu cầu truy cập và không cấp entitlement.
+
+Gateway authenticated phục vụ exact signed envelope từ server configuration tại `/v1/product-catalog`, kèm ETag dẫn xuất từ
+bytes. Desktop pin tối đa ba public key ES256/P-256, verify chữ ký trước parse payload, rồi validate schema, bounds, duplicate,
+parent relationship và rollback trước khi publish immutable snapshot. Unknown JSON member bị từ chối. Private signing key và
+quy trình tạo document không thuộc desktop/repository.
+
+Cache tại managed `Cache/ProductCatalog` chỉ ghi bằng temporary file, durable flush và atomic replace sau khi toàn document
+PASS. Offline load luôn verify lại chữ ký/schema; cache thiếu/hỏng không trở thành authority. Refresh được serialize và
+cancellable; snapshot cũ/project đã tạo không bị mutate hoặc rebind khi revision mới xuất hiện. Cấu hình/key/session/network
+thiếu bind service unavailable và không ảnh hưởng local project/editor/build/export. Live signing key, Gateway deployment và
+catalog production chưa verified.

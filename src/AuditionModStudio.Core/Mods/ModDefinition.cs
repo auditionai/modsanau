@@ -18,7 +18,38 @@ public sealed class ModDefinition
         string description,
         AuditionArchiveTemplate archiveTemplate,
         ModKeydatStrategy keydatStrategy,
+        string compatibilityInformation)
+        : this(id, gameId, displayName, category, coverImageRelativePath, description, archiveTemplate,
+            keydatStrategy, null, compatibilityInformation)
+    {
+    }
+
+    public ModDefinition(
+        ModId id,
+        GameId gameId,
+        string displayName,
+        ModCategory category,
+        ModRelativePath coverImageRelativePath,
+        string description,
+        AuditionArchiveTemplate archiveTemplate,
+        ModKeydatStrategy keydatStrategy,
         ModRelativePath installRelativePath,
+        string compatibilityInformation)
+        : this(id, gameId, displayName, category, coverImageRelativePath, description, archiveTemplate,
+            keydatStrategy, (ModRelativePath?)installRelativePath, compatibilityInformation)
+    {
+    }
+
+    private ModDefinition(
+        ModId id,
+        GameId gameId,
+        string displayName,
+        ModCategory category,
+        ModRelativePath coverImageRelativePath,
+        string description,
+        AuditionArchiveTemplate archiveTemplate,
+        ModKeydatStrategy keydatStrategy,
+        ModRelativePath? installRelativePath,
         string compatibilityInformation)
     {
         if (!id.IsValid)
@@ -41,7 +72,7 @@ public sealed class ModDefinition
             throw new ArgumentException("Mod definition requires a valid cover-image reference.", nameof(coverImageRelativePath));
         }
 
-        if (!installRelativePath.IsValid)
+        if (installRelativePath is { IsValid: false })
         {
             throw new ArgumentException("Mod definition requires a valid install-relative path.", nameof(installRelativePath));
         }
@@ -104,7 +135,7 @@ public sealed class ModDefinition
 
     public ModKeydatStrategy KeydatStrategy { get; }
 
-    public ModRelativePath InstallRelativePath { get; }
+    public ModRelativePath? InstallRelativePath { get; }
 
     public string CompatibilityInformation { get; }
 
