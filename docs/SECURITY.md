@@ -756,7 +756,7 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - Update metadata là untrusted bytes. Envelope/payload JSON strict, bounded, cấm unknown member; ES256 signature với
   update-specific domain được xác minh trước khi đọc URL/version/hash/publisher. Private update-manifest key không nằm
   trong client/repo và không reuse app/entitlement/template/payment key.
-- Candidate version bắt buộc bốn phần và lớn hơn installed version theo typed comparison. Equal/downgrade fail closed;
+- Candidate version bắt buộc bốn phần và so với installed version theo typed comparison. Equal trả typed `NoUpdate`, downgrade fail closed;
   không suy version/channel từ filename và chưa có rollback channel.
 - Signed URL vẫn bắt buộc HTTPS, không user-info/fragment; final response URI, declared/actual length và exact SHA-256
   phải khớp. Candidate ghi vào random app-owned staging; partial/hash-fail/cancel không tới installer.
@@ -1012,3 +1012,23 @@ Scanner reject traversal, duplicate path, PDB/source/map/test/fixture/log/privat
 `.ab/.acv/.audproj` và shell association/protocol ngoài scope. Uninstall không recursive-delete LocalApplicationData, project,
 export, Credential Manager, DPAPI cache hoặc workspace. ACV redistribution và production signing/legal/deployment evidence vẫn
 **NOT VERIFIED**. Xem [APP_INSTALLER.md](APP_INSTALLER.md).
+
+## Bảo mật application updater từ PLAN 96
+
+- Signed payload schema-v2 vẫn nằm trong envelope/domain ES256 của PLAN 77; signature được xác minh trước khi product,
+  channel, rollout, URI, hash hoặc publisher trở thành authority. Policy cài đặt pin riêng exact PLAN 95 MSIX identity,
+  `Stable`, x64, publisher subject/thumbprint và HTTPS artifact host allowlist.
+- Artifact chỉ stream có bound vào app-owned LocalApplicationData staging. Tên local do code sinh; `.partial` chỉ atomic-promote
+  sau exact actual length và SHA-256. Redirect khác signed URI, localhost/IP literal/non-HTTPS/non-443, reparse, truncated,
+  oversized hoặc hash mismatch không tới package/installer boundary.
+- `AppxManifest.xml` được đọc bounded, DTD disabled, và phải khớp package `AuditionAIModStudio`, application `App`, publisher,
+  candidate version và x64. Sau đó PLAN 77 WinVerifyTrust + exact signer mới chạy. Windows installer re-hash file lần cuối,
+  dùng typed PackageManager current-user API và verify resulting registered version.
+- Single-flight ngăn check/download/install race. Queued/running Build/Export defer trước download và được kiểm tra lại trước
+  handoff. Cancellation/failure dọn operation root; crash residue không được reuse làm verified cache. Diagnostic chỉ là code
+  ổn định, không log URL/token/path/private key.
+- Rollback là atomic failure semantics của Windows package deployment: không manual overwrite, cache rollback, downgrade hay
+  `ForceUpdateFromAnyVersion`. Handoff không shell/cmd/PowerShell/runas, không kill app; success chỉ báo restart required.
+- Production signer/HSM, timestamp, update public key/feed/CDN và actual trusted deployment vẫn **NOT VERIFIED**. Vì vậy
+  default composition dùng `UnavailableAppUpdateService` và không có unsigned/development fallback. Local file editor,
+  Apply/build/export vẫn độc lập; updater không có authority với Audition game.

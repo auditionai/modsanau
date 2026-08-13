@@ -42,7 +42,10 @@ public static partial class UpdateManifestCodec
         try
         {
             var dto = JsonSerializer.Deserialize<ManifestDto>(json, StrictJson);
-            if (dto is not { SchemaVersion: 1 } || !TryVersion(dto.Version, out var version)
+            if (dto is not { SchemaVersion: 2, Channel: "Stable" }
+                || string.IsNullOrWhiteSpace(dto.ProductId) || dto.ProductId.Length > 64
+                || dto.RolloutBasisPoints is < 0 or > 10_000
+                || !TryVersion(dto.Version, out var version)
                 || !ValidFileName(dto.ArtifactFileName)
                 || !Uri.TryCreate(dto.ArtifactUri, UriKind.Absolute, out var uri)
                 || uri.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(uri.UserInfo)
@@ -51,7 +54,8 @@ public static partial class UpdateManifestCodec
                 || !Sha256Regex().IsMatch(dto.Sha256 ?? string.Empty)
                 || string.IsNullOrWhiteSpace(dto.PublisherSubject) || dto.PublisherSubject.Length > 512
                 || !ThumbprintRegex().IsMatch(dto.PublisherThumbprint ?? string.Empty)) return false;
-            manifest = new(version!, dto.ArtifactFileName!, uri, dto.ContentLength,
+            manifest = new(dto.ProductId!, AppUpdateChannel.Stable, dto.RolloutBasisPoints,
+                version!, dto.ArtifactFileName!, uri, dto.ContentLength,
                 dto.Sha256!.ToUpperInvariant(), dto.PublisherSubject!,
                 dto.PublisherThumbprint!.ToUpperInvariant());
             return true;
@@ -76,8 +80,11 @@ public static partial class UpdateManifestCodec
     {
         if (string.IsNullOrWhiteSpace(value) || value.Length > 128 || value != Path.GetFileName(value)
             || value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return false;
-        return Path.GetExtension(value).ToLowerInvariant() is ".exe" or ".msix" or ".msixbundle" or ".msi";
+        return Path.GetExtension(value).Equals(".msix", StringComparison.OrdinalIgnoreCase);
     }
+
+    internal static bool IsValidThumbprint(string? value) =>
+        ThumbprintRegex().IsMatch(value ?? string.Empty);
 
     [GeneratedRegex("^[0-9]{1,5}\\.[0-9]{1,5}\\.[0-9]{1,5}\\.[0-9]{1,5}$", RegexOptions.CultureInvariant)]
     private static partial Regex VersionRegex();
@@ -87,7 +94,7 @@ public static partial class UpdateManifestCodec
     private static partial Regex ThumbprintRegex();
 
     private sealed record EnvelopeDto(int SchemaVersion, string? Payload, string? Signature);
-    private sealed record ManifestDto(int SchemaVersion, string? Version, string? ArtifactFileName,
-        string? ArtifactUri, long ContentLength, string? Sha256, string? PublisherSubject,
-        string? PublisherThumbprint);
+    private sealed record ManifestDto(int SchemaVersion, string? ProductId, string? Channel,
+        int RolloutBasisPoints, string? Version, string? ArtifactFileName, string? ArtifactUri,
+        long ContentLength, string? Sha256, string? PublisherSubject, string? PublisherThumbprint);
 }

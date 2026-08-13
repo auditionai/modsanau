@@ -1120,9 +1120,9 @@ không đổi packaging/privilege. Xem `docs/APP_CODE_SIGNING.md` cho vận hàn
 ## App update signing và verification từ PLAN 77
 
 `AuditionModStudio.Updater` sở hữu verification/orchestration UI-independent. Signed envelope schema-v1 chứa exact raw
-manifest payload và ES256/P-256 signature có domain `AUDITION_APP_UPDATE_MANIFEST_V1`; payload chỉ được parse/dùng sau
-signature verification. Manifest bind version bốn phần, HTTPS artifact URI, exact filename/length/SHA-256 và expected
-Authenticode subject/thumbprint. Update-manifest public key tách khỏi app signing, entitlement và template keys; bounded
+manifest payload schema-v2 và ES256/P-256 signature có domain `AUDITION_APP_UPDATE_MANIFEST_V1`; payload chỉ được parse/dùng sau
+signature verification. Manifest bind product `AuditionAIModStudio`, channel `Stable`, rollout basis points, version bốn phần,
+HTTPS artifact URI, exact filename/length/SHA-256 và expected Authenticode subject/thumbprint. Update-manifest public key tách khỏi app signing, entitlement và template keys; bounded
 verifier set cho phép rollover tối đa ba public key trong cửa sổ được phê duyệt.
 
 Pipeline là `signed envelope → verify signature → strict manifest parse → typed newer-version gate → randomized staging
@@ -1130,9 +1130,9 @@ download → exact URI/length/SHA-256 → WinVerifyTrust + exact signer → IVer
 trước bước cuối không gọi installer và cleanup staging best-effort với stable diagnostic không chứa path. Production
 `HttpClientHandler` phải tắt redirect; service vẫn reject final response URI khác signed URI.
 
-PLAN 77 chỉ cung cấp verification và verified-installer boundary. Installer/swap, rollback, channel/staged rollout,
-deferral lúc build/export và UI thuộc PLAN 96. Chưa có live manifest key, release endpoint hoặc production installer;
-default App composition chưa wire updater nên local editor không phụ thuộc network/update availability.
+PLAN 77 cung cấp verification và verified-installer boundary; PLAN 96 mở rộng đúng boundary này bằng MSIX identity, rollout,
+deferral và typed Windows handoff. Chưa có live manifest key, release endpoint hoặc production signer; default App composition
+wire `UnavailableAppUpdateService` fail-closed nên local editor không phụ thuộc network/update availability.
 
 ## Binary obfuscation strategy từ PLAN 78
 
@@ -1391,3 +1391,29 @@ Protected CI ký/timestamp app-owned EXE/DLL trước package generation, rồi 
 package được content/identity/version/signature/hash scan trước upload. PLAN 77 vẫn là pre-install update trust boundary; channel,
 staged rollout/rollback/deferral thuộc PLAN 96. Chi tiết tại [APP_INSTALLER.md](APP_INSTALLER.md). Production signer,
 timestamp, exact publisher và redistribution vẫn **NOT VERIFIED**.
+
+## Audition AI Mod Studio Application Updater từ PLAN 96
+
+PLAN 96 không tạo updater hoặc trust domain thứ hai. `AppUpdateService` tiếp tục dùng envelope ES256/domain và
+WinVerifyTrust của PLAN 77, đồng thời dùng đúng MSIX identity của PLAN 95. Signed payload schema-v2 ràng buộc product,
+strongly typed `Stable` channel, rollout basis points, four-part version, exact artifact URI/length/SHA-256 và signer.
+`AppUpdatePolicy` pin độc lập product/package/application/x64/publisher/thumbprint và allowlist tối đa tám HTTPS host; localhost,
+IP literal, non-443, user-info, fragment và redirect/final URI khác signed URI đều bị từ chối.
+
+Luồng là verify envelope/signature trước parse authority, kiểm tra product/channel/publisher/version/rollout, defer khi
+Background Task Manager có Build/Export queued/running, stream có bound vào random app-owned operation directory với tên
+`candidate.msix.partial`, exact length/SHA-256 rồi atomic rename thành `candidate.msix`. Candidate sau đó phải khớp
+`AppxManifest.xml` package name `AuditionAIModStudio`, application `App`, publisher, four-part version và x64 trước
+WinVerifyTrust. Activity được kiểm tra lại ngay trước `IVerifiedAppUpdateInstaller`; single-flight ngăn race download/install.
+
+`WindowsMsixUpdateInstaller` re-hash exact verified file ngay trước typed `PackageManager.AddPackageAsync` với
+`DeploymentOptions.None`, rồi kiểm tra package/version đã đăng ký cho current user. Không shell, custom action, runas,
+process kill hoặc `ForceUpdateFromAnyVersion`; failure để package đang dùng cho Windows quản lý, không manual file rollback.
+Equal version trả `NoUpdate`; downgrade bị chặn; ngoài rollout hoặc active build/export trả `Deferred`; thành công báo
+restart required nhưng không tự đóng app. Partial chỉ tồn tại trong random operation root và được dọn ở success/failure/cancel;
+crash residue không được discover/reuse, stale directory có dạng chính xác chỉ được dọn sau bảy ngày.
+
+Không có automatic scheduler, mandatory update, repair/same-version reinstall, Beta/Dev channel, resume, installer cache hay UI
+trong PLAN 96. Production feed/CDN/public verification key/certificate/HSM/timestamp và trusted deployment vẫn
+**NOT VERIFIED**; App đăng ký unavailable service có structured fail-closed result, nên open/edit/Apply/build/export offline
+không thay đổi. Updater chỉ cập nhật Audition AI Mod Studio và không có game path/process/registry/archive/install authority.

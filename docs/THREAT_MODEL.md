@@ -172,7 +172,7 @@ Priority dưới đây là inherent risk trước control. Residual được đ�
 | Path traversal/reparse | Desktop Infrastructure | Central path abstraction, no follow reparse, atomic writes | `PathSecurityTests`, workspace/project/archive tests | Re-run on supported filesystems/release image |
 | Tool replacement/DLL hijack | Archive/DDS + Release | Absolute path, pinned SHA-256, isolated cwd, prelaunch check | archive integrity/process runner tests | Signed tool package; document TOCTOU residual |
 | Temp disclosure | Desktop Infrastructure | Random workspace, protected DACL, lifecycle cleanup, crash recovery | workspace ACL/reparse/cleanup/recovery/concurrency tests | Same-account/admin/process-memory residual |
-| Update tampering | Release Engineering | Signed/timestamped package; ES256 manifest, exact URL/hash/version/publisher | `AppCodeSigningPolicyTests`, `AppUpdateVerificationTests` | Production signing key/HSM, release endpoint and E2E installer gate |
+| Update tampering | Release Engineering | Signed/timestamped MSIX; ES256 product/channel/rollout manifest, exact HTTPS origin/length/hash/version/publisher, MSIX identity, single-flight typed deployment | `AppCodeSigningPolicyTests`, `AppUpdateVerificationTests`, `MsixPackageIdentityVerifierTests` | Production signing key/HSM, release endpoint/CDN and actual trusted deployment gate |
 | Dependency compromise | Release Engineering | Lock/pin, vulnerability audit, provenance/SBOM | `dotnet list package --vulnerable` gate | SBOM/license/provenance pipeline |
 | Prompt/preset authority escalation | AI Desktop + Gateway | Typed allowlist, schema/version bounds, selection-only behavior | `PromptPresetTests`, `LocalPromptPresetStoreTests`, `AiStudioViewModelTests` | Authenticated cloud preset adapter/store |
 | Premium bypass/distribution | Entitlement Backend + Storage | Signed scoped expiring ES256 grant, replay defense, signed manifest, private short-lived access, encrypted derived cache | `EntitlementGrantTests`, `PremiumTemplateDistributionTests`, `EncryptedPremiumTemplateCacheTests` | Durable catalog/record/nonce/private-storage deployment và download wiring |
@@ -395,3 +395,16 @@ Windows package deployment vulnerability, prerequisite/license drift, per-user s
 từ một release production lịch sử chưa tồn tại. Local unsigned/test deployment không chứng minh production trust, timestamp,
 enterprise policy, Store/CDN hoặc revocation/incident response. PLAN 96 phải reuse PLAN 77 verification và không tạo trust domain
 hay downloader thứ hai.
+
+## Updater residual risk từ PLAN 96
+
+Manifest replay không thể ép downgrade vì four-part installed-version comparison; rollout/channel/product và package identity
+đều nằm sau signed authority và trước Windows handoff. Random `.partial`, exact byte/hash, MSIX manifest check, WinVerifyTrust,
+single-flight và build/export deferral giảm supply-chain substitution, partial promotion, race và mất dữ liệu do restart cưỡng bức.
+Windows PackageManager với `DeploymentOptions.None` giữ atomic platform rollback/failure semantics; không có manual file swap,
+shell, elevation, game path hay game process authority.
+
+Residual risk gồm compromised update-signing key, production app certificate/HSM/runner/CDN account, same-user local process
+TOCTOU, Windows deployment vulnerability, rollout cohort tampering trên compromised client và outage. Default production updater
+fail closed vì live public key/feed/CDN/signer/timestamp chưa được cấu hình; local unsigned test evidence không chứng minh
+production update hay rollback thực tế.

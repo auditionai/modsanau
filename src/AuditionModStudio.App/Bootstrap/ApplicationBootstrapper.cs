@@ -33,6 +33,7 @@ using AuditionModStudio.Security;
 using AuditionModStudio.Dds;
 using AuditionModStudio.App.Shell;
 using AuditionModStudio.App.Home;
+using AuditionModStudio.Updater;
 using AuditionModStudio.App.Editor;
 using AuditionModStudio.App.Workspace;
 using AuditionModStudio.App.AiStudio;
@@ -270,6 +271,9 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();
         builder.Services.AddSingleton<IProjectResetService, ProjectResetService>();
         builder.Services.AddSingleton<ITextureApplyService, TextureApplyService>();
+        // Production update signing keys/feed/CDN are intentionally not configured in source.
+        // Local editing/build/export remains available while the updater fails closed.
+        builder.Services.AddSingleton<IAppUpdateService, UnavailableAppUpdateService>();
         builder.Services.AddSingleton(BackgroundTaskManagerOptions.Default);
         builder.Services.AddSingleton<BackgroundTaskManager>();
         builder.Services.AddSingleton<IBackgroundTaskManager>(services =>
