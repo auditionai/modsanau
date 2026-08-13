@@ -126,6 +126,30 @@ public sealed class ArchiveExportServiceTests
         Assert.False(File.Exists(context.DestinationPath));
     }
 
+    [Fact]
+    [Trait("Coverage", "Plan99")]
+    public async Task One_shot_failure_after_durable_copy_preserves_destination_and_retry_succeeds()
+    {
+        var operations = new OneShotFailureAfterDurableCopyOperations();
+        await using var context = new Context(fileOperations: operations);
+        var previous = Encoding.UTF8.GetBytes("previous standalone archive");
+        await File.WriteAllBytesAsync(context.DestinationPath, previous);
+
+        var interrupted = await context.Service.ExportAsync(
+            context.Request(ArchiveExportOverwritePolicy.ReplaceExisting));
+
+        Assert.Equal(ArchiveExportFailureReason.CopyFailed, interrupted.FailureReason);
+        Assert.Equal(previous, await File.ReadAllBytesAsync(context.DestinationPath));
+        Assert.Empty(context.TransactionArtifacts());
+
+        var retry = await context.Service.ExportAsync(
+            context.Request(ArchiveExportOverwritePolicy.ReplaceExisting));
+
+        Assert.True(retry.Succeeded, retry.DiagnosticCode);
+        Assert.Equal(context.SourceBytes, await File.ReadAllBytesAsync(context.DestinationPath));
+        Assert.Empty(context.TransactionArtifacts());
+    }
+
     private sealed class Context : IAsyncDisposable
     {
         private readonly string _root;
@@ -231,6 +255,29 @@ public sealed class ArchiveExportServiceTests
             }
             _inner.Replace(sourcePath, destinationPath, backupPath);
         }
+        public void Delete(string path) => _inner.Delete(path);
+    }
+
+    private sealed class OneShotFailureAfterDurableCopyOperations : IArchiveExportFileOperations
+    {
+        private readonly SystemArchiveExportFileOperations _inner = new();
+        private int _copyCount;
+
+        public bool FileExists(string path) => _inner.FileExists(path);
+        public long GetFileLength(string path) => _inner.GetFileLength(path);
+        public async Task CopyDurablyAsync(string sourcePath, string destinationPath, CancellationToken token)
+        {
+            await ((IArchiveExportFileOperations)_inner).CopyDurablyAsync(sourcePath, destinationPath, token);
+            if (Interlocked.Increment(ref _copyCount) == 1)
+            {
+                throw new IOException("Simulated crash after durable copy.");
+            }
+        }
+        public Task<string> ComputeSha256Async(string path, CancellationToken token) =>
+            _inner.ComputeSha256Async(path, token);
+        public void Move(string sourcePath, string destinationPath) => _inner.Move(sourcePath, destinationPath);
+        public void Replace(string sourcePath, string destinationPath, string backupPath) =>
+            _inner.Replace(sourcePath, destinationPath, backupPath);
         public void Delete(string path) => _inner.Delete(path);
     }
 

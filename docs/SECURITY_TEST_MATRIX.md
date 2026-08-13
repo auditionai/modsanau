@@ -43,3 +43,9 @@ scan nào. PostgreSQL phải là loopback; runner không tự kết nối stagin
 Ma trận chỉ đạt `PASS` khi runner và full Debug/Release suite cùng đạt. Hai case symlink phụ thuộc quyền tạo symlink của Windows
 được báo riêng trong run tổng; các boundary traversal khác vẫn phải chạy và PASS. Release thương mại vẫn chịu các blocker signing,
 redistribution và production verification đã ghi trong checklist/supply-chain record.
+
+## Overlay crash/recovery PLAN 99
+
+Ma trận 12/12 ở trên tiếp tục là security gate chuẩn. PLAN 99 thêm overlay thực thi tại [CRASH_RECOVERY_EVIDENCE.md](CRASH_RECOVERY_EVIDENCE.md), bao phủ ít nhất mười fault point trên archive pipeline, workspace, cache template mã hóa, immutable template publish, updater và PostgreSQL idempotency. Integration test exact-compare bảng tài liệu với typed evidence source, đồng thời kiểm tra residue inventory fail closed.
+
+Overlay không thay thế bất kỳ STM nào và chỉ PASS khi full Debug/Release, security matrix, release review, test archive thật và PostgreSQL gates đều báo kết quả thật. Skip do thiếu quyền symlink hoặc thiếu private fixture phải được ghi rõ, không được đổi thành PASS.

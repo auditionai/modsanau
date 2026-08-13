@@ -1454,3 +1454,11 @@ BC2/BC4/BC5/BC6H/BC7, legacy bitmask khác, Texture1D/3D, array và cubemap vẫ
 editor support. Matrix là test/evidence layer dùng lại `IDdsMetadataReader`, `IDdsPreviewService`, `IImageImportService`,
 `IDdsEncoder`, `IDdsMatchOriginalService` và `IDdsValidationService`; UI không gọi DirectXTex và archive operation vẫn chỉ qua
 `IAuditionArchiveService`/`IArchiveToolRunner`. Điểm cuối không thay đổi: DDS hoặc standalone `.ab`/`.acv`, không có game runtime.
+
+## Kiến trúc crash/recovery từ PLAN 99
+
+PLAN 99 giữ nguyên các transaction boundary hiện hữu và bổ sung bằng chứng fault-injection xác định. Extract chỉ ghi vào cây staging; scan chỉ publish kết quả hoàn chỉnh; Apply dùng candidate/backup; build/pack chỉ promote output đã verify; export durable-copy vào `.export.tmp`, verify rồi mới move/replace; updater chỉ đổi `.partial` thành candidate sau exact length/SHA-256. Cache template mã hóa và publish template admin đều commit bằng rename/move trong cùng managed root.
+
+Trạng thái recovery được phân loại thành committed, recoverable workspace, incomplete transaction, stale residue, corrupt artifact và unknown/untrusted. Unknown hoặc reparse-backed residue không bao giờ được tự trust hay promote. Workspace retained chỉ được phát hiện không mutation và reopen bằng exact ID sau hành động tường minh. Checkpoint observer của publisher là `internal`, không đọc environment/config và production constructor mặc định không có observer.
+
+Nguồn sự thật thực thi và checklist nằm tại [CRASH_RECOVERY_EVIDENCE.md](CRASH_RECOVERY_EVIDENCE.md) và [CRASH_RECOVERY_CHECKLIST.md](CRASH_RECOVERY_CHECKLIST.md). Kiến trúc vẫn file-only, không thêm game discovery/install/patch/launch hoặc runtime validation.

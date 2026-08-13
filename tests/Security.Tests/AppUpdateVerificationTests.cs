@@ -244,6 +244,35 @@ public sealed class AppUpdateVerificationTests : IDisposable
     }
 
     [Fact]
+    [Trait("Coverage", "Plan99")]
+    public async Task Failed_verified_handoff_is_cleaned_and_retry_redownloads_and_reverifies()
+    {
+        var bytes = "verified-update-candidate"u8.ToArray();
+        using (var failed = Create(bytes, installerSuccess: false))
+        {
+            var result = await failed.Service.VerifyAndInstallAsync(failed.Request);
+
+            Assert.Equal(AppUpdateFailureReason.InstallationFailed, result.FailureReason);
+            Assert.Equal(1, failed.Handler.CallCount);
+            Assert.Equal(1, failed.Package.CallCount);
+            Assert.Equal(1, failed.Authenticode.CallCount);
+            Assert.Equal(1, failed.Installer.CallCount);
+            Assert.False(Directory.EnumerateFileSystemEntries(_root).Any());
+        }
+
+        using var retry = Create(bytes);
+        var retryResult = await retry.Service.VerifyAndInstallAsync(retry.Request);
+
+        Assert.True(retryResult.Succeeded);
+        Assert.Equal(1, retry.Handler.CallCount);
+        Assert.Equal(1, retry.Package.CallCount);
+        Assert.Equal(1, retry.Authenticode.CallCount);
+        Assert.Equal(1, retry.Installer.CallCount);
+        Assert.Equal(bytes, retry.Installer.InstalledBytes);
+        Assert.False(Directory.EnumerateFileSystemEntries(_root).Any());
+    }
+
+    [Fact]
     public async Task Package_identity_failure_never_reaches_authenticode_or_installer()
     {
         using var context = Create("release"u8.ToArray(), packageIdentitySuccess: false);
@@ -322,7 +351,7 @@ public sealed class AppUpdateVerificationTests : IDisposable
         bool activityBlocked = false, bool packageIdentitySuccess = true, long? declaredLength = null,
         TaskCompletionSource<bool>? responseGate = null, int payloadSchemaVersion = 2,
         string manifestPublisher = "CN=Audition AI Mod Studio Test",
-        CancellationTokenSource? cancelDuringDownload = null)
+        CancellationTokenSource? cancelDuringDownload = null, bool installerSuccess = true)
     {
         Directory.CreateDirectory(_root);
         var authoritative = declaredBytes ?? responseBytes;
@@ -350,7 +379,7 @@ public sealed class AppUpdateVerificationTests : IDisposable
         var authenticode = new FakeAuthenticode(authenticodeSuccess);
         var package = new FakePackageVerifier(packageIdentitySuccess);
         var activity = new FakeActivityGuard(activityBlocked);
-        var installer = new FakeInstaller();
+        var installer = new FakeInstaller(installerSuccess);
         var client = new HttpClient(handler);
         var policy = AppUpdatePolicy.CreateStable(["release.example.invalid"],
             "CN=Audition AI Mod Studio Test", new string('A', 40));
@@ -432,7 +461,7 @@ public sealed class AppUpdateVerificationTests : IDisposable
         }
     }
 
-    private sealed class FakeInstaller : IVerifiedAppUpdateInstaller
+    private sealed class FakeInstaller(bool succeed) : IVerifiedAppUpdateInstaller
     {
         public int CallCount { get; private set; }
         public byte[]? InstalledBytes { get; private set; }
@@ -444,7 +473,7 @@ public sealed class AppUpdateVerificationTests : IDisposable
             Assert.False(File.Exists(candidate.StagedArtifactPath + ".partial"));
             InstalledBytes = await File.ReadAllBytesAsync(candidate.StagedArtifactPath, cancellationToken);
             Assert.Equal(Convert.ToHexString(SHA256.HashData(InstalledBytes)), candidate.VerifiedSha256);
-            return true;
+            return succeed;
         }
     }
 

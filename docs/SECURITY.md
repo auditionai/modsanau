@@ -1065,3 +1065,11 @@ release blocker tương ứng. Suite không thêm game-install/runtime dependenc
 
 Matrix không chứng minh quyền phân phối fixture/tool, live Mod Type catalog hay game-runtime compatibility. Nó không thêm quyền
 discover/install/patch/launch game và không thay đổi file-only boundary.
+
+## Crash/recovery hardening từ PLAN 99
+
+Fault injection chỉ tồn tại trong test hoặc observer `internal` được truyền tường minh; không có environment switch, secret trigger hay production default bật sẵn. Test chặn partial promotion tại extract, scan, Apply, build/pack, export, encrypted cache, immutable template publish và updater. Trước commit, byte đã công bố phải giữ nguyên và residue phải bị xóa hoặc được phân loại fail-closed; sau commit, retry phải conflict/idempotent thay vì tạo phiên bản hoặc credit trùng.
+
+Recovery inventory không coi tên file là authority duy nhất. Hash, marker, exact managed root, lock state và reparse checks quyết định trạng thái; unknown/corrupt residue không được materialize, follow hoặc auto-promote. Payment/account recovery tiếp tục dựa trên PostgreSQL transaction, unique idempotency key và server authority, không thêm client credit state.
+
+Chi tiết ma trận và non-guarantees tại [CRASH_RECOVERY_EVIDENCE.md](CRASH_RECOVERY_EVIDENCE.md). Bằng chứng local không loại bỏ rủi ro filesystem/hardware power-loss, production signer/provider outage hoặc deployment platform behavior ngoài contract đã kiểm thử.

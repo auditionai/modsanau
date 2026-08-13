@@ -131,6 +131,32 @@ public sealed class EncryptedPremiumTemplateCacheTests
     }
 
     [Fact]
+    [Trait("Coverage", "Plan99")]
+    public async Task Crash_after_first_encrypted_chunk_preserves_old_entry_and_retry_recovers()
+    {
+        using var context = Create();
+        var bytes = RandomNumberGenerator.GetBytes(2 * 1024 * 1024 + 17);
+        var manifest = Manifest(bytes);
+        Assert.True((await context.Cache.StoreAsync(manifest, new MemoryStream(bytes))).Succeeded);
+        var path = CachePath(context, manifest);
+        var committedHash = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(path)));
+        using var cancellation = new CancellationTokenSource();
+        await using var interruptedInput = new CancelBeforeSecondChunkStream(bytes, cancellation);
+
+        var interrupted = await context.Cache.StoreAsync(manifest, interruptedInput, cancellation.Token);
+        var recovered = await context.Cache.MaterializeAsync(manifest, context.Workspace);
+
+        Assert.Equal(PremiumTemplateCacheStatus.Cancelled, interrupted.Status);
+        Assert.Equal(committedHash, Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(path))));
+        Assert.True(recovered.Succeeded, recovered.DiagnosticCode);
+        Assert.Equal(bytes, await File.ReadAllBytesAsync(recovered.MaterializedPath!));
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(path)!, "*.tmp"));
+
+        Assert.True((await context.Cache.StoreAsync(manifest, new MemoryStream(bytes))).Succeeded);
+        Assert.True((await context.Cache.MaterializeAsync(manifest, context.Workspace)).Succeeded);
+    }
+
+    [Fact]
     public void Windows_dpapi_wraps_and_unwraps_without_embedding_key()
     {
         if (!OperatingSystem.IsWindows()) return;
@@ -175,6 +201,25 @@ public sealed class EncryptedPremiumTemplateCacheTests
             FailUnprotect ? throw new CryptographicException("Key unavailable.") : Xor(wrappedKey, context);
         private static byte[] Xor(ReadOnlySpan<byte> value, ReadOnlySpan<byte> context)
         { var output = value.ToArray(); for (var i = 0; i < output.Length; i++) output[i] ^= context[i % context.Length]; return output; }
+    }
+
+    private sealed class CancelBeforeSecondChunkStream(
+        byte[] bytes,
+        CancellationTokenSource cancellation) : MemoryStream(bytes)
+    {
+        private int _readCount;
+
+        public override ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.Increment(ref _readCount) == 2)
+            {
+                cancellation.Cancel();
+            }
+
+            return base.ReadAsync(buffer, cancellationToken);
+        }
     }
 
     private sealed class FakePaths(string root) : IAppPaths

@@ -106,6 +106,65 @@ public sealed class AtomicFileTemplateAdminPublisherTests
         Assert.False(Directory.Exists(context.VersionRoot("v4")));
     }
 
+    [Theory]
+    [Trait("Coverage", "Plan99")]
+    [InlineData(nameof(TemplateAdminPublishCheckpoint.AfterEncryptedPackageWrite))]
+    [InlineData(nameof(TemplateAdminPublishCheckpoint.AfterMetadataWrite))]
+    [InlineData(nameof(TemplateAdminPublishCheckpoint.BeforeImmutableCommit))]
+    public async Task Crash_before_immutable_commit_preserves_published_version_and_clean_retry_succeeds(
+        string checkpointName)
+    {
+        var checkpoint = Enum.Parse<TemplateAdminPublishCheckpoint>(checkpointName);
+        using var context = new Context();
+        Assert.True((await context.Publisher.PublishAtomicallyAsync(context.Request("v1"))).Succeeded);
+        var v1Hashes = await HashVersionAsync(context.VersionRoot("v1"));
+        var interrupted = context.CreatePublisher(new ThrowingCheckpointObserver(checkpoint));
+
+        var failed = await interrupted.PublishAtomicallyAsync(context.Request("v2"));
+
+        Assert.False(failed.Succeeded);
+        Assert.Equal("TEMPLATE_ADMIN_PUBLISH_IO_FAILED", failed.DiagnosticCode);
+        Assert.Equal(v1Hashes, await HashVersionAsync(context.VersionRoot("v1")));
+        Assert.False(Directory.Exists(context.VersionRoot("v2")));
+        Assert.Empty(Directory.EnumerateDirectories(context.PublishRoot, ".stage-*"));
+
+        var retry = await context.Publisher.PublishAtomicallyAsync(context.Request("v2"));
+        Assert.True(retry.Succeeded, retry.DiagnosticCode);
+        Assert.Equal(["audit.json", "metadata.json", "package.amtenc"],
+            Directory.GetFiles(context.VersionRoot("v2")).Select(path => Path.GetFileName(path)!).Order().ToArray());
+    }
+
+    [Fact]
+    [Trait("Coverage", "Plan99")]
+    public async Task Crash_after_immutable_commit_keeps_complete_version_and_retry_cannot_duplicate_it()
+    {
+        using var context = new Context();
+        var interrupted = context.CreatePublisher(
+            new ThrowingCheckpointObserver(TemplateAdminPublishCheckpoint.AfterImmutableCommit));
+
+        var interruptedResult = await interrupted.PublishAtomicallyAsync(context.Request("v5"));
+        var committedHashes = await HashVersionAsync(context.VersionRoot("v5"));
+        var retry = await context.Publisher.PublishAtomicallyAsync(context.Request("v5"));
+
+        Assert.True(interruptedResult.VersionConflict);
+        Assert.Equal(3, committedHashes.Count);
+        Assert.True(retry.VersionConflict);
+        Assert.Equal(committedHashes, await HashVersionAsync(context.VersionRoot("v5")));
+        Assert.Empty(Directory.EnumerateDirectories(context.PublishRoot, ".stage-*"));
+    }
+
+    private static async Task<IReadOnlyDictionary<string, string>> HashVersionAsync(string root)
+    {
+        var entries = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var path in Directory.GetFiles(root).Order(StringComparer.Ordinal))
+        {
+            entries[Path.GetFileName(path)] = Convert.ToHexString(
+                SHA256.HashData(await File.ReadAllBytesAsync(path)));
+        }
+
+        return entries;
+    }
+
     private sealed class Context : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "ams-admin-publisher-" + Guid.NewGuid().ToString("N"));
@@ -127,6 +186,9 @@ public sealed class AtomicFileTemplateAdminPublisherTests
         public string PublishRoot { get; }
         public ECDsa SigningKey { get; }
         public AtomicFileTemplateAdminPublisher Publisher { get; }
+        public AtomicFileTemplateAdminPublisher CreatePublisher(
+            ITemplateAdminPublishCheckpointObserver observer) =>
+            new(PublishRoot, _keys, new PathSecurity(), observer);
         public string VersionRoot(string version) => Path.Combine(PublishRoot, "pointer", version);
         public TemplateAdminPublishRequest Request(string version)
         {
@@ -150,6 +212,18 @@ public sealed class AtomicFileTemplateAdminPublisherTests
             _keys.Dispose();
             SigningKey.Dispose();
             if (Directory.Exists(_root)) Directory.Delete(_root, true);
+        }
+    }
+
+    private sealed class ThrowingCheckpointObserver(TemplateAdminPublishCheckpoint target)
+        : ITemplateAdminPublishCheckpointObserver
+    {
+        public void Reach(TemplateAdminPublishCheckpoint checkpoint)
+        {
+            if (checkpoint == target)
+            {
+                throw new IOException($"Simulated PLAN 99 crash at {checkpoint}.");
+            }
         }
     }
 }

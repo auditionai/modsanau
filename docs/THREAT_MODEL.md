@@ -433,3 +433,9 @@ content thực và header, GPU/runtime implementation khác editor, malicious pa
 chỉ đại diện một archive. BC2/BC4/BC5/BC6H/BC7 cùng resource array/cube/volume chưa có full editor model nên vẫn
 `UNSUPPORTED`/`NOT VERIFIED`; Mod Type tương lai chưa có authoritative manifest nên không được suy luận support. Bằng chứng local
 không chứng minh provenance, license redistribution, production catalog hoặc game runtime; pipeline vẫn dừng ở file standalone.
+
+## Crash/recovery residual risk từ PLAN 99
+
+Các threat chính là partial artifact bị hiểu nhầm là committed, overwrite đích trước khi candidate được verify, stale/unknown residue bị tự động trust, reparse escape trong cleanup/recovery, duplicate payment/update retry và crash sau commit nhưng trước khi caller nhận success. PLAN 99 kiểm chứng fail-closed classification, exact-byte rollback, immutable conflict/idempotent replay và clean retry bằng checkpoint xác định, cancellation, process exit, I/O failure, corruption và concurrent replay.
+
+Residual risk còn gồm mất điện giữa lời gọi filesystem và flush thực tế, controller/storage cache của thiết bị, antivirus hoặc filesystem filter làm thay đổi semantics, crash của Windows package deployment sau handoff, corruption không nằm trong corpus và outage production PostgreSQL/provider. Không có recovery tự động nào được phép mở rộng sang game installation/runtime. Unknown state luôn cần điều tra hoặc cleanup tường minh; không được suy diễn thành committed.

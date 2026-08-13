@@ -87,13 +87,47 @@ public sealed class TemplateAdminPublisherKeys : IDisposable
     }
 }
 
-public sealed class AtomicFileTemplateAdminPublisher(
-    string publishRoot,
-    TemplateAdminPublisherKeys keys,
-    IPathSecurity pathSecurity) : ITemplateAdminPublisher
+internal enum TemplateAdminPublishCheckpoint
+{
+    AfterEncryptedPackageWrite,
+    AfterMetadataWrite,
+    BeforeImmutableCommit,
+    AfterImmutableCommit,
+}
+
+internal interface ITemplateAdminPublishCheckpointObserver
+{
+    void Reach(TemplateAdminPublishCheckpoint checkpoint);
+}
+
+public sealed class AtomicFileTemplateAdminPublisher : ITemplateAdminPublisher
 {
     private static readonly byte[] EncryptionHeader = Encoding.ASCII.GetBytes("AMS-TEMPLATE-ENC-V1\n");
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = false };
+    private readonly string publishRoot;
+    private readonly TemplateAdminPublisherKeys keys;
+    private readonly IPathSecurity pathSecurity;
+    private readonly ITemplateAdminPublishCheckpointObserver? checkpointObserver;
+
+    public AtomicFileTemplateAdminPublisher(
+        string publishRoot,
+        TemplateAdminPublisherKeys keys,
+        IPathSecurity pathSecurity)
+        : this(publishRoot, keys, pathSecurity, null)
+    {
+    }
+
+    internal AtomicFileTemplateAdminPublisher(
+        string publishRoot,
+        TemplateAdminPublisherKeys keys,
+        IPathSecurity pathSecurity,
+        ITemplateAdminPublishCheckpointObserver? checkpointObserver)
+    {
+        this.publishRoot = publishRoot;
+        this.keys = keys;
+        this.pathSecurity = pathSecurity;
+        this.checkpointObserver = checkpointObserver;
+    }
 
     public async Task<TemplateAdminPublishResult> PublishAtomicallyAsync(TemplateAdminPublishRequest request,
         CancellationToken cancellationToken = default)
@@ -132,6 +166,7 @@ public sealed class AtomicFileTemplateAdminPublisher(
             var encryptedPackagePath = Path.Combine(stage, "package.amtenc");
             await EncryptAsync(request.SourceArchivePath, encryptedPackagePath,
                 request.PackageManifest, cancellationToken).ConfigureAwait(false);
+            checkpointObserver?.Reach(TemplateAdminPublishCheckpoint.AfterEncryptedPackageWrite);
             var audit = new AuditDto(1, request.AuditEvent.OperationId, request.AuditEvent.AdminSubjectId,
                 request.AuditEvent.Identity.TemplateId.Value, request.AuditEvent.Identity.Version.Value,
                 request.AuditEvent.GameId.Value, request.AuditEvent.ModId.Value,
@@ -145,11 +180,14 @@ public sealed class AtomicFileTemplateAdminPublisher(
             await WriteJsonAsync(Path.Combine(stage, "metadata.json"),
                 new MetadataDto(unsignedMetadata, Convert.ToBase64String(signature.AsSpan())),
                 cancellationToken).ConfigureAwait(false);
+            checkpointObserver?.Reach(TemplateAdminPublishCheckpoint.AfterMetadataWrite);
             await WriteBytesAsync(Path.Combine(stage, "audit.json"), auditBytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             pathSecurity.EnsureNoReparsePoints(publishRoot, stage);
             if (Directory.Exists(destination)) return Conflict();
+            checkpointObserver?.Reach(TemplateAdminPublishCheckpoint.BeforeImmutableCommit);
             Directory.Move(stage, destination);
+            checkpointObserver?.Reach(TemplateAdminPublishCheckpoint.AfterImmutableCommit);
             stage = string.Empty;
             return new(true, "TEMPLATE_ADMIN_PUBLISH_COMMITTED", request.PackageManifest.Identity,
                 TemplateAdminStorageEncryption.ServerManaged, signature,

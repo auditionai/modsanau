@@ -103,6 +103,10 @@ public static class Program
                 return 2;
             }
         }
+        else if (File.Exists(Path.Combine(workingDirectory, ".fake-extract-exit-one")))
+        {
+            return 1;
+        }
 
         return 0;
     }

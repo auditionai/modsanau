@@ -158,6 +158,31 @@ public sealed class AcvTool5RunnerTests
     }
 
     [Fact]
+    [Trait("Coverage", "Plan99")]
+    public async Task Extract_process_failure_after_staging_write_is_incomplete_and_clean_retry_succeeds()
+    {
+        await using var context = TestRunContext.Create();
+        var fault = Path.Combine(context.WorkingDirectory, ".fake-extract-exit-one");
+        File.WriteAllText(fault, string.Empty);
+
+        var interrupted = await context.Runner.RunAsync(context.CreateRequest(AcvTool5Operation.Extract));
+        var stagedAsset = Path.Combine(
+            context.Workspace.Paths.ExtractedDirectory, "thư mục extract", "texture", "file.dds");
+
+        Assert.False(interrupted.Succeeded);
+        Assert.Equal(AcvTool5RunnerState.Failed, interrupted.State);
+        Assert.True(File.Exists(stagedAsset));
+        Assert.Equal([0x44, 0x44, 0x53], await File.ReadAllBytesAsync(stagedAsset));
+
+        File.Delete(fault);
+        var retry = await context.Runner.RunAsync(context.CreateRequest(AcvTool5Operation.Extract));
+
+        Assert.True(retry.Succeeded, string.Join(Environment.NewLine, retry.Diagnostics));
+        Assert.Equal(AcvTool5RunnerState.Completed, retry.State);
+        Assert.Equal([0x44, 0x44, 0x53], await File.ReadAllBytesAsync(stagedAsset));
+    }
+
+    [Fact]
     public async Task Timeout_kills_process_and_returns_timed_out_state()
     {
         await using var context = TestRunContext.Create();
