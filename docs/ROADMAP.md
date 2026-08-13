@@ -251,3 +251,10 @@ Archive/DDS pipeline chỉ được xem là đã chứng minh sau file-only Prod
 Mỗi lần chỉ thực hiện một PLAN:
 
 `PLAN → BUILD → TEST → BÁO CÁO → DỪNG`
+
+## Cập nhật batch PLAN 86–90
+
+- PLAN 86 — Device Sessions / Abuse Controls: đã triển khai; Gateway feature-flagged registration/list/revoke, random client
+  device identity trong Credential Manager, server session binding, configured device limit, throttled last-seen, private
+  PostgreSQL/RLS và immediate cloud deny sau revoke. Local PostgreSQL gate PASS; Supabase live chưa xác minh.
+- PLAN kế tiếp trong batch được phê duyệt: PLAN 87 — Privacy & Logging Security.

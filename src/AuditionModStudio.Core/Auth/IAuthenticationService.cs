@@ -93,6 +93,24 @@ public interface ISecureSessionStore
     Task DeleteAsync(CancellationToken cancellationToken = default);
 }
 
+public sealed record DeviceSessionBinding(Guid DeviceId, Guid? SessionId)
+{
+    public bool IsValid => DeviceId != Guid.Empty && (!SessionId.HasValue || SessionId.Value != Guid.Empty);
+}
+
+public static class DeviceSessionProtocol
+{
+    public const string DeviceIdHeader = "X-Audition-Device-Id";
+    public const string SessionIdHeader = "X-Audition-Session-Id";
+}
+
+public interface IDeviceSessionBindingStore
+{
+    Task<DeviceSessionBinding?> LoadAsync(CancellationToken cancellationToken = default);
+    Task SaveAsync(DeviceSessionBinding binding, CancellationToken cancellationToken = default);
+    Task DeleteAsync(CancellationToken cancellationToken = default);
+}
+
 public interface IAuthenticationService
 {
     Task<AuthenticationResult> SignUpAsync(AuthEmail email, AuthPassword password,

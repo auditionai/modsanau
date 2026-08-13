@@ -1252,3 +1252,14 @@ terminal transition, captured-ledger lock cap aggregate refund. Chi tiết ở
 
 Đây là local engine evidence, không phải Supabase staging/live, multi-region/failover hay production operations evidence.
 HTTP/client authority không đổi: public chỉ đọc snapshot; amount/cost/refund/payment vẫn do trusted server quyết định.
+
+## Device session abuse control từ PLAN 86
+
+Gateway có optional middleware sau Supabase authentication và trước rate-limit/authorization endpoint để kiểm tra binding
+`verified user + random DeviceId + server SessionId`. Management API đăng ký/liệt kê/thu hồi nằm trong Gateway, vẫn cần bearer
+và rate limit nhưng được miễn chính session gate. PostgreSQL private table/RPC giữ registration count, idempotency, last-seen
+throttling và revoke; RLS chỉ cho authenticated SELECT own safe columns, mutation là server-only.
+
+Desktop Cloud adapter chỉ opt-in khi `AUDITION_DEVICE_SESSIONS_ENABLED=true`; nó dùng Credential Manager binding store riêng,
+không đổi Supabase token store. Archives/DDS/Imaging/Projects không tham chiếu device-session service và local pipeline không
+đi qua Gateway. Xem [DEVICE_SESSION_ABUSE_CONTROLS.md](DEVICE_SESSION_ABUSE_CONTROLS.md).

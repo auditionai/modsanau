@@ -181,6 +181,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<ICloudPromptPresetService, UnavailableCloudPromptPresetService>();
         builder.Services.AddSingleton<IAiService, UnavailableAiService>();
         builder.Services.AddSingleton<ISecureSessionStore, WindowsCredentialSessionStore>();
+        builder.Services.AddSingleton<IDeviceSessionBindingStore, WindowsCredentialDeviceSessionBindingStore>();
         builder.Services.AddSingleton<ITemplateCacheKeyProtector, WindowsDpapiTemplateCacheKeyProtector>();
         builder.Services.AddSingleton<IPremiumTemplateCache, EncryptedPremiumTemplateCache>();
         builder.Services.AddSingleton(new HttpClient(new HttpClientHandler
@@ -215,7 +216,9 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
             {
                 return new UnavailableAiStudioService();
             }
-            var gatewayOptions = new GatewayAiStudioOptions(gatewayUri);
+            var deviceSessionsEnabled = bool.TryParse(
+                Environment.GetEnvironmentVariable("AUDITION_DEVICE_SESSIONS_ENABLED"), out var enabled) && enabled;
+            var gatewayOptions = new GatewayAiStudioOptions(gatewayUri, deviceSessionsEnabled);
             return gatewayOptions.IsValid
                 ? new GatewayAiStudioService(
                     services.GetRequiredService<HttpClient>(),
@@ -223,7 +226,8 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<IAuthenticationService>(),
                     gatewayOptions,
                     services.GetRequiredService<IAiTransportImageEncoder>(),
-                    services.GetRequiredService<IImageImportService>())
+                    services.GetRequiredService<IImageImportService>(),
+                    services.GetRequiredService<IDeviceSessionBindingStore>())
                 : new UnavailableAiStudioService();
         });
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();

@@ -21,8 +21,10 @@ public static class GatewayApplication
 
         var options = TrustedGatewayOptions.FromConfiguration(configuration);
         var abuseProtectionOptions = GatewayAbuseProtectionOptions.FromConfiguration(configuration);
+        var deviceSessionOptions = DeviceSessionOptions.FromConfiguration(configuration);
         services.AddSingleton(options);
         services.AddSingleton(abuseProtectionOptions);
+        services.AddSingleton(deviceSessionOptions);
         services.AddSingleton<GatewayIpRateLimiter>();
         services.AddGatewayRateLimiting(abuseProtectionOptions);
         services.AddSingleton<ISupabaseAuthClient, SupabaseAuthHttpClient>();
@@ -78,6 +80,7 @@ public static class GatewayApplication
             services.AddSingleton<IAiJobWorkerService>(provider =>
                 provider.GetRequiredService<PostgresAiJobService>());
             services.AddSingleton<IPaymentFulfillmentService, PostgresPaymentFulfillmentService>();
+            services.AddSingleton<IDeviceSessionService, PostgresDeviceSessionService>();
         }
         else
         {
@@ -89,6 +92,7 @@ public static class GatewayApplication
             services.AddSingleton<IAiJobService, UnavailableAiJobService>();
             services.AddSingleton<IAiJobWorkerService, UnavailableAiJobWorkerService>();
             services.AddSingleton<IPaymentFulfillmentService, UnavailablePaymentFulfillmentService>();
+            services.AddSingleton<IDeviceSessionService, UnavailableDeviceSessionService>();
         }
         services.AddSingleton<IAiJobExecutionService, AiJobExecutionService>();
         services.AddHostedService<AiJobWorker>();
@@ -137,9 +141,11 @@ public static class GatewayApplication
         app.UseMiddleware<GatewaySecurityMiddleware>();
         app.UseAuthentication();
         app.UseRateLimiter();
+        app.UseMiddleware<DeviceSessionAuthorizationMiddleware>();
         app.UseAuthorization();
 
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
+        app.MapDeviceSessionEndpoints();
         app.MapTrustedGatewayEndpoints();
         app.MapPaymentWebhookEndpoints();
     }

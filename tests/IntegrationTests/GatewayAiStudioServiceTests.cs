@@ -30,6 +30,58 @@ public sealed class GatewayAiStudioServiceTests
     }
 
     [Fact]
+    public async Task Enabled_device_control_registers_random_stable_identity_then_sends_bound_headers()
+    {
+        var serverSessionId = Guid.NewGuid();
+        var bindingStore = new StubDeviceSessionBindingStore();
+        Guid registeredDeviceId = Guid.Empty;
+        var handler = new StubHandler(request =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/v1/device-sessions/register")
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(
+                    request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+                registeredDeviceId = document.RootElement.GetProperty("deviceId").GetGuid();
+                Assert.False(document.RootElement.TryGetProperty("userId", out _));
+                return Json(System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    DiagnosticCode = "DEVICE_SESSION_REGISTERED",
+                    IsNewDevice = true,
+                    Session = new
+                    {
+                        DeviceId = registeredDeviceId,
+                        SessionId = serverSessionId,
+                        DisplayName = "Audition AI Mod Studio",
+                        ClientVersion = "1.0.0",
+                        Platform = "windows",
+                        CreatedAt = DateTimeOffset.Parse("2026-08-13T00:00:00Z"),
+                        LastSeenAt = DateTimeOffset.Parse("2026-08-13T00:00:00Z"),
+                        RevokedAt = (DateTimeOffset?)null,
+                    },
+                }, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web)));
+            }
+            return Json("""{"creditCost":7,"pricingVersion":"v2"}""");
+        });
+        var sessionStore = new StubSessionStore(Session("fake-access-token"));
+        var service = new GatewayAiStudioService(new HttpClient(handler), sessionStore,
+            new StubAuthenticationService(sessionStore),
+            new GatewayAiStudioOptions(new Uri("https://gateway.example/"), DeviceSessionsEnabled: true),
+            deviceSessionStore: bindingStore);
+
+        var first = await service.GetQuoteAsync(AiStudioOperation.Generate);
+        var second = await service.GetQuoteAsync(AiStudioOperation.Generate);
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+        Assert.NotEqual(Guid.Empty, registeredDeviceId);
+        Assert.Equal(new DeviceSessionBinding(registeredDeviceId, serverSessionId), bindingStore.Binding);
+        Assert.Equal(1, handler.Paths.Count(path => path == "/v1/device-sessions/register"));
+        Assert.Equal(2, handler.Paths.Count(path => path == "/v1/ai/pricing/quote"));
+        Assert.Equal(registeredDeviceId.ToString("D"), handler.DeviceIds[^1]);
+        Assert.Equal(serverSessionId.ToString("D"), handler.SessionIds[^1]);
+    }
+
+    [Fact]
     public async Task History_validates_owner_scoped_shape_and_derives_cancel_state()
     {
         var jobId = Guid.NewGuid();
@@ -219,13 +271,36 @@ public sealed class GatewayAiStudioServiceTests
         public HttpRequestMessage? LastRequest { get; private set; }
         public List<string> Paths { get; } = [];
         public List<string?> AuthorizationParameters { get; } = [];
+        public List<string?> DeviceIds { get; } = [];
+        public List<string?> SessionIds { get; } = [];
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request, CancellationToken cancellationToken)
         {
             LastRequest = request;
             Paths.Add(request.RequestUri!.AbsolutePath);
             AuthorizationParameters.Add(request.Headers.Authorization?.Parameter);
+            DeviceIds.Add(request.Headers.TryGetValues(DeviceSessionProtocol.DeviceIdHeader, out var devices)
+                ? devices.SingleOrDefault() : null);
+            SessionIds.Add(request.Headers.TryGetValues(DeviceSessionProtocol.SessionIdHeader, out var sessions)
+                ? sessions.SingleOrDefault() : null);
             return Task.FromResult(response(request));
+        }
+    }
+
+    private sealed class StubDeviceSessionBindingStore : IDeviceSessionBindingStore
+    {
+        public DeviceSessionBinding? Binding { get; private set; }
+        public Task<DeviceSessionBinding?> LoadAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(Binding);
+        public Task SaveAsync(DeviceSessionBinding binding, CancellationToken cancellationToken = default)
+        {
+            Binding = binding;
+            return Task.CompletedTask;
+        }
+        public Task DeleteAsync(CancellationToken cancellationToken = default)
+        {
+            Binding = null;
+            return Task.CompletedTask;
         }
     }
 

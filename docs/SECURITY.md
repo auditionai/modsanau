@@ -873,3 +873,17 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
   Verified payment-to-grant cũng chạy thật và idempotent sau fix.
 - Local PostgreSQL engine evidence là VERIFIED; Supabase staging/live topology, failover, load/soak, backup/restore và
   operations vẫn `PRODUCTION NOT VERIFIED`. Client contracts/routes vẫn không nhận amount hay mutation authority.
+
+## Device sessions / abuse controls từ PLAN 86
+
+- Supabase bearer online validation vẫn là authentication authority; client không gửi `UserId`. Random `DeviceId` và
+  server-generated `SessionId` không phải secret, hardware fingerprint hoặc DRM.
+- Khi feature bật, mọi authenticated commercial endpoint fail closed nếu thiếu/sai/revoked binding. Registration/list/revoke
+  cần bearer + rate limit nhưng không đòi binding sẵn có. Current-session revoke chặn cloud request kế tiếp ngay lập tức.
+- Maximum active devices lấy từ server configuration; concurrent registration được serialize, replay cùng device idempotent,
+  quá giới hạn không silent revoke. `last_seen_at` được throttle theo server interval.
+- Credential Manager giữ device binding riêng; access/refresh token storage hiện hữu không đổi. Không log/persist IP, token,
+  hardware ID, prompt/ảnh hoặc payment secret trong session table.
+- Revoke không xóa wallet/entitlement/payment/project/local artifact. Local edit/build/export không phụ thuộc Gateway gate.
+- Private table ENABLE+FORCE RLS, authenticated SELECT-own safe columns; client DML/private RPC bị revoke. Chi tiết và residual
+  risk ở [DEVICE_SESSION_ABUSE_CONTROLS.md](DEVICE_SESSION_ABUSE_CONTROLS.md).

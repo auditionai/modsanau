@@ -7,7 +7,7 @@ using AuditionModStudio.Core.Images;
 
 namespace AuditionModStudio.Cloud;
 
-public sealed record GatewayAiStudioOptions(Uri BaseUri)
+public sealed record GatewayAiStudioOptions(Uri BaseUri, bool DeviceSessionsEnabled = false)
 {
     public bool IsValid => BaseUri is { IsAbsoluteUri: true, Scheme: "https", AbsolutePath: "/" }
                            && string.IsNullOrEmpty(BaseUri.UserInfo)
@@ -21,9 +21,14 @@ public sealed class GatewayAiStudioService(
     IAuthenticationService authenticationService,
     GatewayAiStudioOptions options,
     IAiTransportImageEncoder? imageEncoder = null,
-    IImageImportService? imageImport = null) : IAiStudioService
+    IImageImportService? imageImport = null,
+    IDeviceSessionBindingStore? deviceSessionStore = null) : IAiStudioService
 {
     private const int MaximumResponseBytes = 256 * 1_024;
+    private static readonly JsonSerializerOptions DeviceSessionJsonOptions =
+        new(JsonSerializerDefaults.Web);
+    private readonly SemaphoreSlim _deviceRegistrationGate = new(1, 1);
+    private int _deviceRegistrationVerified;
 
     public async Task<AiStudioQuoteResult> GetQuoteAsync(
         AiStudioOperation operation,
@@ -315,12 +320,83 @@ public sealed class GatewayAiStudioService(
             if (session is null || string.IsNullOrWhiteSpace(session.AccessToken)
                 || session.AccessToken.Length > 16 * 1_024) return false;
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+            if (options.DeviceSessionsEnabled)
+            {
+                var binding = await EnsureDeviceSessionAsync(session.AccessToken, cancellationToken)
+                    .ConfigureAwait(false);
+                if (binding?.SessionId is not { } sessionId) return false;
+                request.Headers.TryAddWithoutValidation(DeviceSessionProtocol.DeviceIdHeader,
+                    binding.DeviceId.ToString("D"));
+                request.Headers.TryAddWithoutValidation(DeviceSessionProtocol.SessionIdHeader,
+                    sessionId.ToString("D"));
+            }
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (IOException) { return false; }
         catch (UnauthorizedAccessException) { return false; }
         catch (HttpRequestException) { return false; }
+        catch (JsonException) { return false; }
+    }
+
+    private async Task<DeviceSessionBinding?> EnsureDeviceSessionAsync(
+        string accessToken,
+        CancellationToken cancellationToken)
+    {
+        if (deviceSessionStore is null) return null;
+        var binding = await deviceSessionStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (binding is null)
+        {
+            binding = new DeviceSessionBinding(Guid.NewGuid(), null);
+            await deviceSessionStore.SaveAsync(binding, cancellationToken).ConfigureAwait(false);
+        }
+        if (binding.SessionId.HasValue && Volatile.Read(ref _deviceRegistrationVerified) != 0)
+            return binding;
+
+        await _deviceRegistrationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            binding = await deviceSessionStore.LoadAsync(cancellationToken).ConfigureAwait(false) ?? binding;
+            if (binding.SessionId.HasValue && Volatile.Read(ref _deviceRegistrationVerified) != 0)
+                return binding;
+            using var registration = new HttpRequestMessage(HttpMethod.Post,
+                Endpoint("v1/device-sessions/register"))
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new
+                {
+                    binding.DeviceId,
+                    DisplayName = "Audition AI Mod Studio",
+                    ClientVersion = ClientVersion(),
+                    Platform = OperatingSystem.IsWindows() ? "windows" : "desktop",
+                }, DeviceSessionJsonOptions), Encoding.UTF8, "application/json"),
+            };
+            registration.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            using var response = await httpClient.SendAsync(registration,
+                HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return null;
+            using var document = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
+            if (!document.RootElement.TryGetProperty("session", out var sessionElement)
+                || !sessionElement.TryGetProperty("deviceId", out var deviceElement)
+                || !deviceElement.TryGetGuid(out var returnedDeviceId)
+                || returnedDeviceId != binding.DeviceId
+                || !sessionElement.TryGetProperty("sessionId", out var sessionIdElement)
+                || !sessionIdElement.TryGetGuid(out var sessionId) || sessionId == Guid.Empty)
+                return null;
+            binding = binding with { SessionId = sessionId };
+            await deviceSessionStore.SaveAsync(binding, cancellationToken).ConfigureAwait(false);
+            Volatile.Write(ref _deviceRegistrationVerified, 1);
+            return binding;
+        }
+        finally
+        {
+            _deviceRegistrationGate.Release();
+        }
+    }
+
+    private static string ClientVersion()
+    {
+        var version = typeof(GatewayAiStudioService).Assembly.GetName().Version?.ToString(3);
+        return !string.IsNullOrWhiteSpace(version) && version.Length <= 32 ? version : "0.0.0";
     }
 
     private static bool TryReadJob(JsonElement element, out AiStudioJobSummary? job)

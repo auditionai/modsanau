@@ -280,3 +280,14 @@ sau rejection; payment grant reuse cùng repaired ledger và idempotency.
 Residual risk còn lại là Supabase staging/live role/topology, connection pool exhaustion, lock timeout/deadlock dưới workload
 khác, multi-region/failover, operational retry, backup/restore và monitoring. Service-role/database compromise vẫn vượt qua
 business function boundary. Không có evidence nào cho phép client set balance/cost/refund/payment amount.
+
+## Device/session abuse residual risk từ PLAN 86
+
+Stolen bearer kết hợp session UUID có thể gọi cloud đến khi bearer hết hạn hoặc binding bị revoke; UUID không phải possession
+proof. Patched client có thể tạo DeviceId mới, nên control này chỉ giới hạn số thiết bị theo verified user và tạo revoke point,
+không phải hardware DRM. Advisory lock ngăn concurrent enrollment vượt limit trong một PostgreSQL authority; multi-region,
+failover và distributed abuse monitoring chưa production-verified.
+
+Gateway không tin client `UserId`, IP hay device metadata. Cross-user revoke/read bị chặn; missing/revoked session fail closed
+trước AI/premium service. Revoke không phá local availability. Account recovery, stolen-bearer response, unusual-login alert,
+support override và Supabase live RLS/role topology vẫn là operational/product work chưa được chứng minh.
