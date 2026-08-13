@@ -302,3 +302,15 @@ Residual risk vẫn gồm secret tùy ý không khớp tên/pattern, dữ liệu
 của same-user/Administrator và việc người dùng gửi bundle qua kênh không an toàn. Redactor không thay thế nguyên tắc không log
 raw content/secret, OS ACL, support consent/retention/deletion, monitoring hoặc incident response. Các control vận hành này chưa
 production-verified.
+
+## Dependency / supply-chain residual risk từ PLAN 88
+
+Exact NuGet locks, source/signature policy, full-SHA Actions, vulnerability audit và tracked SPDX SBOM làm graph/review drift có
+thể phát hiện. Native inventory giữ riêng version/hash/signer/license/provenance; commercial release gate không cho ACV/template/
+game asset đi vào package khi chưa có written rights/provenance approval.
+
+Residual risk còn gồm advisory lag/zero-day, compromised NuGet/GitHub/publisher/signing account, malicious signed package,
+transitive native payload, CI runner compromise và mismatch giữa repository SBOM với exact published file inventory. DirectXTex
+local verification không chứng minh mọi mirror/CDN artifact. `acv.exe` known hash không chứng minh origin/quyền phân phối;
+proprietary commercial distribution hiện bị block. Production HSM, build attestation, immutable artifact repository và legal
+approval vẫn chưa được repository xác minh.

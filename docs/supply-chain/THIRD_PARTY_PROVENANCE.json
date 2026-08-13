@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-13",
+  "artifacts": [
+    {
+      "id": "microsoft_directxtex_texconv_may2026_x64",
+      "kind": "native_tool",
+      "version": "2026.5.8.1",
+      "sha256": "DCFDEC10244E02CF5037FBA089C55FB7E1326B1C8181742D77D15FA5CB5EEF06",
+      "source": "https://github.com/microsoft/DirectXTex/releases/tag/may2026",
+      "publisherEvidence": "Valid Authenticode: Microsoft 3rd Party Application Component",
+      "license": "MIT",
+      "technicalProvenance": "LOCALLY_VERIFIED",
+      "commercialDistributionAllowed": true,
+      "distributionCondition": "Include applicable MIT license/copyright notice and revalidate exact release artifact before packaging.",
+      "repositoryPolicy": "Binary excluded; exact approved external tool is hash-checked before execution."
+    },
+    {
+      "id": "acv_tool_5",
+      "kind": "proprietary_native_tool",
+      "version": null,
+      "sha256": "6A52C808D7E5A59EB41E43D86A32E78067F424C8531E34981887F093E81547D3",
+      "source": null,
+      "publisherEvidence": "Not Authenticode-signed; no file version or publisher metadata.",
+      "license": "UNKNOWN",
+      "technicalProvenance": "KNOWN_LOCAL_FIXTURE_ONLY",
+      "commercialDistributionAllowed": false,
+      "distributionCondition": "BLOCKED_PENDING_WRITTEN_RIGHTS_AND_PROVENANCE_APPROVAL",
+      "repositoryPolicy": "Never tracked or bundled; local test fixture only."
+    },
+    {
+      "id": "audition_template_015",
+      "kind": "proprietary_archive_template",
+      "version": null,
+      "sha256": "3C4272BDDDA815B9F9E832D5FCF9EE10E2417301726C895CDB312DFF675C6081",
+      "source": null,
+      "publisherEvidence": "No authoritative ownership/provenance record in repository.",
+      "license": "UNKNOWN",
+      "technicalProvenance": "KNOWN_LOCAL_FIXTURE_ONLY",
+      "commercialDistributionAllowed": false,
+      "distributionCondition": "BLOCKED_PENDING_WRITTEN_RIGHTS_AND_PROVENANCE_APPROVAL",
+      "repositoryPolicy": "Never tracked or bundled; pristine local test fixture only."
+    },
+    {
+      "id": "audition_game_assets",
+      "kind": "third_party_game_content",
+      "version": null,
+      "sha256": null,
+      "source": null,
+      "publisherEvidence": "No authoritative ownership/provenance record in repository.",
+      "license": "UNKNOWN",
+      "technicalProvenance": "UNVERIFIED",
+      "commercialDistributionAllowed": false,
+      "distributionCondition": "BLOCKED_PENDING_WRITTEN_RIGHTS_AND_PROVENANCE_APPROVAL",
+      "repositoryPolicy": "Never track or redistribute extracted game assets."
+    }
+  ]
+}

@@ -55,12 +55,12 @@
 - [ ] Payment credits only after verified webhook.
 
 ## Release / Supply Chain
-- [ ] Secret scanning in CI.
-- [ ] Dependency vulnerability scan.
-- [ ] SBOM generated.
+- [x] Secret scanning in CI.
+- [x] Dependency vulnerability scan.
+- [x] SBOM generated and verified against the locked NuGet graph.
 - [ ] Signing key not in repo/runner disk as plaintext.
-- [ ] Third-party licenses reviewed.
-- [ ] Redistribution rights for ACV Tool/templates/game assets reviewed.
+- [x] Third-party license inventory reviewed; `NOASSERTION` entries remain a commercial release blocker.
+- [x] Redistribution rights reviewed; ACV Tool/templates/game assets remain blocked pending written approval.
 
 ## Tests
 - [ ] First extract without `015.keydat` automatically provides AuditionVN selection `1`.

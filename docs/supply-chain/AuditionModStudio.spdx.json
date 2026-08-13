@@ -1,0 +1,1649 @@
+{
+    "spdxVersion":  "SPDX-2.3",
+    "dataLicense":  "CC0-1.0",
+    "SPDXID":  "SPDXRef-DOCUMENT",
+    "name":  "Audition-AI-Mod-Studio-NuGet-Dependencies",
+    "documentNamespace":  "https://auditionmodstudio.invalid/spdx/nuget/f0b7b78a1f081ffe2b38888e02dd3faad0ba82dc060b8c70a70854f72746f811",
+    "creationInfo":  {
+                         "created":  "2026-08-13T00:00:00Z",
+                         "creators":  [
+                                          "Tool: scripts/New-DependencySbom.ps1"
+                                      ]
+                     },
+    "packages":  [
+                     {
+                         "name":  "coverlet.collector",
+                         "SPDXID":  "SPDXRef-Package-coverlet.collector-6.0.4",
+                         "versionInfo":  "6.0.4",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/coverlet.collector/6.0.4/coverlet.collector.6.0.4.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/coverlet.collector@6.0.4"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.AspNetCore.Mvc.Testing",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.AspNetCore.Mvc.Testing-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.mvc.testing/10.0.10/microsoft.aspnetcore.mvc.testing.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.AspNetCore.TestHost",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.AspNetCore.TestHost-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.aspnetcore.testhost/10.0.10/microsoft.aspnetcore.testhost.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.CodeCoverage",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.CodeCoverage-17.14.1",
+                         "versionInfo":  "17.14.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.codecoverage/17.14.1/microsoft.codecoverage.17.14.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.CodeCoverage@17.14.1"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Configuration",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Configuration-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration/10.0.10/microsoft.extensions.configuration.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Configuration@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Configuration.Abstractions",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Configuration.Abstractions-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.abstractions/10.0.10/microsoft.extensions.configuration.abstractions.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Configuration.Abstractions@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Configuration.Binder",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Configuration.Binder-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.binder/10.0.10/microsoft.extensions.configuration.binder.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Configuration.Binder@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Configuration.CommandLine",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Configuration.CommandLine-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.commandline/10.0.10/microsoft.extensions.configuration.commandline.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Configuration.CommandLine@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Configuration.EnvironmentVariables",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Configuration.EnvironmentVariables-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.environmentvariables/10.0.10/microsoft.extensions.configuration.environmentvariables.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Configuration.FileExtensions",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Configuration.FileExtensions-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.fileextensions/10.0.10/microsoft.extensions.configuration.fileextensions.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Configuration.FileExtensions@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Configuration.Json",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Configuration.Json-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.json/10.0.10/microsoft.extensions.configuration.json.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Configuration.Json@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Configuration.UserSecrets",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Configuration.UserSecrets-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.configuration.usersecrets/10.0.10/microsoft.extensions.configuration.usersecrets.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Configuration.UserSecrets@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.DependencyInjection",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.DependencyInjection-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection/10.0.10/microsoft.extensions.dependencyinjection.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.DependencyInjection.Abstractions",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.DependencyInjection.Abstractions-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencyinjection.abstractions/10.0.10/microsoft.extensions.dependencyinjection.abstractions.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.DependencyModel",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.DependencyModel-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.dependencymodel/10.0.10/microsoft.extensions.dependencymodel.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Diagnostics",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Diagnostics-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.diagnostics/10.0.10/microsoft.extensions.diagnostics.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Diagnostics@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Diagnostics.Abstractions",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Diagnostics.Abstractions-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.diagnostics.abstractions/10.0.10/microsoft.extensions.diagnostics.abstractions.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.FileProviders.Abstractions",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.FileProviders.Abstractions-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.fileproviders.abstractions/10.0.10/microsoft.extensions.fileproviders.abstractions.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.FileProviders.Abstractions@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.FileProviders.Physical",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.FileProviders.Physical-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.fileproviders.physical/10.0.10/microsoft.extensions.fileproviders.physical.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.FileProviders.Physical@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.FileSystemGlobbing",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.FileSystemGlobbing-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.filesystemglobbing/10.0.10/microsoft.extensions.filesystemglobbing.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Hosting",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Hosting-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.hosting/10.0.10/microsoft.extensions.hosting.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Hosting@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Hosting.Abstractions",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Hosting.Abstractions-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.hosting.abstractions/10.0.10/microsoft.extensions.hosting.abstractions.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Logging",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Logging-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging/10.0.10/microsoft.extensions.logging.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Logging@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Logging.Abstractions",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Logging.Abstractions-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.abstractions/10.0.10/microsoft.extensions.logging.abstractions.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Logging.Configuration",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Logging.Configuration-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.configuration/10.0.10/microsoft.extensions.logging.configuration.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Logging.Configuration@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Logging.Console",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Logging.Console-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.console/10.0.10/microsoft.extensions.logging.console.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Logging.Console@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Logging.Debug",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Logging.Debug-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.debug/10.0.10/microsoft.extensions.logging.debug.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Logging.Debug@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Logging.EventLog",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Logging.EventLog-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.eventlog/10.0.10/microsoft.extensions.logging.eventlog.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Logging.EventLog@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Logging.EventSource",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Logging.EventSource-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.logging.eventsource/10.0.10/microsoft.extensions.logging.eventsource.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Logging.EventSource@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Options",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Options-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options/10.0.10/microsoft.extensions.options.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Options@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Options.ConfigurationExtensions",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Options.ConfigurationExtensions-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.options.configurationextensions/10.0.10/microsoft.extensions.options.configurationextensions.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Extensions.Primitives",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Extensions.Primitives-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.extensions.primitives/10.0.10/microsoft.extensions.primitives.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Extensions.Primitives@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.NET.Test.Sdk",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.NET.Test.Sdk-17.14.1",
+                         "versionInfo":  "17.14.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.net.test.sdk/17.14.1/microsoft.net.test.sdk.17.14.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.NET.Test.Sdk@17.14.1"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.TestPlatform.ObjectModel",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.TestPlatform.ObjectModel-17.14.1",
+                         "versionInfo":  "17.14.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.testplatform.objectmodel/17.14.1/microsoft.testplatform.objectmodel.17.14.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.TestPlatform.ObjectModel@17.14.1"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.TestPlatform.TestHost",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.TestPlatform.TestHost-17.14.1",
+                         "versionInfo":  "17.14.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.testplatform.testhost/17.14.1/microsoft.testplatform.testhost.17.14.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.TestPlatform.TestHost@17.14.1"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Web.WebView2",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Web.WebView2-1.0.3719.77",
+                         "versionInfo":  "1.0.3719.77",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/1.0.3719.77/microsoft.web.webview2.1.0.3719.77.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Web.WebView2@1.0.3719.77"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Windows.AI.MachineLearning",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Windows.AI.MachineLearning-2.1.74",
+                         "versionInfo":  "2.1.74",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windows.ai.machinelearning/2.1.74/microsoft.windows.ai.machinelearning.2.1.74.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Windows.AI.MachineLearning@2.1.74"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Windows.SDK.BuildTools",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Windows.SDK.BuildTools-10.0.28000.2526",
+                         "versionInfo":  "10.0.28000.2526",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.buildtools/10.0.28000.2526/microsoft.windows.sdk.buildtools.10.0.28000.2526.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Windows.SDK.BuildTools@10.0.28000.2526"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.Windows.SDK.BuildTools.MSIX",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Windows.SDK.BuildTools.MSIX-1.7.251221100",
+                         "versionInfo":  "1.7.251221100",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.buildtools.msix/1.7.251221100/microsoft.windows.sdk.buildtools.msix.1.7.251221100.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Windows.SDK.BuildTools.MSIX@1.7.251221100"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.Windows.SDK.BuildTools.WinApp",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.Windows.SDK.BuildTools.WinApp-0.5.0",
+                         "versionInfo":  "0.5.0",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.buildtools.winapp/0.5.0/microsoft.windows.sdk.buildtools.winapp.0.5.0.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.Windows.SDK.BuildTools.WinApp@0.5.0"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK-2.3.1",
+                         "versionInfo":  "2.3.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk/2.3.1/microsoft.windowsappsdk.2.3.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK@2.3.1"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.AI",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.AI-2.3.4",
+                         "versionInfo":  "2.3.4",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.ai/2.3.4/microsoft.windowsappsdk.ai.2.3.4.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.AI@2.3.4"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.Base",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.Base-2.0.4",
+                         "versionInfo":  "2.0.4",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.base/2.0.4/microsoft.windowsappsdk.base.2.0.4.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.Base@2.0.4"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.DWrite",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.DWrite-2.1.0",
+                         "versionInfo":  "2.1.0",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.dwrite/2.1.0/microsoft.windowsappsdk.dwrite.2.1.0.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.DWrite@2.1.0"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.Foundation",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.Foundation-2.3.5",
+                         "versionInfo":  "2.3.5",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.foundation/2.3.5/microsoft.windowsappsdk.foundation.2.3.5.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.Foundation@2.3.5"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.InteractiveExperiences",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.InteractiveExperiences-2.1.3",
+                         "versionInfo":  "2.1.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.interactiveexperiences/2.1.3/microsoft.windowsappsdk.interactiveexperiences.2.1.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.InteractiveExperiences@2.1.3"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.ML",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.ML-2.1.74",
+                         "versionInfo":  "2.1.74",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.ml/2.1.74/microsoft.windowsappsdk.ml.2.1.74.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.ML@2.1.74"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.Runtime",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.Runtime-2.3.1",
+                         "versionInfo":  "2.3.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.runtime/2.3.1/microsoft.windowsappsdk.runtime.2.3.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.Runtime@2.3.1"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.Widgets",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.Widgets-2.0.5",
+                         "versionInfo":  "2.0.5",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.widgets/2.0.5/microsoft.windowsappsdk.widgets.2.0.5.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.Widgets@2.0.5"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.WindowsAppSDK.WinUI",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.WindowsAppSDK.WinUI-2.3.0",
+                         "versionInfo":  "2.3.0",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.windowsappsdk.winui/2.3.0/microsoft.windowsappsdk.winui.2.3.0.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.WindowsAppSDK.WinUI@2.3.0"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Newtonsoft.Json",
+                         "SPDXID":  "SPDXRef-Package-Newtonsoft.Json-13.0.3",
+                         "versionInfo":  "13.0.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Newtonsoft.Json@13.0.3"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Npgsql",
+                         "SPDXID":  "SPDXRef-Package-Npgsql-10.0.3",
+                         "versionInfo":  "10.0.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/npgsql/10.0.3/npgsql.10.0.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "PostgreSQL",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Npgsql@10.0.3"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Serilog",
+                         "SPDXID":  "SPDXRef-Package-Serilog-4.2.0",
+                         "versionInfo":  "4.2.0",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/serilog/4.2.0/serilog.4.2.0.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Serilog@4.2.0"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Serilog.Extensions.Logging",
+                         "SPDXID":  "SPDXRef-Package-Serilog.Extensions.Logging-10.0.0",
+                         "versionInfo":  "10.0.0",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/serilog.extensions.logging/10.0.0/serilog.extensions.logging.10.0.0.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Serilog.Extensions.Logging@10.0.0"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "Serilog.Sinks.File",
+                         "SPDXID":  "SPDXRef-Package-Serilog.Sinks.File-7.0.0",
+                         "versionInfo":  "7.0.0",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/serilog.sinks.file/7.0.0/serilog.sinks.file.7.0.0.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Serilog.Sinks.File@7.0.0"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "SkiaSharp",
+                         "SPDXID":  "SPDXRef-Package-SkiaSharp-4.150.1",
+                         "versionInfo":  "4.150.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/skiasharp/4.150.1/skiasharp.4.150.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/SkiaSharp@4.150.1"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "SkiaSharp.NativeAssets.macOS",
+                         "SPDXID":  "SPDXRef-Package-SkiaSharp.NativeAssets.macOS-4.150.1",
+                         "versionInfo":  "4.150.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/skiasharp.nativeassets.macos/4.150.1/skiasharp.nativeassets.macos.4.150.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/SkiaSharp.NativeAssets.macOS@4.150.1"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "SkiaSharp.NativeAssets.Win32",
+                         "SPDXID":  "SPDXRef-Package-SkiaSharp.NativeAssets.Win32-4.150.1",
+                         "versionInfo":  "4.150.1",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/skiasharp.nativeassets.win32/4.150.1/skiasharp.nativeassets.win32.4.150.1.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/SkiaSharp.NativeAssets.Win32@4.150.1"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "System.Diagnostics.EventLog",
+                         "SPDXID":  "SPDXRef-Package-System.Diagnostics.EventLog-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/system.diagnostics.eventlog/10.0.10/system.diagnostics.eventlog.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/System.Diagnostics.EventLog@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "System.Numerics.Tensors",
+                         "SPDXID":  "SPDXRef-Package-System.Numerics.Tensors-9.0.0",
+                         "versionInfo":  "9.0.0",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/system.numerics.tensors/9.0.0/system.numerics.tensors.9.0.0.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/System.Numerics.Tensors@9.0.0"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "xunit",
+                         "SPDXID":  "SPDXRef-Package-xunit-2.9.3",
+                         "versionInfo":  "2.9.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/xunit/2.9.3/xunit.2.9.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/xunit@2.9.3"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     },
+                     {
+                         "name":  "xunit.abstractions",
+                         "SPDXID":  "SPDXRef-Package-xunit.abstractions-2.0.3",
+                         "versionInfo":  "2.0.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/xunit.abstractions/2.0.3/xunit.abstractions.2.0.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "NOASSERTION",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/xunit.abstractions@2.0.3"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "xunit.analyzers",
+                         "SPDXID":  "SPDXRef-Package-xunit.analyzers-1.18.0",
+                         "versionInfo":  "1.18.0",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/xunit.analyzers/1.18.0/xunit.analyzers.1.18.0.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/xunit.analyzers@1.18.0"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "xunit.assert",
+                         "SPDXID":  "SPDXRef-Package-xunit.assert-2.9.3",
+                         "versionInfo":  "2.9.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/xunit.assert/2.9.3/xunit.assert.2.9.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/xunit.assert@2.9.3"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "xunit.core",
+                         "SPDXID":  "SPDXRef-Package-xunit.core-2.9.3",
+                         "versionInfo":  "2.9.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/xunit.core/2.9.3/xunit.core.2.9.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/xunit.core@2.9.3"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "xunit.extensibility.core",
+                         "SPDXID":  "SPDXRef-Package-xunit.extensibility.core-2.9.3",
+                         "versionInfo":  "2.9.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/xunit.extensibility.core/2.9.3/xunit.extensibility.core.2.9.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/xunit.extensibility.core@2.9.3"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "xunit.extensibility.execution",
+                         "SPDXID":  "SPDXRef-Package-xunit.extensibility.execution-2.9.3",
+                         "versionInfo":  "2.9.3",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/xunit.extensibility.execution/2.9.3/xunit.extensibility.execution.2.9.3.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/xunit.extensibility.execution@2.9.3"
+                                              }
+                                          ],
+                         "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "xunit.runner.visualstudio",
+                         "SPDXID":  "SPDXRef-Package-xunit.runner.visualstudio-3.1.4",
+                         "versionInfo":  "3.1.4",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/xunit.runner.visualstudio/3.1.4/xunit.runner.visualstudio.3.1.4.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "Apache-2.0",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/xunit.runner.visualstudio@3.1.4"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
+                     }
+                 ],
+    "relationships":  [
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-coverlet.collector-6.0.4"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.AspNetCore.Mvc.Testing-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.AspNetCore.TestHost-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.CodeCoverage-17.14.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Configuration-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Configuration.Abstractions-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Configuration.Binder-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Configuration.CommandLine-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Configuration.EnvironmentVariables-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Configuration.FileExtensions-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Configuration.Json-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Configuration.UserSecrets-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.DependencyInjection-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.DependencyInjection.Abstractions-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.DependencyModel-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Diagnostics-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Diagnostics.Abstractions-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.FileProviders.Abstractions-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.FileProviders.Physical-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.FileSystemGlobbing-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Hosting-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Hosting.Abstractions-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Logging-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Logging.Abstractions-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Logging.Configuration-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Logging.Console-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Logging.Debug-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Logging.EventLog-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Logging.EventSource-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Options-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Options.ConfigurationExtensions-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Primitives-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.NET.Test.Sdk-17.14.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.TestPlatform.ObjectModel-17.14.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.TestPlatform.TestHost-17.14.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Web.WebView2-1.0.3719.77"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Windows.AI.MachineLearning-2.1.74"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Windows.SDK.BuildTools-10.0.28000.2526"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Windows.SDK.BuildTools.MSIX-1.7.251221100"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Windows.SDK.BuildTools.WinApp-0.5.0"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK-2.3.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.AI-2.3.4"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.Base-2.0.4"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.DWrite-2.1.0"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.Foundation-2.3.5"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.InteractiveExperiences-2.1.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.ML-2.1.74"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.Runtime-2.3.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.Widgets-2.0.5"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.WindowsAppSDK.WinUI-2.3.0"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Newtonsoft.Json-13.0.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Npgsql-10.0.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Serilog-4.2.0"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Serilog.Extensions.Logging-10.0.0"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Serilog.Sinks.File-7.0.0"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-SkiaSharp-4.150.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-SkiaSharp.NativeAssets.macOS-4.150.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-SkiaSharp.NativeAssets.Win32-4.150.1"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-System.Diagnostics.EventLog-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-System.Numerics.Tensors-9.0.0"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-xunit-2.9.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-xunit.abstractions-2.0.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-xunit.analyzers-1.18.0"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-xunit.assert-2.9.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-xunit.core-2.9.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-xunit.extensibility.core-2.9.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-xunit.extensibility.execution-2.9.3"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-xunit.runner.visualstudio-3.1.4"
+                          }
+                      ]
+}

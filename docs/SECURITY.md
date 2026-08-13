@@ -899,3 +899,17 @@ Không persist entitlement grant, access URL, storage reference hoặc credentia
 - Redaction không phải DLP tuyệt đối: secret không có nhãn/pattern vẫn có thể lọt qua, nên caller không được log raw content hay
   secret. Same-user/Administrator vẫn có thể đọc local log/bundle. Support consent/retention/deletion và centralized sink chưa
   production-verified. Xem [PRIVACY_LOGGING_SECURITY.md](PRIVACY_LOGGING_SECURITY.md).
+
+## Dependency / supply-chain security từ PLAN 88
+
+- Central exact NuGet versions + 22 project lock files; CI `--locked-mode`, source allowlist NuGet.org và required package
+  signature validation. Dependency update phải review central version/lock/SBOM diff.
+- Direct/transitive vulnerability audit fail gate và deterministic SPDX 2.3 SBOM verify. Advisory feed, package signature và
+  hash không loại bỏ zero-day, compromised maintainer/account hoặc malicious-but-signed release.
+- GitHub Actions pin full commit SHA. Release workflow verify lock/audit/SBOM/policy rồi mang supply-chain records vào artifact;
+  production signer/HSM/CDN vẫn chưa verified.
+- DirectXTex exact local candidate có version/hash/AuthentiCode Microsoft và official MIT record. Packaging phải giữ notice và
+  verify lại exact artifact/native inventory.
+- `acv.exe` không ký/version/publisher; template/game asset không có authoritative rights record. Hash chỉ là identity, vì vậy
+  commercial redistribution bị chặn, fixture tiếp tục ngoài Git. Xem
+  [DEPENDENCY_AND_REDISTRIBUTION.md](supply-chain/DEPENDENCY_AND_REDISTRIBUTION.md).

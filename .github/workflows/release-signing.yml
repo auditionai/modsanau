@@ -27,13 +27,20 @@ jobs:
       TIMESTAMP_URL: ${{ vars.AUDITION_TIMESTAMP_URL }}
       SIGNING_CERTIFICATE_SHA1: ${{ secrets.AUDITION_SIGNING_CERTIFICATE_SHA1 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 1
           persist-credentials: false
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 10.0.302
+      - name: Verify locked dependencies, vulnerability audit and SBOM
+        shell: pwsh
+        run: |
+          dotnet restore AuditionModStudio.sln --locked-mode --nologo
+          ./scripts/Invoke-DependencyAudit.ps1
+          ./scripts/New-DependencySbom.ps1 -Verify
+          ./scripts/Test-SupplyChainPolicy.ps1
       - name: Validate protected release configuration
         shell: pwsh
         run: |
@@ -46,13 +53,21 @@ jobs:
         shell: pwsh
         run: >-
           dotnet publish src/AuditionModStudio.App/AuditionModStudio.App.csproj
-          -c Release -r win-x64 --self-contained true
+          -c Release --self-contained true
           -p:WindowsPackageType=None
           -p:Version=${{ inputs.version }}
           -p:FileVersion=${{ inputs.version }}
           -p:AssemblyVersion=${{ inputs.version }}
           -o artifacts/release/win-x64
+          --no-restore
           --nologo
+      - name: Include supply-chain records
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path artifacts/release/supply-chain -Force | Out-Null
+          Copy-Item docs/supply-chain/AuditionModStudio.spdx.json artifacts/release/supply-chain/
+          Copy-Item docs/supply-chain/THIRD_PARTY_PROVENANCE.json artifacts/release/supply-chain/
+          Copy-Item docs/supply-chain/DEPENDENCY_AND_REDISTRIBUTION.md artifacts/release/supply-chain/
       - name: Sign and verify app-owned artifacts
         shell: pwsh
         run: |
@@ -76,7 +91,7 @@ jobs:
           -PublicArtifactRoot artifacts/release
           -Configuration Release
       - name: Upload signed release candidate
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: audition-mod-studio-${{ inputs.version }}-${{ github.sha }}-signed
           path: artifacts/release

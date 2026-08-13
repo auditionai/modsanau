@@ -1,4 +1,4 @@
-name: Security secret scan
+name: Supply-chain verification
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  secret-scan:
+  dependency-policy:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -21,13 +21,12 @@ jobs:
           dotnet-version: 10.0.302
       - name: Restore exact locked graph
         run: dotnet restore AuditionModStudio.sln --locked-mode --nologo
-      - name: Build Release artifacts
-        run: dotnet build AuditionModStudio.sln -c Release --no-restore --nologo
-      - name: Scan source, build, log and crash artifacts
+      - name: Reject vulnerable dependencies
         shell: pwsh
-        run: >-
-          ./scripts/Invoke-SecretScan.ps1
-          -Paths src,tests,docs,supabase,scripts,
-          src/AuditionModStudio.App/bin/Release,
-          src/AuditionModStudio.Gateway/bin/Release,
-          artifacts
+        run: ./scripts/Invoke-DependencyAudit.ps1
+      - name: Verify deterministic SPDX SBOM
+        shell: pwsh
+        run: ./scripts/New-DependencySbom.ps1 -Verify
+      - name: Verify supply-chain policy records
+        shell: pwsh
+        run: ./scripts/Test-SupplyChainPolicy.ps1

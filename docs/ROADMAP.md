@@ -259,4 +259,7 @@ Mỗi lần chỉ thực hiện một PLAN:
   PostgreSQL/RLS và immediate cloud deny sau revoke. Local PostgreSQL gate PASS; Supabase live chưa xác minh.
 - PLAN 87 — Privacy & Logging Security: đã triển khai central sink redaction cho desktop/Gateway và diagnostic ZIP allowlist
   chỉ gồm safe manifest + log đã redact; mặc định loại project, ảnh, template, archive, workspace, settings và credential.
-- PLAN kế tiếp trong batch được phê duyệt: PLAN 88 — Dependency / Supply-Chain Security.
+- PLAN 88 — Dependency / Supply-Chain Security: exact NuGet lock graph, source/signature policy, vulnerability/SBOM CI gate,
+  full-SHA Actions và native/license/redistribution inventory đã triển khai. ACV/template/game asset commercial redistribution
+  vẫn fail-closed do thiếu authoritative written rights/provenance.
+- PLAN kế tiếp trong batch được phê duyệt: PLAN 89 — Security Test Matrix.

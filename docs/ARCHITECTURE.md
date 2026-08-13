@@ -1275,3 +1275,15 @@ Diagnostic export là allowlist `safe manifest + redacted local logs`, không en
 không đọc settings/credential và không upload. Implementation nằm trong Infrastructure, reuse destination/path security,
 giới hạn file/count/bytes, đổi tên log nguồn, tạo temp cùng filesystem rồi atomic move không overwrite; task hỗ trợ
 cancellation/progress. Xem [PRIVACY_LOGGING_SECURITY.md](PRIVACY_LOGGING_SECURITY.md).
+
+## Dependency và supply-chain security từ PLAN 88
+
+NuGet graph dùng central exact versions, source mapping chỉ tới HTTPS NuGet.org, signature validation và một
+`packages.lock.json` cho mỗi project. CI restore bằng locked mode, audit direct/transitive vulnerability và verify tracked
+SPDX 2.3 SBOM. GitHub Actions được pin full commit SHA; release candidate mang theo SBOM cùng provenance/redistribution record.
+
+Native/proprietary inventory tách technical integrity khỏi legal authority. DirectXTex May 2026 x64 có exact version/hash,
+valid Microsoft Authenticode và official MIT source record. `acv.exe`, pristine template và game asset chỉ có known local
+fixture/integrity evidence, không có authoritative publisher/license/right evidence, nên commercial redistribution fail closed.
+Không binary proprietary nào được track/tải/bundle bởi PLAN 88. Xem
+[DEPENDENCY_AND_REDISTRIBUTION.md](supply-chain/DEPENDENCY_AND_REDISTRIBUTION.md).
