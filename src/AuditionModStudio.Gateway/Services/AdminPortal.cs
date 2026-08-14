@@ -11,7 +11,7 @@ namespace AuditionModStudio.Gateway.Services;
 
 public sealed record AdminPortalOptions
 {
-    public const string DefaultBootstrapEmail = "codycn@gmail.com";
+    public const string DefaultBootstrapEmail = "codycn2804@gmail.com";
     public Guid? BootstrapUserId { get; init; }
     public string BootstrapEmail { get; init; } = string.Empty;
     public int DefaultPageSize { get; init; } = 25;

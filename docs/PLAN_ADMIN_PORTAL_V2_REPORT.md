@@ -15,10 +15,10 @@
 - `Gateway__SupabaseUrl`
 - `Gateway__SupabasePublishableKey`
 - `Gateway__CreditDatabaseConnectionString`
-- `Gateway__AdminPortal__BootstrapEmail=codycn@gmail.com`
+- `Gateway__AdminPortal__BootstrapEmail=codycn2804@gmail.com`
 - Gateway HTTPS và reverse proxy cùng origin cho `/v1/*`.
 - Apply migration `202608150001_admin_portal_v2.sql`.
-- Tạo hoặc xác nhận Supabase Auth user `codycn@gmail.com` qua kênh được ủy quyền; không commit mật khẩu.
+- Tạo hoặc xác nhận Supabase Auth user `codycn2804@gmail.com` qua kênh được ủy quyền; không commit mật khẩu.
 
 ## Ranh giới bằng chứng
 
