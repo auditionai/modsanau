@@ -260,6 +260,7 @@ public static class AdminPortalEndpoints
                 result.DiagnosticCode,
                 result.Device,
                 result.GiftCode,
+                result.OneTimeCode,
             }),
             TrustedServiceStatus.Rejected => Results.Json(new GatewayErrorResponse(result.DiagnosticCode),
                 statusCode: StatusCodes.Status403Forbidden),

@@ -11,6 +11,7 @@ namespace AuditionModStudio.Gateway.Services;
 
 public sealed record AdminPortalOptions
 {
+    public const string DefaultBootstrapEmail = "codycn@gmail.com";
     public Guid? BootstrapUserId { get; init; }
     public string BootstrapEmail { get; init; } = string.Empty;
     public int DefaultPageSize { get; init; } = 25;
@@ -33,7 +34,7 @@ public sealed record AdminPortalOptions
         {
             BootstrapUserId = Guid.TryParse(section["BootstrapUserId"], out var bootstrapUserId)
                 && bootstrapUserId != Guid.Empty ? bootstrapUserId : null,
-            BootstrapEmail = section["BootstrapEmail"] ?? string.Empty,
+            BootstrapEmail = section["BootstrapEmail"] ?? DefaultBootstrapEmail,
             DefaultPageSize = ParseInt(section["DefaultPageSize"], 25, 1, 100),
             MaximumPageSize = ParseInt(section["MaximumPageSize"], 100, 1, 250),
         };
@@ -166,7 +167,8 @@ public sealed record AdminMutationResult(
     TrustedServiceStatus Status,
     string DiagnosticCode,
     AdminDeviceDetail? Device,
-    AdminGiftCodeSummary? GiftCode);
+    AdminGiftCodeSummary? GiftCode,
+    string? OneTimeCode = null);
 
 public interface IAdminPortalService
 {
@@ -564,7 +566,7 @@ public sealed class PostgresAdminPortalService(
         Guid correlationId,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = await EnsureAdminConnectionAsync(user, cancellationToken).ConfigureAwait(false);
+        await using var connection = await EnsureMutationConnectionAsync(user, cancellationToken).ConfigureAwait(false);
         if (connection is null || deviceProfileId == Guid.Empty || !DeviceStatuses.Contains(status))
             return MutationRejected("ADMIN_MUTATION_REJECTED");
 
@@ -653,7 +655,7 @@ public sealed class PostgresAdminPortalService(
         Guid correlationId,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = await EnsureAdminConnectionAsync(user, cancellationToken).ConfigureAwait(false);
+        await using var connection = await EnsureMutationConnectionAsync(user, cancellationToken).ConfigureAwait(false);
         if (connection is null || deviceProfileId == Guid.Empty || extensionDays is < 1 or > 3650)
             return MutationRejected("ADMIN_MUTATION_REJECTED");
 
@@ -738,7 +740,7 @@ public sealed class PostgresAdminPortalService(
         Guid correlationId,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = await EnsureAdminConnectionAsync(user, cancellationToken).ConfigureAwait(false);
+        await using var connection = await EnsureMutationConnectionAsync(user, cancellationToken).ConfigureAwait(false);
         if (connection is null || targetUserId == Guid.Empty || amount <= 0
             || !IsValidAuthorityReference(authorityReference))
             return MutationRejected("ADMIN_MUTATION_REJECTED");
@@ -828,7 +830,7 @@ public sealed class PostgresAdminPortalService(
         Guid correlationId,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = await EnsureAdminConnectionAsync(user, cancellationToken).ConfigureAwait(false);
+        await using var connection = await EnsureMutationConnectionAsync(user, cancellationToken).ConfigureAwait(false);
         if (connection is null || maximumRedemptions is < 1 or > 1_000_000)
             return MutationRejected("ADMIN_MUTATION_REJECTED");
 
@@ -889,10 +891,10 @@ public sealed class PostgresAdminPortalService(
                     ["durationDays"] = summary.DurationDays,
                     ["creditAmount"] = summary.CreditAmount,
                     ["maximumRedemptions"] = summary.MaximumRedemptions,
-                    ["giftCode"] = code,
+                    ["codePrefix"] = summary.CodePrefix,
                 }, cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return new(TrustedServiceStatus.Succeeded, "ADMIN_GIFT_CODE_CREATED", null, summary);
+            return new(TrustedServiceStatus.Succeeded, "ADMIN_GIFT_CODE_CREATED", null, summary, code);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -917,7 +919,7 @@ public sealed class PostgresAdminPortalService(
         Guid correlationId,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = await EnsureAdminConnectionAsync(user, cancellationToken).ConfigureAwait(false);
+        await using var connection = await EnsureMutationConnectionAsync(user, cancellationToken).ConfigureAwait(false);
         if (connection is null || giftCodeId == Guid.Empty) return MutationRejected("ADMIN_MUTATION_REJECTED");
 
         await using var transaction = await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted,
@@ -1021,6 +1023,28 @@ public sealed class PostgresAdminPortalService(
             return null;
         }
 
+        await MarkSeenAsync(connection, user.UserId, cancellationToken).ConfigureAwait(false);
+        return connection;
+    }
+
+    private async Task<NpgsqlConnection?> EnsureMutationConnectionAsync(
+        AuthenticatedGatewayUser user,
+        CancellationToken cancellationToken)
+    {
+        if (user.UserId == Guid.Empty) return null;
+        var connection = await dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = new NpgsqlCommand("""
+            SELECT role::text
+            FROM private.admin_users
+            WHERE admin_user_id = $1 AND is_active
+            """, connection);
+        command.Parameters.AddWithValue(NpgsqlDbType.Uuid, user.UserId);
+        var role = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) as string;
+        if (role is not ("owner" or "operator"))
+        {
+            await connection.DisposeAsync().ConfigureAwait(false);
+            return null;
+        }
         await MarkSeenAsync(connection, user.UserId, cancellationToken).ConfigureAwait(false);
         return connection;
     }

@@ -61,9 +61,14 @@ expect(/<html lang="vi"/i.test(admin), "admin/index.html missing lang=vi");
 expect((admin.match(/<h1\b/gi) ?? []).length === 1, "admin/index.html must have exactly one h1");
 expect(/href="\/admin\/styles\.css"/.test(admin), "admin/index.html stylesheet must be under /admin/");
 expect(/src="\/admin\/script\.js"/.test(admin), "admin/index.html script must be under /admin/");
-expect(/data-api-base/i.test(admin), "admin/index.html missing API configuration");
+expect(/data-login-form/i.test(admin), "admin/index.html missing secure login form");
+expect(!/data-api-base|data-token/i.test(admin), "admin/index.html must not expose manual API/token configuration");
 expect(/AbortController/.test(adminScript), "admin/script.js missing request cancellation");
 expect(/\/v1\/admin\/dashboard/.test(adminScript), "admin/script.js missing admin dashboard route");
+expect(/\/v1\/admin\/session\/login/.test(adminScript), "admin/script.js missing secure session login route");
+expect(/\/v1\/admin\/users/.test(adminScript), "admin/script.js missing user management route");
+expect(/\/v1\/admin\/transactions/.test(adminScript), "admin/script.js missing transaction search route");
+expect(/X-CSRF-Token/.test(adminScript), "admin/script.js missing CSRF header");
 expect(/prefers-reduced-motion/.test(adminStyles), "admin/styles.css missing reduced-motion");
 
 if (failures.length) throw new Error(`PUBLIC SITE TEST FAIL\n- ${failures.join("\n- ")}`);

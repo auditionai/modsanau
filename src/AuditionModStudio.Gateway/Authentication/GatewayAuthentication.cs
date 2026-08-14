@@ -12,7 +12,9 @@ namespace AuditionModStudio.Gateway.Authentication;
 
 public static class GatewayAuthenticationDefaults
 {
-    public const string Scheme = "SupabaseAccessToken";
+    public const string Scheme = "GatewayAccess";
+    public const string BearerScheme = "SupabaseAccessToken";
+    public const string AdminCookieScheme = "AdminSession";
 }
 
 public enum AccessTokenValidationStatus

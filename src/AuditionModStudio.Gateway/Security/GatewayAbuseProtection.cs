@@ -13,6 +13,7 @@ namespace AuditionModStudio.Gateway.Security;
 
 public static class GatewayAbuseProtectionDefaults
 {
+    public const string AdminLoginPolicy = "admin-login";
     public const string AuthenticatedPolicy = "authenticated-user";
     public const string ChargedOperationPolicy = "charged-operation";
 }
@@ -164,7 +165,9 @@ public sealed class GatewaySecurityMiddleware(
 
     private static bool HasSupportedContentType(HttpContext context)
     {
-        if (!HttpMethods.IsPost(context.Request.Method)) return true;
+        if (!HttpMethods.IsPost(context.Request.Method)
+            && !HttpMethods.IsPut(context.Request.Method)
+            && !HttpMethods.IsPatch(context.Request.Method)) return true;
         var path = context.Request.Path.Value ?? string.Empty;
         if (path.StartsWith("/v1/ai/content/", StringComparison.Ordinal)
             || path.EndsWith("/cancel", StringComparison.Ordinal))
@@ -206,6 +209,10 @@ public static class GatewayRateLimiting
             };
             rateLimiting.AddPolicy(GatewayAbuseProtectionDefaults.AuthenticatedPolicy,
                 context => UserPartition(context, options.AuthenticatedPermitLimit, options.RateLimitWindow));
+            rateLimiting.AddPolicy(GatewayAbuseProtectionDefaults.AdminLoginPolicy,
+                context => RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => GatewayIpRateLimiter.FixedWindow(5, TimeSpan.FromMinutes(1))));
             rateLimiting.AddPolicy(GatewayAbuseProtectionDefaults.ChargedOperationPolicy,
                 context => UserPartition(context, options.ChargedOperationPermitLimit, options.RateLimitWindow));
         });

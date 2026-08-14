@@ -55,6 +55,8 @@ public sealed class Plan105AdminPortalContractTests
         Assert.Contains("private.admin_audit_record", service, StringComparison.Ordinal);
         Assert.Contains("private.admin_bootstrap_first_user", service, StringComparison.Ordinal);
         Assert.Contains("EnsureAdminConnectionAsync", service, StringComparison.Ordinal);
+        Assert.Contains("EnsureMutationConnectionAsync", service, StringComparison.Ordinal);
+        Assert.Contains("role is not (\"owner\" or \"operator\")", service, StringComparison.Ordinal);
         Assert.Contains("IsAdminAsync", service, StringComparison.Ordinal);
         Assert.Contains("NormalizeReason", service, StringComparison.Ordinal);
         Assert.DoesNotContain("service_role", appBootstrapper, StringComparison.OrdinalIgnoreCase);
@@ -76,13 +78,44 @@ public sealed class Plan105AdminPortalContractTests
         Assert.Contains("Content-Security-Policy:", headers, StringComparison.Ordinal);
         Assert.Contains("X-Robots-Tag: noindex", headers, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("connect-src 'self'", headers, StringComparison.Ordinal);
-        Assert.Contains("/v1/admin/bootstrap/state", script, StringComparison.Ordinal);
+        Assert.Contains("/v1/admin/session/login", script, StringComparison.Ordinal);
         Assert.Contains("/v1/admin/dashboard", script, StringComparison.Ordinal);
+        Assert.Contains("/v1/admin/analytics", script, StringComparison.Ordinal);
+        Assert.Contains("/v1/admin/users", script, StringComparison.Ordinal);
+        Assert.Contains("/v1/admin/transactions", script, StringComparison.Ordinal);
         Assert.Contains("/v1/admin/devices", script, StringComparison.Ordinal);
         Assert.Contains("/v1/admin/gift-codes", script, StringComparison.Ordinal);
         Assert.Contains("/v1/admin/audit", script, StringComparison.Ordinal);
         Assert.Contains("AbortController", script, StringComparison.Ordinal);
+        Assert.Contains("X-CSRF-Token", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("localStorage", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-api-base", index, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"policy\": \"deny-by-default\"", manifest, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Admin_v2_session_and_operations_are_fail_closed()
+    {
+        var root = FindRepositoryRoot();
+        var session = File.ReadAllText(Path.Combine(root, "src", "AuditionModStudio.Gateway",
+            "Endpoints", "AdminSessionEndpoints.cs"));
+        var csrf = File.ReadAllText(Path.Combine(root, "src", "AuditionModStudio.Gateway",
+            "Security", "AdminCsrfMiddleware.cs"));
+        var operations = File.ReadAllText(Path.Combine(root, "src", "AuditionModStudio.Gateway",
+            "Services", "AdminOperations.cs"));
+        var migration = File.ReadAllText(Path.Combine(root, "supabase", "migrations",
+            "202608150001_admin_portal_v2.sql"));
+
+        Assert.Contains("__Host-aams-admin", File.ReadAllText(Path.Combine(root, "src",
+            "AuditionModStudio.Gateway", "GatewayApplication.cs")), StringComparison.Ordinal);
+        Assert.Contains("ADMIN_LOGIN_REJECTED", session, StringComparison.Ordinal);
+        Assert.Contains("RandomNumberGenerator.GetBytes", session, StringComparison.Ordinal);
+        Assert.Contains("CryptographicOperations.FixedTimeEquals", csrf, StringComparison.Ordinal);
+        Assert.Contains("role==\"auditor\"", operations.Replace(" ", string.Empty), StringComparison.Ordinal);
+        Assert.Contains("IsolationLevel.Serializable", operations, StringComparison.Ordinal);
+        Assert.Contains("FORCE ROW LEVEL SECURITY", migration, StringComparison.Ordinal);
+        Assert.Contains("ON DELETE RESTRICT", migration, StringComparison.Ordinal);
+        Assert.DoesNotContain("TO authenticated", migration, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string FindRepositoryRoot()

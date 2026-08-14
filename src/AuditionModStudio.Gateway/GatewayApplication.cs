@@ -4,6 +4,7 @@ using AuditionModStudio.Gateway.Endpoints;
 using AuditionModStudio.Gateway.Security;
 using AuditionModStudio.Gateway.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Npgsql;
 
@@ -89,6 +90,7 @@ public static class GatewayApplication
                 adminPortalOptions.IsValid
                     ? new PostgresAdminPortalService(provider.GetRequiredService<NpgsqlDataSource>(), adminPortalOptions)
                     : new UnavailableAdminPortalService());
+            services.AddSingleton<IAdminOperationsService, PostgresAdminOperationsService>();
             services.AddSingleton<PostgresAiJobService>();
             services.AddSingleton<IAiJobService>(provider =>
                 provider.GetRequiredService<PostgresAiJobService>());
@@ -118,13 +120,41 @@ public static class GatewayApplication
             services.AddSingleton<IDeviceSessionService, UnavailableDeviceSessionService>();
             services.AddSingleton<ITrustedDeviceEntitlementService, UnavailableTrustedDeviceEntitlementService>();
             services.AddSingleton<IAdminPortalService, UnavailableAdminPortalService>();
+            services.AddSingleton<IAdminOperationsService, UnavailableAdminOperationsService>();
         }
         services.AddSingleton<IAiJobExecutionService, AiJobExecutionService>();
         services.AddHostedService<AiJobWorker>();
 
         services.AddAuthentication(GatewayAuthenticationDefaults.Scheme)
+            .AddPolicyScheme(GatewayAuthenticationDefaults.Scheme, GatewayAuthenticationDefaults.Scheme,
+                policy => policy.ForwardDefaultSelector = context =>
+                    context.Request.Headers.Authorization.Count > 0
+                        ? GatewayAuthenticationDefaults.BearerScheme
+                        : GatewayAuthenticationDefaults.AdminCookieScheme)
             .AddScheme<AuthenticationSchemeOptions, GatewayAuthenticationHandler>(
-                GatewayAuthenticationDefaults.Scheme, _ => { });
+                GatewayAuthenticationDefaults.BearerScheme, _ => { })
+            .AddCookie(GatewayAuthenticationDefaults.AdminCookieScheme, cookie =>
+            {
+                cookie.Cookie.Name = "__Host-aams-admin";
+                cookie.Cookie.HttpOnly = true;
+                cookie.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                cookie.Cookie.SameSite = SameSiteMode.Strict;
+                cookie.Cookie.Path = "/";
+                cookie.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+                cookie.SlidingExpiration = false;
+                cookie.LoginPath = "/admin/";
+                cookie.AccessDeniedPath = "/admin/";
+                cookie.Events.OnRedirectToLogin = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return context.Response.WriteAsJsonAsync(new GatewayErrorResponse("ADMIN_SESSION_REQUIRED"));
+                };
+                cookie.Events.OnRedirectToAccessDenied = context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return context.Response.WriteAsJsonAsync(new GatewayErrorResponse("ADMIN_ACCESS_REQUIRED"));
+                };
+            });
         services.AddAuthorizationBuilder().SetFallbackPolicy(new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
             .Build());
@@ -166,13 +196,16 @@ public static class GatewayApplication
         app.UseMiddleware<GatewaySecurityMiddleware>();
         app.UseAuthentication();
         app.UseRateLimiter();
+        app.UseMiddleware<AdminCsrfMiddleware>();
         app.UseMiddleware<DeviceSessionAuthorizationMiddleware>();
         app.UseAuthorization();
 
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
         app.MapDeviceSessionEndpoints();
+        app.MapAdminSessionEndpoints();
         app.MapDeviceEntitlementEndpoints();
         app.MapAdminPortalEndpoints();
+        app.MapAdminOperationsEndpoints();
         app.MapTrustedGatewayEndpoints();
         app.MapPaymentWebhookEndpoints();
     }
