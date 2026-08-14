@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>Audition AI Mod Studio</title>
+  <defs><linearGradient id="g" x1="8" y1="6" x2="57" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#315efb"/><stop offset="1" stop-color="#2544bb"/></linearGradient></defs>
+  <rect width="64" height="64" rx="17" fill="url(#g)"/>
+  <path d="M17 45 29.3 17h5.5L47 45h-7.1l-2.4-6H26.4L24 45h-7Zm11.6-12h6.7L32 24.8 28.6 33Z" fill="#fff"/>
+  <circle cx="48" cy="16" r="5" fill="#ff6e68"/>
+  <path d="M13 51h38" stroke="#60d5e5" stroke-width="3" stroke-linecap="round"/>
+</svg>

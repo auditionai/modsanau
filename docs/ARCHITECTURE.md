@@ -1513,3 +1513,15 @@ UI Settings/command palette/Activity Log chỉ hiển thị service state thật
 Extract/Convert/Build active hoặc editor còn state có thể Apply thì handoff bị defer. Production feed/trust
 root chưa được cung cấp nên default composition fail closed; local file-only pipeline vẫn độc lập. Chi tiết tại
 [PORTABLE_UPDATE_ARCHITECTURE.md](PORTABLE_UPDATE_ARCHITECTURE.md).
+
+## Public website và deployment boundary từ PLAN 103
+
+Website marketing nằm trong `public-release/`, tách khỏi desktop runtime và được xuất sang một Git repository chuyên dụng bằng
+exact deny-by-default allowlist. Build zero-dependency chỉ copy 14 file web đã liệt kê vào `dist`; CI từ chối file lạ, symlink,
+binary/archive, credential và mẫu secret. Cây này không chứa source desktop, companion tool, fixture, DDS private, updater feed,
+production key hoặc ZIP nội bộ.
+
+Netlify là static hosting boundary: `main` dành cho production và `develop` dành cho branch deploy, nhưng PLAN 103 chỉ chuẩn bị
+config/checklist local vì remote/dashboard chưa được xác minh. Website không gọi Supabase, AI, payment hay updater; không thêm cloud
+dependency vào `AuditionModStudio.Core` hoặc file-only pipeline. Public download chỉ có thể là GitHub Release asset sau release gate
+riêng, không phải blob repository và không tự động kế thừa artifact internal PLAN 102.

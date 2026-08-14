@@ -462,3 +462,18 @@ PLAN 100 chưa đo peak working set, native child-process peak, GUI frame/input 
 
 Production update feed/public key build input/signer HSM/AuthentiCode/timestamp/CDN vẫn chưa verified. Local E2E dùng dedicated
 TEST key và không biến test authority thành production trust root. Updater không có Audition game authority.
+
+## Public website threats từ PLAN 103
+
+| Threat | Mitigation PLAN 103 | Residual risk |
+|---|---|---|
+| Vô tình public repository desktop/private artifact | Cây public riêng, exact allowlist, export 27 file, scanner file-type/secret/symlink | Người có quyền có thể bypass CI hoặc thay allowlist ác ý |
+| Secret/token trong static site | Không có cloud client/env; pattern scan; CSP `connect-src 'none'`; privileged secret bị cấm | Secret dạng mới/obfuscated có thể vượt pattern nếu review bị bỏ qua |
+| Supply-chain build dependency | Build/test dùng Node standard library, lockfile không có package dependency | GitHub Actions/runner hoặc hosting account có thể bị compromise |
+| XSS/third-party tracking | Static HTML/JS local, no user content/form/analytics, CSP self-only | Hosting/header drift hoặc future feature có thể mở lại attack surface |
+| Phishing/misleading download | Không có download CTA; status nói rõ chưa public; internal ZIP bị loại | Domain/account takeover có thể thay nội dung ngoài repository |
+| Deploy nhầm production/main | Develop-first policy, local Netlify contexts, dừng khi remote/dashboard chưa xác minh | Dashboard setting thực tế vẫn chưa truy cập/kiểm chứng |
+| Supabase privilege exposure | Không tích hợp Supabase và không copy anon/service-role key trong PLAN 103 | PLAN tương lai phải review RLS/IAM/config riêng |
+
+Hostname Netlify/Supabase phản hồi công khai không chứng minh ownership, dashboard configuration hay production trust. Vì exact GitHub remote
+chưa có, không fetch/push/deploy nào được thực hiện; production giữ nguyên. PLAN 104 chưa bắt đầu.

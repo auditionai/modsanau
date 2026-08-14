@@ -1112,3 +1112,16 @@ Performance evidence không làm yếu path traversal, reparse, resource, transa
   URL/path/hash/stack trace/secret. TEST private key chỉ sinh dưới ignored `artifacts`; public artifact không mang key.
 - Production endpoint/CDN/signing key/HSM/AuthentiCode/timestamp/live update vẫn **NOT VERIFIED**; default composition
   `UnavailablePortableUpdateCoordinator` không tạo unsigned fallback.
+
+## Public deployment boundary từ PLAN 103
+
+- Public repository được dựng từ exact allowlist, không dựa vào `.gitignore` để quyết định dữ liệu được phép công khai. Một file ngoài
+  inventory làm verification fail; symlink/reparse-like indirection không được chấp nhận.
+- Scanner chặn executable/library/archive, fixture/companion tool, credential, private key và mẫu token. Website không có `.env`,
+  analytics, form, Supabase client hoặc secret đặc quyền.
+- CSP mặc định `self`, `connect-src 'none'`, `object-src 'none'`, `form-action 'none'`, `frame-ancestors 'none'`; bổ sung nosniff,
+  referrer policy, permissions policy và HTTPS upgrade. Site dùng system font và asset local, không tải third-party runtime.
+- ZIP internal PLAN 102 không phải public artifact. Public binary tương lai phải qua license/provenance, secret scan, signing và release
+  gate, sau đó chỉ đính kèm GitHub Release; repository không nhận ZIP blob.
+- Không có exact GitHub remote hoặc authenticated Netlify dashboard nên PLAN 103 dừng trước fetch/push/deploy. Không đoán identity,
+  không expose Supabase key và không thay đổi production.

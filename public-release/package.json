@@ -1,0 +1,17 @@
+{
+  "name": "audition-ai-mod-studio-public-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Website public tĩnh cho Audition AI Mod Studio.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs",
+    "verify:public": "node scripts/verify-public-inventory.mjs",
+    "verify:dist": "node scripts/verify-public-inventory.mjs --dist",
+    "check": "npm run verify:public && npm test && npm run build && npm run verify:dist"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
