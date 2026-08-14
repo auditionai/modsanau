@@ -1,6 +1,23 @@
 BEGIN;
 
 -- PLAN 106: public signup profile, authenticated desktop device gate and private release download.
+DO $prerequisites$
+BEGIN
+    IF to_regclass('private.managed_user_profiles') IS NULL THEN
+        RAISE EXCEPTION 'PLAN106_REQUIRES_202608150001_ADMIN_PORTAL_V2';
+    END IF;
+    IF to_regclass('private.user_device_sessions') IS NULL
+       OR to_regprocedure('private.device_session_register(uuid,uuid,character varying,character varying,character varying,integer)') IS NULL
+       OR to_regprocedure('private.device_session_validate(uuid,uuid,uuid,integer)') IS NULL THEN
+        RAISE EXCEPTION 'PLAN106_REQUIRES_202608130001_PLAN86_DEVICE_SESSIONS';
+    END IF;
+    IF to_regclass('private.device_profiles') IS NULL
+       OR to_regprocedure('private.device_profile_register(uuid)') IS NULL THEN
+        RAISE EXCEPTION 'PLAN106_REQUIRES_202608140001_PLAN104_DEVICE_ENTITLEMENTS';
+    END IF;
+END
+$prerequisites$;
+
 CREATE OR REPLACE FUNCTION private.sync_auth_user_profile()
 RETURNS trigger
 LANGUAGE plpgsql

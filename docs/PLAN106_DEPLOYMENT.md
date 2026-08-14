@@ -2,9 +2,17 @@
 
 ## 1. Chạy migration Supabase
 
-Trong Supabase Dashboard → SQL Editor, chạy các migration theo thứ tự, kết thúc bằng:
+Trong Supabase Dashboard → SQL Editor, phải chạy đủ các migration phụ thuộc theo thứ tự:
 
-`supabase/migrations/202608150003_plan106_public_auth_device_download.sql`
+1. `supabase/migrations/202608130001_plan86_device_sessions.sql`
+2. `supabase/migrations/202608140001_plan104_device_entitlements.sql`
+3. `supabase/migrations/202608150001_admin_portal_v2.sql`
+4. `supabase/migrations/202608150002_admin_portal_netlify_supabase.sql`
+5. `supabase/migrations/202608150003_plan106_public_auth_device_download.sql`
+
+Nếu ba migration cũ `130001`, `140001`, `150001` đã chạy thành công thì không chạy lại;
+chỉ tiếp tục từ migration còn thiếu. PLAN 106 có preflight và sẽ báo chính xác migration
+phụ thuộc nào chưa tồn tại.
 
 Migration cuối tạo trigger hồ sơ, RPC `desktop_access_api`, bucket riêng tư
 `desktop-releases` và policy chỉ cho tài khoản đã xác minh tải đúng artifact stable.
