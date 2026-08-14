@@ -52,7 +52,7 @@
           <h1 id="hero-title">Chỉnh sửa <span class="stellar-text">texture Audition</span> trong một quy trình rõ ràng.</h1>
           <p class="hero-description">Mở dự án, chỉnh ảnh, khớp lại thông số DDS và xuất archive độc lập. Mọi thao tác đều diễn ra trên file do bạn chọn.</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#giao-dien"><span>Xem giao diện</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+            <button class="button button-primary" type="button" data-window="interface"><span>Xem giao diện</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
             <a class="text-link" href="#quy-trinh">Quy trình hoạt động <span>↓</span></a>
           </div>
           <dl class="hero-facts">
@@ -141,7 +141,7 @@
           <div class="ai-console-top"><span><i></i>AI workspace</span><small>PREVIEW MODE</small></div>
           <div class="ai-prompt"><small>Yêu cầu chỉnh sửa</small><p>Thay nền thành bầu trời đêm, giữ nguyên nhân vật và vùng trong suốt.</p><span class="typing-caret" aria-hidden="true"></span></div>
           <div class="ai-preview" aria-hidden="true"><div class="preview-source"><span>Ảnh nguồn</span></div><div class="preview-arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></div><div class="preview-result"><span>AI preview</span><i></i><i></i><i></i></div></div>
-          <div class="ai-console-bottom"><span><i></i>Đang chờ người dùng duyệt</span><button type="button" disabled>Áp dụng sau khi kiểm tra</button></div>
+          <div class="ai-console-bottom"><span><i></i>Đang chờ người dùng duyệt</span><button type="button" data-window="ai-approval">Xem bước xác nhận</button></div>
         </div>
         <div class="ai-capabilities">
           <article class="ai-capability reveal"><span>01</span><div><h3>Tạo và chỉnh ảnh</h3><p>Generate, Edit, Inpaint và Outpaint theo prompt và ảnh tham chiếu.</p></div></article>
@@ -252,14 +252,60 @@
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="footer-nebula" aria-hidden="true"></div>
-    <div class="footer-main">
-      <div class="footer-brand"><a class="brand" href="#dau-trang"><span class="brand-icon"><img src="/assets/brand/brand-mark.svg" width="34" height="34" alt=""></span><span><strong>Audition AI</strong><small>Mod Studio</small></span></a><h2>Một workspace dành cho texture Audition.</h2><p>Chỉnh ảnh, hỗ trợ AI, kiểm tra DDS và build archive trên Windows.</p></div>
-      <div class="footer-links"><div><h3>Sản phẩm</h3><a href="#cong-cu">Công cụ</a><a href="#ai-studio">AI Studio</a><a href="#giao-dien">Giao diện</a></div><div><h3>Thông tin</h3><a href="#bang-gia">Bảng giá</a><a href="#an-toan">Phạm vi</a><a href="#phat-hanh">Trạng thái</a></div><div><h3>Pháp lý</h3><a href="/privacy.html">Quyền riêng tư</a><a href="/terms.html">Điều khoản</a></div></div>
+  <footer class="site-footer" aria-labelledby="footer-title">
+    <div class="footer-space" aria-hidden="true"><i></i><i></i><i></i><span></span></div>
+    <div class="footer-shell">
+      <div class="footer-topline">
+        <div class="footer-brand-lockup"><span class="brand-icon"><img src="/assets/brand/brand-mark.svg" width="34" height="34" alt=""></span><span><strong>Audition AI</strong><small>MOD STUDIO / CONTROL NODE</small></span></div>
+        <div class="footer-live"><i></i><span>SYSTEM ONLINE</span><small>LOCAL WORKSPACE</small></div>
+      </div>
+
+      <div class="footer-command">
+        <div class="footer-copy">
+          <p><span>07</span> Final control point</p>
+          <h2 id="footer-title">Mọi công cụ.<br><span class="stellar-text">Trong một hệ thống.</span></h2>
+          <p>Chỉnh ảnh, hỗ trợ AI, kiểm tra DDS và build archive trong cùng một quy trình file-only trên Windows.</p>
+          <button class="footer-primary" type="button" data-window="overview"><span>Mở bảng điều khiển</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+        </div>
+
+        <div class="footer-reactor" aria-hidden="true">
+          <div class="reactor-ring ring-one"><i></i><i></i><i></i></div>
+          <div class="reactor-ring ring-two"><i></i><i></i><i></i><i></i></div>
+          <div class="reactor-core"><img src="/assets/brand/brand-mark.svg" width="58" height="58" alt=""><span></span></div>
+          <b>WORKSPACE CORE</b><small>READY / 100%</small>
+        </div>
+
+        <aside class="footer-telemetry" aria-label="Trạng thái hệ thống">
+          <header><span><i></i>TELEMETRY</span><b>07:AI</b></header>
+          <dl><div><dt>Image engine</dt><dd>READY</dd></div><div><dt>DDS validation</dt><dd>ONLINE</dd></div><div><dt>Archive pipeline</dt><dd>LOCAL</dd></div><div><dt>Public release</dt><dd>PENDING</dd></div></dl>
+          <div class="footer-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <small>Website giới thiệu · chưa mở tải xuống</small>
+        </aside>
+      </div>
+
+      <nav class="footer-dock" aria-label="Các cửa sổ thông tin">
+        <button type="button" data-window="tools"><span>01</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4-1 11-11-3-3L5 16l-1 4Zm10-13 3 3"/></svg><strong>Công cụ</strong><small>4 module</small><b>↗</b></button>
+        <button type="button" data-window="ai"><span>02</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M7 7l2 2m6 6 2 2m0-10-2 2m-6 6-2 2M9 12a3 3 0 1 0 6 0 3 3 0 0 0-6 0Z"/></svg><strong>AI Studio</strong><small>7 tác vụ</small><b>↗</b></button>
+        <button type="button" data-window="interface"><span>03</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 9h16M8 7h.01"/></svg><strong>Giao diện</strong><small>4 màn hình</small><b>↗</b></button>
+        <button type="button" data-window="pricing"><span>04</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h5"/></svg><strong>Bảng giá</strong><small>Thuê & Credits</small><b>↗</b></button>
+        <button type="button" data-window="scope"><span>05</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/></svg><strong>Phạm vi</strong><small>File-only</small><b>↗</b></button>
+        <button type="button" data-window="legal"><span>06</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h6m-6 4h6"/></svg><strong>Pháp lý</strong><small>Điều khoản</small><b>↗</b></button>
+      </nav>
+
+      <div class="footer-bottom"><span>© <span data-year>2026</span> Audition AI</span><span class="footer-signal"><i></i>SECURE LOCAL PIPELINE</span><button type="button" data-window="status">Xem trạng thái <b>↗</b></button></div>
     </div>
-    <div class="footer-bottom"><span>© <span data-year>2026</span> Audition AI</span><span class="footer-signal"><i></i>Website thử nghiệm · chưa mở tải xuống</span><a href="#dau-trang">Về đầu trang <b>↑</b></a></div>
   </footer>
+
+  <dialog class="app-dialog" data-app-dialog aria-labelledby="dialog-title" aria-describedby="dialog-description">
+    <div class="dialog-frame">
+      <header class="dialog-bar"><span><i></i><i></i><i></i></span><p><b>AUDITION AI</b><small data-dialog-code>WINDOW / 01</small></p><button type="button" data-dialog-close aria-label="Đóng cửa sổ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+      <div class="dialog-body">
+        <div class="dialog-copy"><p data-dialog-kicker>WORKSPACE OVERVIEW</p><h2 id="dialog-title" data-dialog-title>Tổng quan hệ thống</h2><p id="dialog-description" data-dialog-description>Thông tin về Audition AI Mod Studio.</p><ul data-dialog-points></ul></div>
+        <div class="dialog-screen" data-dialog-screen><div class="dialog-scan" aria-hidden="true"></div><img data-dialog-image src="/assets/screenshots/home-dark.png" width="1920" height="1080" alt="Giao diện Audition AI Mod Studio"><div><span><i></i>LIVE PREVIEW</span><small data-dialog-state>LOCAL / READY</small></div></div>
+      </div>
+      <footer class="dialog-footer"><span><i></i>Nội dung hiển thị trong cửa sổ nội trang</span><button type="button" data-dialog-close>Đóng cửa sổ</button></footer>
+    </div>
+  </dialog>
   <script src="/script.js" defer></script>
 </body>
 </html>

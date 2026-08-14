@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — 2026-08-14
+
+- Thay toàn bộ footer cũ bằng mission-control footer gồm reactor, telemetry và dock sáu module.
+- Chuyển CTA giao diện, bước duyệt AI và toàn bộ nút footer sang cửa sổ modal nội trang thay vì điều hướng link.
+- Bổ sung dialog native có nội dung theo ngữ cảnh, đóng bằng Escape/click nền/nút đóng và trả focus về nút gọi.
+- Tối ưu footer và modal cho desktop, tablet, mobile, bàn phím và reduced-motion.
+
 ## 0.5.0 — 2026-08-14
 
 - Thay hoàn toàn lưới công cụ 2×2 bằng interactive technology deck ba vùng.
