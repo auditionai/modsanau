@@ -181,6 +181,50 @@ if (!reducedMotion.matches && finePointer.matches) {
   }
 }
 
+const toolDeck = document.querySelector("[data-tool-deck]");
+if (toolDeck) {
+  const tabs = [...toolDeck.querySelectorAll('[role="tab"][data-tool]')];
+  const panels = [...toolDeck.querySelectorAll('[role="tabpanel"][data-tool-panel]')];
+  const counter = toolDeck.querySelector("[data-tool-counter]");
+  const moduleName = toolDeck.querySelector("[data-tool-name]");
+  const orbNumber = toolDeck.querySelector(".telemetry-orb span");
+  const moduleNames = { editor: "IMAGE LAB", dds: "DDS MATRIX", compare: "VISUAL DIFF", build: "ARCHIVE CORE" };
+
+  function activateTool(nextTab, moveFocus = false) {
+    const tool = nextTab.dataset.tool;
+    const index = tabs.indexOf(nextTab);
+    for (const tab of tabs) {
+      const active = tab === nextTab;
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+    }
+    for (const panel of panels) {
+      const active = panel.getAttribute("data-tool-panel") === tool;
+      panel.hidden = !active;
+      panel.classList.toggle("is-active", active);
+    }
+    const formatted = String(index + 1).padStart(2, "0");
+    if (counter) counter.textContent = `${formatted} / 04`;
+    if (moduleName) moduleName.textContent = moduleNames[tool] ?? "MODULE";
+    if (orbNumber) orbNumber.textContent = formatted;
+    if (moveFocus) nextTab.focus();
+  }
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => activateTool(tab));
+    tab.addEventListener("keydown", (event) => {
+      let target = index;
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") target = (index + 1) % tabs.length;
+      else if (event.key === "ArrowLeft" || event.key === "ArrowUp") target = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === "Home") target = 0;
+      else if (event.key === "End") target = tabs.length - 1;
+      else return;
+      event.preventDefault();
+      activateTool(tabs[target], true);
+    });
+  });
+}
+
 const gallery = document.querySelector("[data-gallery]");
 if (gallery) {
   const image = gallery.querySelector("[data-gallery-image]");
