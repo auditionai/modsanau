@@ -18,13 +18,13 @@ Phạm vi: chuẩn bị website public, cấu hình nhánh/deploy và xác nhậ
 
 | Hạng mục | Trạng thái | Bằng chứng / quyết định |
 |---|---|---|
-| Tên mục tiêu `modsanau` | **NOT ACCESSIBLE** | Product Owner cung cấp tên nhưng chưa cung cấp owner và URL repository chính xác. Không suy đoán remote. |
-| Remote của repository desktop | **NOT CONFIGURED** | `git remote -v` không có kết quả. |
+| Repository `auditionai/modsanau` | **VERIFIED** | Product Owner xác nhận `https://github.com/auditionai/modsanau.git`; repository public phản hồi HTTP 200. |
+| Remote của cây public | **CONFIGURED** | `origin` trỏ đúng `https://github.com/auditionai/modsanau.git`. Repository desktop chính vẫn không có remote và không bị public. |
 | Cây public chuyên dụng | **VERIFIED** | `public-release/` dùng deny-by-default allowlist, không xuất toàn bộ repository desktop. |
-| Public Git local, nhánh `develop` | **VERIFIED** | Commit `83ea1adef15471e200661135c96df2e4d2f0f426`, 27 file allowlisted. |
-| Fetch/divergence với GitHub | **NOT ACCESSIBLE** | Không có exact remote; pre-push gate dừng trước fetch/push. |
-| Push `develop` | **NOT ACCESSIBLE** | Không có remote đã xác minh; không push. |
-| `main` production | **VERIFIED — UNTOUCHED** | Không checkout, commit, push hay merge `main`; public Git local chỉ có `develop`. Repository desktop giữ `master` tại baseline PLAN 102. |
+| Public Git, nhánh `develop` | **VERIFIED** | Local và remote cùng ở `6d0fe33cda0098bfb556b1e9a25682a0fbe69b21`; 27 file allowlisted. |
+| Fetch/divergence với GitHub | **VERIFIED** | Remote ban đầu `694a6f8`; local/remote lệch 1/1. Đã merge unrelated histories, giữ README public, không force-push. |
+| Push `develop` | **VERIFIED** | Push `694a6f8..6d0fe33` thành công. GitHub Actions run `31786159841` kết luận `success`. |
+| `main` production | **VERIFIED — UNTOUCHED** | Remote `main` vẫn chính xác ở `694a6f8b8283ed94d64802d048575c4d8f55ac0d`; không checkout, commit, push hay merge `main`. |
 | Public ZIP / GitHub Release asset | **NOT CONFIGURED** | Artifact internal PLAN 102 không được public. Không ZIP nào nằm trong cây public. |
 
 ## Netlify
@@ -35,8 +35,8 @@ Phạm vi: chuẩn bị website public, cấu hình nhánh/deploy và xác nhậ
 | Dashboard/site ownership | **NOT ACCESSIBLE** | Không có authenticated browser automation, Netlify CLI hoặc session dashboard đã xác minh. |
 | Build command / publish directory | **CONFIGURED locally** | `npm run build` / `dist` trong `public-release/netlify.toml`. |
 | Production branch `main` | **CONFIGURED locally; NOT ACCESSIBLE remotely** | Checklist và config public đã chuẩn bị; dashboard chưa thể xác minh. |
-| Branch deploy `develop` | **CONFIGURED locally; NOT ACCESSIBLE remotely** | Context `develop` và `branch-deploy` đã chuẩn bị; chưa push nên không có branch deploy URL. |
-| Develop deploy URL | **NOT CONFIGURED** | Không có deploy thực tế trong PLAN 103 vì GitHub remote/dashboard không truy cập được. |
+| Branch deploy `develop` | **CONFIGURED locally; NOT ACTIVE remotely** | GitHub push đã hoàn tất nhưng Netlify dashboard/connection chưa xác minh. |
+| Develop deploy URL | **NOT CONFIGURED** | `https://develop--modsanau.netlify.app/` trả HTTP 404 sau push; chưa có branch deploy khả dụng. |
 | Production site changed | **VERIFIED — NO** | Không gọi deploy/publish/promote API; public target vẫn phản hồi 404 tại lần kiểm tra. |
 | Environment secrets | **NOT REQUIRED** | Website tĩnh không cần Supabase/AI/payment/signing secret. `netlify.toml` không chứa secret. |
 
@@ -53,13 +53,12 @@ Phạm vi: chuẩn bị website public, cấu hình nhánh/deploy và xác nhậ
 
 ## Dashboard checklist sau khi xác minh remote
 
-1. Xác nhận exact GitHub owner/repository URL của public repository `modsanau`.
-2. Thêm remote vào **cây public chuyên dụng**, fetch và kiểm tra divergence trước push `develop`.
-3. Trên Netlify, xác nhận repository đúng, build `npm run build`, publish `dist`, production branch `main`.
-4. Bật branch deploy cho `develop`; kiểm tra deploy log và URL branch trước mọi promote.
-5. Không thêm secret đặc quyền; không dùng artifact PLAN 102 làm public download.
-6. Chỉ sau gate riêng mới tạo GitHub Release và gắn ZIP đã được phê duyệt làm Release asset.
+1. Trên Netlify, xác nhận site đã kết nối đúng repository `auditionai/modsanau`.
+2. Xác nhận build `npm run build`, publish `dist`, production branch `main`.
+3. Bật branch deploy cho `develop`; kiểm tra deploy log và URL branch trước mọi promote.
+4. Không thêm secret đặc quyền; không dùng artifact PLAN 102 làm public download.
+5. Chỉ sau gate riêng mới tạo GitHub Release và gắn ZIP đã được phê duyệt làm Release asset.
 
 ## Kết luận gate
 
-Local website/configuration: **PASS**. External GitHub push và Netlify branch deploy: **BLOCKED BY UNVERIFIED IDENTITY/ACCESS**, vì vậy dừng an toàn, không thay đổi production. PLAN 104: **NOT STARTED**.
+Local website/configuration và GitHub `develop` push: **PASS**. Netlify branch deploy: **NOT CONFIGURED / HTTP 404**, cần kiểm tra dashboard connection; production không thay đổi. PLAN 104: **NOT STARTED**.

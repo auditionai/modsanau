@@ -33,22 +33,24 @@ Lệnh `npm run check` PASS trên cả source public và standalone public Git:
   `texconv.exe` qua `AUDITION_DIRECTXTEX_TEXCONV_PATH` và private fixture. Các failure đều mang thông báo dynamic-skip/prerequisite;
   PLAN 103 không sửa hay làm yếu test để biến chúng thành PASS.
 
-Public Git local:
+Public Git:
 
 - Branch: `develop`.
-- Commit: `83ea1adef15471e200661135c96df2e4d2f0f426`.
-- Working tree: clean sau commit.
-- Remote: không có.
+- Source commit: `83ea1adef15471e200661135c96df2e4d2f0f426`.
+- Remote develop commit sau merge lịch sử khởi tạo: `6d0fe33cda0098bfb556b1e9a25682a0fbe69b21`.
+- Remote: `https://github.com/auditionai/modsanau.git`.
+- GitHub Actions run `31786159841`: **success**.
 
 ## External integration
 
 | Yêu cầu | Kết quả |
 |---|---|
-| GitHub exact repository identity | **NOT ACCESSIBLE** — thiếu owner/URL, không đoán |
-| GitHub `develop` push | **NOT ACCESSIBLE / NOT PUSHED** — pre-push gate dừng vì không có remote |
-| `main` production | **UNTOUCHED** |
-| Netlify `develop` deploy | **NOT CONFIGURED remotely** — chưa có push/dashboard |
-| Netlify develop URL | **NOT AVAILABLE** |
+| GitHub exact repository identity | **VERIFIED** — `auditionai/modsanau` |
+| GitHub `develop` push | **VERIFIED / PUSHED** — remote `6d0fe33cda0098bfb556b1e9a25682a0fbe69b21` |
+| GitHub CI | **PASS** — run `31786159841` |
+| `main` production | **UNTOUCHED** — vẫn ở `694a6f8b8283ed94d64802d048575c4d8f55ac0d` |
+| Netlify `develop` deploy | **NOT CONFIGURED remotely** — branch URL vẫn HTTP 404 |
+| Netlify develop URL | `https://develop--modsanau.netlify.app/` — **HTTP 404** |
 | Production target | `https://modsanau.netlify.app/` phản hồi Netlify HTTP 404 khi kiểm tra |
 | Production site changed | **NO** |
 | Supabase target | `https://plvuutsjwsawkkrmvigz.supabase.co` (Product Owner cung cấp) |
@@ -59,6 +61,6 @@ Chi tiết trạng thái và dashboard checklist nằm tại [PLAN_103_EXTERNAL_
 
 ## Giới hạn và bước tiếp theo được phép
 
-Không thể tạo branch deploy thật nếu chưa xác minh exact GitHub remote và quyền Netlify. Khi Product Owner cung cấp identity/access, cần chạy lại pre-push inventory + secret scan, fetch/divergence, chỉ push `develop`, rồi xác minh URL branch deploy. Không merge/promote `main` và không mở public download nếu chưa có phê duyệt PLAN riêng.
+GitHub `develop` đã được publish và CI PASS. Netlify branch deploy vẫn cần xác minh dashboard connection/build settings vì URL dự kiến đang trả 404. Không merge/promote `main` và không mở public download nếu chưa có phê duyệt PLAN riêng.
 
 **DỪNG sau PLAN 103. Không tự chuyển PLAN 104.**
