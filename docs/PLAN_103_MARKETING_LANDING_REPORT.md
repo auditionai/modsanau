@@ -6,7 +6,9 @@ Quy trình: **PLAN → BUILD → TEST → BÁO CÁO → DỪNG**
 
 ## Kết quả
 
-PLAN 103 đã tạo và phát hành bản landing page **v0.5.0** trên nhánh `develop`. Sau vòng phản hồi mới nhất, khu vực “Các công cụ chính” đã được thiết kế lại hoàn toàn thành technology command deck tương tác, thay cho bố cục thẻ 2×2 cũ.
+PLAN 103 đã tạo và phát hành bản landing page **v0.6.0** trên nhánh `develop`. Sau vòng phản hồi mới nhất, footer cũ đã được thay hoàn toàn bằng mission-control footer có reactor trung tâm, telemetry, dock sáu module và lớp nền không gian chuyển động.
+
+CTA giao diện, bước xác nhận AI, nút điều khiển footer và toàn bộ dock footer đều mở cửa sổ modal nội trang thay vì điều hướng link. Dialog dùng native `<dialog>`, hỗ trợ Escape, click backdrop, nút đóng, focus return, nội dung theo ngữ cảnh và reduced-motion. Các tab công cụ, gallery selector và menu tiếp tục hiển thị/chuyển trạng thái trong chính vùng giao diện tương ứng.
 
 Command deck gồm rail chọn bốn module Image Lab, DDS Matrix, Visual Diff và Archive Core; viewport mô phỏng trực quan ở trung tâm; telemetry ở cạnh phải. Mỗi module có scene riêng, chuyển trạng thái bằng chuột hoặc bàn phím, cùng các hiệu ứng scan, orbit, packet flow, waveform, holographic border và ánh sáng theo ngữ cảnh. Bố cục responsive chuyển thành dạng dọc trên màn hình nhỏ và tôn trọng `prefers-reduced-motion`.
 
@@ -40,11 +42,11 @@ Landing bổ sung AI Studio với bảy tác vụ Generate/Edit/Inpaint/Outpaint
 
 | Hạng mục | Kết quả |
 |---|---|
-| Root source commit giao diện v5 | `1672d13` |
+| Root source commit giao diện v6 | `5da5a9a` |
 | Public Git repository | `https://github.com/auditionai/modsanau.git` |
 | Public branch | `develop` |
-| Public commit đã push | `c4fdd2e` |
-| GitHub Actions | **PASS** — run `31797543312` |
+| Public commit đã push | `08a62de` |
+| GitHub Actions | **PASS** — run `31798465170` |
 | Netlify branch deploy | **LIVE / HTTP 200** |
 | URL develop | `https://develop--modsanau.netlify.app/` |
 | Production hostname | `https://modsanau.netlify.app/` — HTTP 200 tại lần kiểm tra cuối |
@@ -56,6 +58,6 @@ Chi tiết tích hợp nằm tại [PLAN_103_EXTERNAL_INTEGRATION_SETTINGS.md](P
 
 ## Kết luận gate
 
-Landing page v0.5.0, GitHub `develop`, CI và Netlify branch deploy đều **PASS**. Bản live đã xác nhận có `data-tool-deck` và `tool-tab-editor`. Không promote sang production, không mở public download và không bắt đầu PLAN 104.
+Landing page v0.6.0, GitHub `develop`, CI và Netlify branch deploy đều **PASS**. Bản live đã xác nhận có `footer-reactor`, `data-app-dialog` và các trigger `data-window`. Không promote sang production, không mở public download và không bắt đầu PLAN 104.
 
 **DỪNG sau PLAN 103.**
