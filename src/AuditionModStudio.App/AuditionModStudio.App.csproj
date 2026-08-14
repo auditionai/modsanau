@@ -1,0 +1,162 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>AuditionModStudio.App</RootNamespace>
+    <DefaultLanguage>vi-VN</DefaultLanguage>
+    <NeutralLanguage>vi-VN</NeutralLanguage>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <PublishProfile Condition="Exists('Properties\PublishProfiles\win-$(Platform).pubxml')">win-$(Platform).pubxml</PublishProfile>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <InstallerPackageIdentityName Condition="'$(InstallerPackageIdentityName)' == ''">AuditionAIModStudio</InstallerPackageIdentityName>
+    <InstallerPackageVersion Condition="'$(InstallerPackageVersion)' == ''">1.0.0.0</InstallerPackageVersion>
+    <InstallerPublisherSubject Condition="'$(InstallerPublisherSubject)' == ''">CN=Audition AI Mod Studio Development</InstallerPublisherSubject>
+    <InstallerPublisherDisplayName Condition="'$(InstallerPublisherDisplayName)' == ''">Audition AI Mod Studio Development</InstallerPublisherDisplayName>
+    <InstallerGeneratedManifest>$(BaseIntermediateOutputPath)Installer\$(Configuration)\$(RuntimeIdentifier)\$(InstallerPackageVersion)\Package.appxmanifest</InstallerGeneratedManifest>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(PortableRelease)' == 'true'">
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>None</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Plan102UiEvidence)' == 'true'">
+    <DefineConstants>$(DefineConstants);PLAN102_UI_EVIDENCE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Plan102UiEvidenceDark)' == 'true'">
+    <DefineConstants>$(DefineConstants);PLAN102_UI_EVIDENCE_DARK</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Settings\Plan102UiEvidenceUpdateCoordinator.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Plan102UiEvidence)' == 'true'">
+    <Compile Include="Settings\Plan102UiEvidenceUpdateCoordinator.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\SplashScreen.scale-200.png" />
+    <Content Include="Assets\LockScreenLogo.scale-200.png" />
+    <Content Include="Assets\Square150x150Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-48_altform-lightunplated.png" />
+    <Content Include="Assets\StoreLogo.png" />
+    <Content Include="Assets\AppIcon.ico" />
+    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <Content Include="Legal\THIRD-PARTY-NOTICES.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <!--
+    Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+    Tools extension to be activated for this project even if the Windows App SDK Nuget
+    package has not yet been restored.
+  -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+
+  <Target Name="PrepareInstallerPackageManifest"
+          BeforeTargets="_ValidatePresenceOfAppxManifestItems"
+          Condition="'$(WindowsPackageType)' != 'None'">
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(InstallerPackageIdentityName)', '^[A-Za-z0-9.-]{3,50}$'))"
+           Text="INSTALLER_IDENTITY_INVALID" />
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(InstallerPackageVersion)', '^\d{1,5}\.\d{1,5}\.\d{1,5}\.\d{1,5}$'))"
+           Text="INSTALLER_VERSION_INVALID" />
+    <Error Condition="'$(InstallerPublisherSubject)' == ''"
+           Text="INSTALLER_PUBLISHER_SUBJECT_REQUIRED" />
+    <Error Condition="'$(InstallerPublisherDisplayName)' == ''"
+           Text="INSTALLER_PUBLISHER_DISPLAY_NAME_REQUIRED" />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(InstallerGeneratedManifest)'))" />
+    <Copy SourceFiles="Package.appxmanifest" DestinationFiles="$(InstallerGeneratedManifest)" />
+    <XmlPoke XmlInputPath="$(InstallerGeneratedManifest)"
+             Query="/*[local-name()='Package']/*[local-name()='Identity']/@Name"
+             Value="$(InstallerPackageIdentityName)" />
+    <XmlPoke XmlInputPath="$(InstallerGeneratedManifest)"
+             Query="/*[local-name()='Package']/*[local-name()='Identity']/@Publisher"
+             Value="$(InstallerPublisherSubject)" />
+    <XmlPoke XmlInputPath="$(InstallerGeneratedManifest)"
+             Query="/*[local-name()='Package']/*[local-name()='Identity']/@Version"
+             Value="$(InstallerPackageVersion)" />
+    <XmlPoke XmlInputPath="$(InstallerGeneratedManifest)"
+             Query="/*[local-name()='Package']/*[local-name()='Properties']/*[local-name()='PublisherDisplayName']"
+             Value="$(InstallerPublisherDisplayName)" />
+    <ItemGroup>
+      <AppxManifest Remove="@(AppxManifest)" />
+      <AppxManifest Include="$(InstallerGeneratedManifest)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="SignInstallerApplicationPayload"
+          BeforeTargets="_GenerateAppxPackageFile"
+          Condition="'$(InstallerSignPayload)' == 'true'">
+    <Error Condition="!$([System.IO.Path]::IsPathFullyQualified('$(InstallerPowerShellPath)')) or !Exists('$(InstallerPowerShellPath)')"
+           Text="INSTALLER_POWERSHELL_ABSOLUTE_PATH_REQUIRED" />
+    <Error Condition="!$([System.IO.Path]::IsPathFullyQualified('$(InstallerSignToolPath)')) or !Exists('$(InstallerSignToolPath)')"
+           Text="INSTALLER_SIGNTOOL_ABSOLUTE_PATH_REQUIRED" />
+    <Exec Command="&quot;$(InstallerPowerShellPath)&quot; -NoLogo -NoProfile -NonInteractive -File &quot;$(MSBuildProjectDirectory)\..\..\scripts\Invoke-AppInstallerPayloadSigning.ps1&quot; -PayloadRoot &quot;$(TargetDir)&quot; -SignToolPath &quot;$(InstallerSignToolPath)&quot; -CertificateThumbprint &quot;$(PackageCertificateThumbprint)&quot; -ExpectedPublisherSubject &quot;$(InstallerPublisherSubject)&quot; -TimestampUrl &quot;$(AppxPackageSigningTimestampServerUrl)&quot; -ReportPath &quot;$(InstallerPayloadSigningReportPath)&quot;" />
+  </Target>
+
+  <!--
+    Microsoft.Windows.SDK.BuildTools.WinApp adds first-class support for
+    `dotnet run` on packaged WinUI apps: it hooks the .NET CLI Run target to
+    register a debug identity via the winapp CLI and launch the app with
+    package identity (AUMID).
+    Set <EnableWinAppRunSupport>false</EnableWinAppRunSupport> in a
+    <PropertyGroup> above to opt out.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AuditionModStudio.AI\AuditionModStudio.AI.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Archives\AuditionModStudio.Archives.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Cloud\AuditionModStudio.Cloud.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Core\AuditionModStudio.Core.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Dds\AuditionModStudio.Dds.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Imaging\AuditionModStudio.Imaging.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Infrastructure\AuditionModStudio.Infrastructure.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Mods\AuditionModStudio.Mods.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Projects\AuditionModStudio.Projects.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Security\AuditionModStudio.Security.csproj" />
+    <ProjectReference Include="..\AuditionModStudio.Updater\AuditionModStudio.Updater.csproj" />
+  </ItemGroup>
+
+  <!--
+    Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
+    Explorer "Package and Publish" context menu entry to be enabled for this project even if
+    the Windows App SDK Nuget package has not yet been restored.
+  -->
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,1535 @@
+# Kiến trúc Audition AI Mod Studio
+
+## Recursive Asset Scanner (PLAN 11)
+
+Luồng production là `Working Archive → Extract → extracted directory của IProjectArchiveWorkspace → Recursive Scan → ArchiveAssetCatalog`. Scanner không đọc cây `015\` ở repository và không chứa logic DDS decode/convert, UI hay pack archive.
+
+Contract/model (`ArchiveAsset`, `TextureAsset`, `ArchiveAssetCatalog`, `IArchiveAssetScanner`) nằm trong Core. Implementation filesystem `ArchiveAssetScanner` nằm trong Projects và chỉ nhận project workspace đã được cấp. DDS được phân loại thành `TextureAsset`; PNG, SLK, RGM và extension khác vẫn là asset catalog hợp lệ.
+
+Identity ổn định là normalized relative directory path cộng exact filename, được biểu diễn bởi `RelativePath`; không dùng filename đơn lẻ và không đổi case/name. Kết quả sort bằng `StringComparer.Ordinal`. Duplicate logic theo filesystem Windows được phát hiện bằng `StringComparer.OrdinalIgnoreCase` và không bị overwrite.
+
+Scanner duyệt không theo reparse point, resolve lại từng relative path qua `IPathSecurity`, hash SHA-256 theo stream 64 KiB, hỗ trợ cancellation/progress và không giữ mutable global state. Policy lỗi là fail toàn scan để không phát hành catalog thiếu mà caller tưởng là đầy đủ.
+
+## Real archive repack round-trip (PLAN 12)
+
+Luồng đã kiểm chứng thật là `project working archive → extracted tree không sửa → PackAsync → mutate working archive → copy repacked archive sang disposable trusted source → extract lại → asset catalog comparison`. PLAN 12 chưa promote sang `BuildOutput`; working archive và final promoted output vẫn là hai lifecycle cần tách ở PLAN sau.
+
+ACV Tool 5 chạy pack bằng structured arguments tương đương `acv -ca 015.ab ..\Extracted\015` trong isolated `WorkingDirectory`; đường dẫn tương đối này trỏ tới extracted directory riêng của cùng secure workspace. Tool thật phát 101 dòng `Packing:`, stderr rỗng và trả exit code `1` khi pack thành công. Runner chỉ chấp nhận code `1` cho operation Pack, đồng thời vẫn bắt buộc pack progress, keydat hợp lệ và archive artifact tồn tại/non-empty. Extract tiếp tục yêu cầu exit code `0`; mã pack khác `0/1` vẫn fail.
+
+## Baseline
+
+- C#, .NET 10 LTS.
+- WinUI 3 trên Windows App SDK cho desktop UI.
+- MVVM, Dependency Injection, structured logging.
+- Các tác vụ dài dùng `async/await`, `CancellationToken` và progress reporting.
+- Release đích là Windows x64; archive runner về sau vẫn phải chạy được `acv.exe` 32-bit.
+
+## File-only product boundary
+
+Audition AI Mod Studio là file editor/archive builder. Luồng sản phẩm kết thúc tại final exported `.ab`/`.acv`:
+`project → isolated working copy → edit/apply → validate → build/pack/verify → export → END`.
+
+Ứng dụng không discover/validate game installation, không đọc registry/launcher config để tìm Audition, không
+ghi/backup/restore game archive, không launch/login/automate game và không dùng runtime visual observation làm
+acceptance criterion. Export destination là arbitrary user-selected filesystem location và không phải nguồn
+GameId, ModId, template, region hoặc archive-engine authority.
+
+Ràng buộc này là architecture lock cho mọi module/PLAN tương lai. Chỉ explicit product-owner requirement mới
+được thay đổi. App installer/updater chỉ cài hoặc cập nhật Audition AI Mod Studio itself và không cấp quyền tìm,
+cài hoặc sửa Audition game. AI/cloud/catalog output luôn trở về managed file/workspace pipeline trước Apply/build.
+
+## Module
+
+| Project | Trách nhiệm | Dependency trực tiếp tại PLAN 01 |
+|---|---|---|
+| `AuditionModStudio.Core` | Domain contract và model trung tâm | Không có |
+| `AuditionModStudio.Infrastructure` | Implementation hạ tầng dùng chung | `Core` |
+| `AuditionModStudio.Archives` | Archive abstraction, ACV Tool 5, keydat | `Core` |
+| `AuditionModStudio.Dds` | DDS metadata/decode/encode/validation | `Core` |
+| `AuditionModStudio.Imaging` | Image import/processing | `Core` |
+| `AuditionModStudio.Projects` | Project/workspace lifecycle | `Core` |
+| `AuditionModStudio.Mods` | Game, Mod Definition, Texture Manifest | `Core` |
+| `AuditionModStudio.AI` | AI abstraction | `Core` |
+| `AuditionModStudio.Cloud` | Supabase và trusted backend client | `Core` |
+| `AuditionModStudio.Gateway` | Trusted ASP.NET Core backend endpoints | `Core` |
+| `AuditionModStudio.Security` | Secure storage và integrity abstraction | `Core` |
+| `AuditionModStudio.Updater` | Update abstraction | `Core` |
+| `AuditionModStudio.App` | WinUI composition root | Tất cả module trên |
+
+Dependency graph tại nền tảng:
+
+```text
+AuditionModStudio.App
+  ├─ Infrastructure ─┐
+  ├─ Archives ───────┤
+  ├─ Dds ────────────┤
+  ├─ Imaging ────────┤
+  ├─ Projects ───────┤
+  ├─ Mods ───────────┼─> Core
+  ├─ AI ─────────────┤
+  ├─ Cloud ──────────┤
+  ├─ Security ───────┤
+  └─ Updater ────────┘
+
+AuditionModStudio.Gateway ────────────────────────────────> Core
+```
+
+`Core` không tham chiếu WinUI, Cloud hoặc implementation cụ thể. Cross-module dependency mới chỉ được thêm khi PLAN tương ứng chứng minh là cần thiết; không tạo vòng tham chiếu.
+
+## Quy tắc dữ liệu và orchestration
+
+- Archive không được nhận diện bằng extension hard-code.
+- Pristine template bất biến; mọi thay đổi diễn ra trong isolated project working copy.
+- Texture identity là normalized relative directory path cộng exact filename.
+- UI gọi abstraction qua DI; không gọi process, filesystem engine, DDS engine hoặc provider trực tiếp.
+- Build/export dùng validate-before-promote, atomic promotion và recovery theo các PLAN tương ứng.
+
+## Application bootstrap
+
+Từ PLAN 02, `AuditionModStudio.App` dùng .NET Generic Host làm lifecycle container:
+
+1. Tạo `AppPaths` trỏ tới `%LocalAppData%\AuditionModStudio`.
+2. Khởi tạo file logger trước các service khác.
+3. Đăng ký service qua DI.
+4. Chạy `IStartupValidator` trước khi hiển thị cửa sổ chính.
+5. Khởi động host rồi resolve `MainWindow` từ container.
+6. Khi cửa sổ đóng, chặn lần đóng đầu tiên để `StopAsync`, dispose service và flush log; sau đó mới đóng thật.
+
+`App.xaml.cs` chỉ điều phối WinUI lifecycle và global exception events. Filesystem implementation nằm trong `Infrastructure`; contract `IAppPaths` và `IStartupValidator` nằm trong `Core`. Cách phân tách này không gắn business logic với elevation và giữ khả năng chuyển privileged operation sang broker riêng trong tương lai.
+
+PLAN 02 chưa có archive, DDS, cloud, AI, security implementation hay business UI.
+
+## App paths và secure workspace từ PLAN 03
+
+`IAppPaths` là nguồn duy nhất cho các thư mục được quản lý dưới `%LocalAppData%\AuditionModStudio`: `Logs`, `Cache`, `Projects`, `Temp`, `Settings`, `Downloads`, `SecureTemplateCache`, `Backups` và `Temp\Workspaces`. Không module nào được suy ra các path này từ working directory hoặc installation directory.
+
+`IPathSecurity` canonicalize relative path, chuẩn hóa từng segment về Unicode Form C, từ chối rooted/UNC/drive path, navigation segment, Windows reserved device name, alternate data stream và ký tự filename không hợp lệ. Containment được quyết định bằng `Path.GetRelativePath` sau `Path.GetFullPath`, không bằng string prefix.
+
+Mỗi operation nhận một workspace riêng:
+
+```text
+Temp\Workspaces\<128-bit-random-id>\
+  .workspace.lock
+  Working\
+  Extracted\
+  BuildOutput\
+```
+
+`SecureWorkspacePaths` phân tách working archive, extracted files và build output. Pristine template nằm ngoài model writable này, trong `SecureTemplateCache`; PLAN 03 không có API ghi đè pristine template. `ISecureWorkspace` giữ exclusive handle trên `.workspace.lock` đến khi dispose. Workspace tạm chưa commit bị cleanup khi dispose; từ PLAN 33, workspace đã gắn với `.audproj` được retain để dispose/host shutdown chỉ nhả exclusive lock, không xóa dữ liệu project.
+
+Cleanup abandoned workspace chỉ xét direct child có ID đúng định dạng và marker hợp lệ; workspace còn exclusive lock bị bỏ qua. Cleanup không nhận arbitrary path và không đi vào `Projects`, `SecureTemplateCache` hoặc dữ liệu project.
+
+## Settings system từ PLAN 04
+
+`Core` định nghĩa `ISettingsService`, `ISettingsValidator`, `ApplicationSettings` và validation result. `Infrastructure` sở hữu JSON serialization, schema migration boundary, filesystem I/O, atomic promotion và recovery. `App` chỉ đăng ký các service vào DI; `SettingsInitializationService` load settings khi host khởi động.
+
+Schema v1 có các section strongly typed:
+
+```text
+ApplicationSettings
+  SchemaVersion
+  Game.InstallationDirectory
+  Tooling.AcvExecutablePath
+  Project.DefaultProjectDirectory
+  Project.AutoBackupEnabled
+  Project.DefaultInstallBehavior
+  Appearance.Language
+  Appearance.Theme
+  Appearance.ThumbnailSize
+  Backend.ApiBaseUrl
+```
+
+`Cache`, `Temp` và `Temp\Workspaces` không phải settings có thể chỉnh sửa. Các path nội bộ tiếp tục do `IAppPaths` kiểm soát. Game/tool/project path là external configuration và vẫn phải được validate lại theo trust boundary của operation sử dụng chúng.
+
+`Game.InstallationDirectory` và `Project.DefaultInstallBehavior` là legacy schema-v1 fields từ product direction
+cũ. Sau correction hậu PLAN 50, chúng không được orchestration mới đọc như game-install authority. Việc xóa/migrate
+schema cần một PLAN settings migration riêng; PLAN 51 không tự đổi schema. Nếu lưu last export directory, nó là
+machine-local application setting riêng và không đi vào `.audproj`.
+
+Settings nằm tại `Settings\settings.json`, backup hữu hạn tại `settings.json.bak`. Save được serialize trong process, validate lại, ghi temp file cùng filesystem, flush xuống disk rồi promote bằng replace/move. Một `SemaphoreSlim` serialize các operation trong singleton service. Schema mới hơn bị từ chối; migration cũ chỉ chạy qua `ISettingsSchemaMigration` được đăng ký rõ ràng.
+
+## Real sample fixture registration từ PLAN 05
+
+Fixture metadata chỉ nằm trong `IntegrationTests`, không đi vào production client. Catalog đăng ký `acv.exe`, `015.ab` và optional sample `samples\private\tn_coby_logo.dds`. DDS sample 6000×1801, DXT5/BC3, 1 mip level chỉ là một quan sát, không phải yêu cầu DDS toàn cục và việc thiếu sample này không làm fail Stage Gate. Source of truth cho DDS về sau là từng file được scan từ working archive đã extract.
+
+Test không nhận arbitrary source path. `RepositoryFixtureLocator` tìm repository root bằng solution marker, sau đó resolve registered relative path qua `IPathSecurity`. `FixtureCopyService` mở source read-only, copy bất đồng bộ vào `SecureWorkspace.Paths.WorkingDirectory`, flush và so sánh SHA-256 trước khi trả working copy. Chỉ working copy được phép mutation.
+
+Fixture có thể không tồn tại trong CI vì proprietary binary/game asset bị loại khỏi Git. Availability được báo tường minh; metadata test vẫn deterministic. Không có tool execution, archive extraction hoặc DDS decoding trong PLAN 05.
+
+## ACV Tool 5 process runner từ PLAN 06
+
+`IArchiveToolRunner` và `AcvTool5Runner` nằm trong module `Archives`, không phụ thuộc UI. Request mang `ISecureWorkspace`, archive/extract path tương đối và executable path tuyệt đối. Runner canonicalize toàn bộ path qua `IPathSecurity`, chỉ cho chạy executable nằm trong working workspace, rồi yêu cầu `IArchiveToolExecutionPolicy` phê duyệt trước launch. PLAN 07 có thể thay policy bằng kiểm tra hash/version mà không sửa process runner.
+
+Process chạy trực tiếp với `UseShellExecute=false`, `CreateNoWindow=true`, redirect stdin/stdout/stderr và dùng `ArgumentList`. Stdout được đọc theo chunk; parser giữ buffer hữu hạn nên nhận được `Select:` kể cả khi không có newline hoặc bị chia giữa nhiều chunk. Khi keydat thiếu, selection từ trusted `GameRegionProfile` chỉ được gửi một lần. Khi keydat có sẵn, runner không chờ prompt.
+
+State/progress có cấu trúc độc lập với UI. Cancellation và timeout kết thúc toàn bộ process tree. Sau exit, runner kết hợp exit code, progress marker và artifact trong workspace để quyết định kết quả; không coi exit code 0 là đủ. PLAN 06 dùng fake child process để kiểm chứng protocol và không chạy real `acv.exe` hay sửa fixture.
+
+## Keydat lifecycle và ACV Tool integrity từ PLAN 07
+
+`IKeydatService` là nơi duy nhất suy ra companion path từ archive basename. Status phân biệt `Missing`, `PresentUnverified` và `Invalid`; file chỉ tồn tại không bao giờ được gọi là valid khi format chưa được hiểu. Keydat nằm cạnh working archive trong từng `ISecureWorkspace`, được giữ lại giữa extract/pack và bị cleanup cùng workspace. Copy từ trusted source dùng source root + relative path đã canonicalize, copy tạm, flush, SHA-256 verification và atomic move; source không bị ghi.
+
+`TrustedArchiveToolManifest.Production` chứa descriptor code-owned cho `acv_tool_5`: filename `acv.exe`, approved SHA-256 `6A52C808D7E5A59EB41E43D86A32E78067F424C8531E34981887F093E81547D3` và optional version metadata. Manifest này không thuộc user-editable settings. `ArchiveToolIntegrityPolicy` kiểm tra tool id, containment, reparse point, filename và streaming SHA-256; version resource chỉ là secondary diagnostic nên việc thiếu version không phủ định hash đúng.
+
+`ArchiveToolProvisioningService` thực hiện `verify trusted source → copy vào isolated Working → verify copy`. `AcvTool5Runner` gọi cùng `IArchiveToolExecutionPolicy` ngay trước `Process.Start`; integrity failure dùng structured reason và không launch process. Hash không cache để tránh stale decision.
+
+Vẫn còn cửa sổ TOCTOU giữa lần hash cuối và Windows mở executable. PLAN 07 giảm rủi ro bằng controlled workspace, reparse rejection, verify source/copy và verify lại ngay trước launch, nhưng chưa có handle-based execution binding hoặc ACL/broker hardening tuyệt đối.
+
+## Audition Archive abstraction từ PLAN 08
+
+`Core` định nghĩa `IAuditionArchiveService` cùng các model `AuditionArchiveTemplate`, `ArchiveEngineType`, `ArchiveWorkspace`, request/result, semantic progress và structured failure. Extension chỉ là metadata của descriptor; `.ab`, `.acv` và extension tương lai đi cùng một luồng. Caller không truyền raw argument, executable path, country selection hoặc trực tiếp thao tác keydat.
+
+Pipeline chính thức:
+
+```text
+Project/Caller
+  → IAuditionArchiveService
+  → IArchiveEngine (resolve bằng explicit EngineId)
+  → IArchiveToolProvisioningService
+  → IKeydatService
+  → IArchiveToolRunner
+```
+
+`AuditionArchiveService` mở pristine source chỉ đọc, copy qua file tạm, flush, so sánh SHA-256 rồi promote vào `SecureWorkspace.Paths.WorkingDirectory`. Nếu working archive đã tồn tại, service từ chối overwrite. Extract target nằm dưới `SecureWorkspace.Paths.ExtractedDirectory`; build output tiếp tục tách riêng và chưa được promote ở PLAN 08.
+
+`AcvTool5ArchiveEngine` là implementation của `ArchiveEngineType.AcvTool5` ở module `Archives`. Engine map semantic intent sang runner mà không leak `-da`, `-ca`, `Select:` hoặc `Process`. Provisioning/integrity luôn xảy ra trước keydat inspection và runner launch. Keydat `Missing` được runner xử lý bằng trusted region profile; `PresentUnverified` được reuse; `Invalid` chặn launch.
+
+App composition đăng ký archive service và các low-level security boundary. Concrete ACV engine chỉ được đăng ký khi có approved trusted tool location; PLAN 08 không tự tin một path từ settings hoặc chạy proprietary tool. `015.ab` chỉ là archive mẫu thật, không phải tên hay extension toàn cục. DDS về sau đến từ recursive scan của working archive đã extract; `tn_coby_logo.dds` vẫn chỉ là optional sample.
+
+## Project Archive Workspace từ PLAN 09
+
+`Core` định nghĩa `IProjectArchiveWorkspaceService`, lease `IProjectArchiveWorkspace`, descriptor, template reference và structured create/validation result. `Projects` triển khai lifecycle filesystem; `App` chỉ đăng ký composition qua DI.
+
+Pipeline chuẩn bị project archive:
+
+```text
+Pristine Archive Template (read-only)
+  → validate path/reparse point/hash
+  → SecureWorkspaceService.CreateAsync
+  → Working/<exact archive filename>
+  → Extracted/<descriptor extract folder>
+  → BuildOutput/
+  → atomic .project-archive-workspace.json
+  → Ready
+```
+
+Mỗi create operation nhận `ProjectId` dạng GUID và `WorkspaceId` random độc lập. `DisplayName` chỉ là metadata đã validate, không tham gia directory path. Template reference snapshot giữ `TemplateId`, version, source SHA-256, engine ID và region profile; project cũ không tự động đổi theo template catalog tương lai.
+
+Manifest schema v1 chỉ là recovery metadata tối thiểu cho archive workspace, không phải file project `.audproj`. Nó lưu relative/logical path, không lưu executable hoặc secret. Ghi manifest dùng temp file cùng filesystem, flush-to-disk rồi atomic move. Chỉ sau khi working copy/hash/directories và manifest hoàn tất service mới trả state `Ready`; failure/cancellation dispose lease để `SecureWorkspaceService` cleanup partial tree.
+
+Validation phân biệt manifest missing/corrupt/mismatch, working archive missing/hash mismatch, extracted/build directory missing và invalid path. Không tự sửa âm thầm. Dispose project A chỉ cleanup workspace A; pristine source và workspace B không bị ảnh hưởng.
+
+PLAN 09 dùng randomized lease dưới `Temp\Workspaces`, đúng phạm vi cleanup abandoned temp workspace trong roadmap. Durable project directory dưới `Projects`, `.audproj`, load/recover project lâu dài và reset workflow thuộc PLAN 31–35. Repository-root `015\` không phải production workspace và không được service tham chiếu.
+
+`AuditionArchiveService` có thể reuse working archive đã được PLAN 09 chuẩn bị nếu SHA-256 khớp pristine source; mismatch bị từ chối và không overwrite. Nhờ vậy `ProjectArchiveWorkspace.ArchiveWorkspace` sẵn sàng cho PLAN 10 mà Project layer không biết `acv.exe`, command hoặc keydat internals.
+
+## Real ACV extract Gate A từ PLAN 10
+
+Integration test Windows/private-fixture chạy đúng production chain:
+
+```text
+IProjectArchiveWorkspace
+  → IAuditionArchiveService
+  → AcvTool5ArchiveEngine
+  → AcvTool5Runner
+```
+
+`015.ab` và approved `acv.exe` chỉ được dùng sau khi hash pristine khớp, rồi được copy/provision vào randomized workspace có path Unicode và khoảng trắng. Real extract dùng working archive và ghi vào `Extracted\015`; test chỉ tạo inventory đếm tổng hợp, không tạo asset scanner của PLAN 11.
+
+Behavior thực tế bổ sung cho process protocol: binary ACV Tool 5 này block-buffer stdout khi chờ stdin, nên runner phải pre-seed trusted AuditionVN selection cho keydat `Missing` thay vì chỉ đợi parser thấy `Select:`. Ngoài ra, keydat vừa được tool tạo có trạng thái `PresentUnverified` và hash trùng sample vẫn khiến binary hỏi country ở lần chạy kế tiếp. Runner cho nhánh này một grace period để process có thể tự hoàn tất; chỉ khi process vẫn đứng mới dùng cùng trusted selection làm liveness fallback. Fake regression vẫn chứng minh trường hợp existing keydat tự hoàn tất không nhận selection.
+
+Output thật giữ đúng casing/spacing `writing :`; `Select:` không kết thúc ngay bằng newline mà theo sau bởi một khoảng trắng. Cả hai real extract exit `0`, tạo 101 file trong 7 thư mục và được cleanup cùng project workspace. Đây là Gate A cho extract; không bao gồm pack, DDS decode hoặc semantic scan.
+
+## DDS Metadata Reader từ PLAN 13
+
+Pipeline texture hiện tại là:
+
+```text
+Archive → Extract → Asset Scanner → IDdsMetadataReader → DdsMetadata
+```
+
+`Core` sở hữu contract `IDdsMetadataReader`, structured result/failure và model metadata strongly typed. `AuditionModStudio.Dds` triển khai parser managed, little-endian, read-only; không phụ thuộc UI, Projects hay native DDS library. Reader chỉ đọc tối đa 148 byte header cần thiết, không load payload theo dimensions trong header.
+
+Legacy header và `DDS_PIXELFORMAT` được validate lần lượt với size 124 và 32. FourCC hỗ trợ `DXT1`, `DXT3`, `DXT5`, `ATI1`, `ATI2`, `BC4U/S`, `BC5U/S` và `DX10`. DX10 header expose numeric DXGI format, resource dimension, cubemap, array size và nhận diện BC1–BC7 cùng RGBA8/BGRA8 phổ biến. Format chưa biết vẫn trả metadata với `Unknown`/`Unsupported`, không crash.
+
+`DeclaredMipMapCount` giữ nguyên giá trị header; `EffectiveMipLevelCount` là 1 khi declared count bằng 0 để biểu diễn base level. Alpha chỉ là khả năng/channel theo format; không khẳng định pixel thực tế có sử dụng alpha. Legacy color space là `Unknown`; chỉ DXGI `_SRGB` được ghi `Srgb`.
+
+Metadata reader không phải DDS decoder, encoder, thumbnail renderer hay image converter. `PixelDataOffset` chỉ là 128 cho legacy hoặc 148 cho DX10; PLAN 13 không đọc pixel data.
+
+## DirectXTex Evaluation Harness từ PLAN 14
+
+`Core` định nghĩa `IDirectXTexEvaluationHarness` và request/result/progress có cấu trúc. `AuditionModStudio.Dds` triển khai harness bằng Microsoft `texconv` được pin version/hash. Harness chỉ là prototype và compatibility oracle, không phải `IDdsPreviewService` hoặc production encoder.
+
+Pipeline evaluation:
+
+```text
+ISecureWorkspace input
+  → managed metadata/PNG-header preflight + size/pixel policy
+  → verify source texconv SHA-256
+  → copy + verify trong Working/DirectXTexEvaluation
+  → structured process arguments
+  → output tại BuildOutput/<evaluation-id>
+  → IDdsMetadataReader hoặc PNG-header post-validation
+```
+
+UI không tham chiếu harness. Kết quả, command/API và quyết định native-wrapper cho PLAN sau được ghi tại `docs/DIRECTXTEX_EVALUATION.md`.
+
+## DDS Preview Service từ PLAN 15
+
+`Core` định nghĩa `IDdsPreviewService`, request/result/failure và `DdsPreviewImage` bất biến. Representation là PNG encoded trong memory (`image/png`) kèm width/height; không chứa `BitmapImage`, XAML object, WinUI control, raw stride hoặc layout channel cần caller suy đoán.
+
+Pipeline production preview:
+
+```text
+DDS trong ISecureWorkspace
+  → IDdsMetadataReader preflight
+  → DdsPreviewResourcePolicy
+  → controlled DirectXTex decode mip 0
+  → PNG IHDR/dimension/byte-length validation
+  → immutable DdsPreviewImage
+  → caller/UI adapter/cache consumer tương lai
+```
+
+`DdsPreviewService` dùng `DirectXTexEvaluationHarness` như process boundary đã được pin của PLAN 14, nhưng không expose harness hoặc tool path trong preview request. Đường dẫn tool production là cấu hình DI code-owned dưới application base directory; mỗi request dùng output directory GUID riêng dưới `BuildOutput`, đọc kết quả vào memory rồi cleanup trong `finally`. Service stateless, chạy bất đồng bộ, hỗ trợ cancellation/finite timeout và không sửa source.
+
+PLAN 15 chỉ decode full-resolution base mip; không resize/downscale âm thầm. Preview Service không phải production encoder, image editor hay disk thumbnail cache. Encoder vẫn thuộc PLAN 16; UI adapter/cache thuộc PLAN phù hợp sau.
+
+## Image → DDS Encoder từ PLAN 16
+
+`Core` định nghĩa `IDdsEncoder`, immutable internal `DdsRgbaImage` và explicit `DdsTargetSettings`. Image contract ghi rõ width, height, stride, `Rgba8` và buffer; settings bắt buộc format, mip count, header type, color space và alpha semantics. Không tồn tại Audition default format hoặc overload tự chọn BC3.
+
+Pipeline production encode:
+
+```text
+Internal RGBA8 image
+  → stride/buffer/dimension/alpha/mip/resource validation
+  → explicit DdsTargetSettings
+  → temporary PNG bridge trong Working
+  → controlled DirectXTex encode trong isolated BuildOutput operation
+  → IDdsMetadataReader verification
+  → atomic move tới controlled BuildOutput relative path
+```
+
+Format production hiện hỗ trợ đúng tập đã quan sát: BC1, BC3, RGBA8 và BGRA8. Linear hỗ trợ legacy/DX10; sRGB chỉ hỗ trợ DX10 vì legacy header không lưu semantic sRGB. BC1 chỉ nhận opaque hoặc binary alpha; full alpha bị từ chối. Encoder giữ exact dimensions, exact requested mip count và reject input/target dimension mismatch thay vì resize.
+
+Encoder không phải resize engine, Match Original orchestrator, archive replacement hoặc pack workflow. PLAN 17 mới map metadata target thành settings ở project flow; PLAN 16 chỉ cung cấp contract đủ explicit để orchestration đó gọi an toàn.
+
+## Match Original DDS từ PLAN 17
+
+`IDdsMatchOriginalService` orchestration đúng ba abstraction đã có: `IDdsMetadataReader` đọc target, centralized `DeriveProfile` tạo `DdsMatchOriginalProfile`/`DdsTargetSettings`, rồi `IDdsEncoder` tạo output mới. Service đọc lại output và trả `DdsMetadataMatchReport`; UI không tự so metadata hoặc parse diagnostic text.
+
+```text
+Target DDS trong secure workspace
+  → metadata preflight
+  → strict match profile
+  → immutable replacement RGBA8
+  → IDdsEncoder
+  → metadata post-validation
+  → matched DDS mới trong BuildOutput
+```
+
+Strict profile giữ exact format, dimensions, effective mip count, header và resource shape. `DeclaredMipMapCount=0`/`EffectiveMipLevelCount=1` được encode thành đúng một base mip. Legacy `Unknown` color space được lưu trong profile nhưng encoder dùng legacy-compatible Linear command policy, không suy đoán sRGB; DX10 Linear/sRGB được preserve khi meaningful.
+
+BC1 profile luôn giữ BC1 và binary-alpha capability; replacement có semi-transparent alpha bị từ chối, không nâng thành BC3. BC7, cubemap, array và volume được reject có cấu trúc vì encoder hiện chưa hỗ trợ. Match Original không có compatibility mode đổi format.
+
+Match Original nghĩa structural metadata fidelity, không phải byte-identical hash hoặc exact file size. PLAN 17 không resize, replace extracted target, pack archive hoặc install mod.
+
+## DDS Validation từ PLAN 18
+
+`IDdsValidationService` là gate độc lập giữa DDS đã encode và mọi replacement workflow tương lai. Request chỉ mang một `ISecureWorkspace` cùng relative path của target/candidate; service mở lại cả hai file qua `IDdsMetadataReader`, không tin metadata được trả về từ encoder và không mutate file nào.
+
+```text
+Target DDS (read-only) + encoded candidate (read-only)
+  → path/reparse-point validation
+  → IDdsMetadataReader cho từng file
+  → supported-profile gate
+  → exact structural metadata comparison
+  → PASS | structured failure + field report
+```
+
+Comparison bắt buộc gồm format, dimensions, effective mip count, header type, meaningful DX10 color space và resource shape. Legacy `Unknown` color space không bị suy diễn thành sRGB. Hash/file size không được so như compatibility contract vì BC compression/serialization có thể khác nhau.
+
+`DdsMatchOriginalService` reuse validator này sau `IDdsEncoder`; output chỉ được trả thành công khi validation PASS. PLAN 18 vẫn không replace extracted target, không rollback/archive-pack và không mở rộng support sang BC7, volume, array hoặc cubemap. Workflow Apply/replace tương lai phải coi `DdsValidationResult.Succeeded` là precondition bắt buộc.
+
+## Internal Image Model & Import từ PLAN 20
+
+`IImageImportService` là boundary UI-neutral giữa file do người dùng chọn và image processing. Request nhận absolute local path, implementation mở read-only, nhận diện signature thực và chỉ cho phép PNG, JPEG, WebP hoặc BMP. Extension không quyết định decoder. UI file picker, DDS settings và archive logic không đi vào service.
+
+```text
+User image (read-only)
+  → signature + regular-path validation
+  → SKCodec metadata probe
+  → dimension/pixel/decoded-byte policy
+  → RGBA8888 straight-alpha decode + EXIF orientation normalization
+  → immutable InternalImage
+  → future image processing → DdsRgbaImage/IDdsEncoder
+```
+
+`InternalImage` dùng packed `RGBA8Straight`: channel order R-G-B-A, 8 bit/channel, stride luôn `width × 4`, immutable owned `ImmutableArray<byte>`. Constructor defensive-copy tại import trust boundary; `DdsRgbaImage.Create(InternalImage)` reuse cùng immutable storage nên không tạo conversion/channel-copy thứ hai. Buffer chỉ chứa managed memory nên không cần caller dispose; mọi `SKCodec`, stream, bitmap và color-space native object được service dispose trước khi trả kết quả.
+
+Skia decode vào explicit sRGB output color space. Embedded profile được decoder áp dụng khi có thể; model chỉ giữ cờ codec-reported và không giữ EXIF/ICC blob. EXIF orientation 1–8 được normalize vào pixels và normalized dimensions. Animated/multi-frame input chỉ lấy frame đầu trong scope PLAN 20; resize/crop/editor document/DDS replacement không thuộc model này.
+
+## Arbitrary Resize Engine từ PLAN 21
+
+`IImageResizeService` chỉ nhận `InternalImage`, target dimensions và strongly typed options; không đọc/ghi file, không biết encoded image format, DDS metadata, archive hoặc UI. Output tiếp tục là immutable packed `RGBA8Straight` `InternalImage`.
+
+```text
+InternalImage
+  → target/options preflight
+  → straight RGBA premultiply
+  → direct Skia pixel resize/crop/canvas operation
+  → unpremultiply
+  → new InternalImage
+```
+
+Modes có semantic cố định: Stretch/Free Aspect tạo exact target không giữ aspect; Fit giữ aspect và letterbox transparent vào exact canvas; Fill giữ aspect và crop theo alignment; Keep Aspect trả fitted dimensions trong requested bounding box; Manual Crop resize rectangle hợp lệ vào exact target; Canvas Resize đặt source không scale và cho phép clip/pad; Transparent Padding chỉ pad và reject canvas nhỏ hơn source. Alignment công khai gồm center/top/bottom/left/right.
+
+Filter công khai tối thiểu là Nearest Neighbor và Linear, default Linear; library default không được dùng. Filtering diễn ra theo sRGB channel behavior, chưa phải gamma-linear/perceptual resize. Engine premultiply alpha trước filter và unpremultiply trước output để không gắn nhãn premultiplied data thành straight alpha hoặc tạo black fringe ở transparent edge.
+
+Target dùng chung policy PLAN 20: dimension 16384, 100 triệu pixel và 512 MiB decoded RGBA, checked trước native allocation. Same-size Stretch/Free Aspect trả lại cùng immutable source; các operation khác không mutate source. PLAN 21 không phải interactive crop/transform model, editor, AI upscaler hoặc DDS/archive orchestration.
+
+## Interactive Crop/Transform Model từ PLAN 22
+
+`IImageTransformService` là pure, stateless geometry boundary. Canonical crop state dùng `NormalizedImageRectangle` trong `[0,1]`; viewport logical coordinates, image pixel coordinates và normalized coordinates có value types riêng. State là immutable record và chỉ giữ image dimensions, không giữ/copy `InternalImage.Pixels`.
+
+```text
+InternalImage dimensions
+  → immutable InteractiveImageTransformState
+  → normalized crop + derived viewport projection
+  → deterministic ImageCropRectangle
+  → PLAN 21 Manual Crop request khi cần execute pixels
+```
+
+Crop bounds dùng half-open semantics. Interactive crop bị clamp vào image; zero/outside/minimum crop bị reject. Custom finite positive aspect ratio được áp theo actual image pixels với center/top-left/top-right/bottom-left/bottom-right anchor. Final integer crop tập trung một policy: floor left/top, ceil right/bottom, rồi clamp vào image.
+
+Transform order explicit: flip/scale quanh image center → quarter-turn rotation → image-space translation → fit/letterbox viewport → zoom quanh viewport center → viewport pan. Inverse mapping đảo cùng matrix. Rotation chỉ 0/90/180/270; pan dùng viewport logical units, translate dùng image pixels. Zoom mặc định giới hạn 0.1–32; pan không clamp vì roadmap không đặt visibility constraint.
+
+Reset trả identity state. Viewport resize chỉ derive projection mới, không quantize hoặc mutate normalized crop. Model không biết DPI, XAML, pointer event, Canvas/Skia UI, không resample pixels và không triển khai undo/redo.
+
+## Image Adjustments Core từ PLAN 23
+
+`IImageAdjustmentService` là boundary stateless, UI-neutral nhận và trả cùng canonical `InternalImage`. Service không đọc/ghi file, không gọi process, không biết DDS/archive và không expose type Skia. Neutral settings trả lại chính immutable source; mọi adjustment khác tạo `InternalImage` mới cùng dimensions, packed stride và source metadata.
+
+```text
+InternalImage RGBA8 straight-alpha sRGB
+  → validate finite/range/resource policy
+  → deterministic managed adjustment pipeline
+  → centralized clamp + midpoint-away-from-zero quantization
+  → immutable InternalImage RGBA8 straight-alpha sRGB
+```
+
+Range contract: brightness/contrast/saturation/vibrance/temperature/tint/highlights/shadows `[-1,1]`; exposure `[-5,5] EV`; hue `[-180,180]°`; gamma `[0.1,10]`; sharpen `[0,1]`; blur `[0,20] px`; opacity `[0,1]`. NaN, Infinity và out-of-range bị reject có cấu trúc, không silent clamp parameter.
+
+Processing order cố định là brightness → contrast → exposure → saturation → vibrance → hue → temperature → tint → highlights → shadows → gamma → sharpen → blur → opacity. Brightness là offset `value × 255`; contrast dùng midpoint 127.5 và factor `1 + value`; exposure dùng `2^EV`; saturation dùng Rec.709 luma coefficients; vibrance dùng chroma-adaptive saturation; hue dùng deterministic luma-preserving RGB rotation. Temperature/tint và highlight/shadow là transform sRGB-channel có semantic đơn giản, không được mô tả là physical white balance hoặc tone-mapping engine. Gamma là arbitrary `channel^(1/gamma)`, không phải sRGB transfer conversion.
+
+Sharpen dùng four-neighbor unsharp kernel; blur dùng separable box blur với radius tối đa 20 và fractional blend. Math chạy trực tiếp trên sRGB channels, chưa phải linear-light/ICC pipeline. Hidden RGB của fully-transparent pixel vẫn được adjust deterministic. Tất cả operation trừ opacity giữ alpha byte exact; opacity chỉ nhân alpha, không đổi RGB. Service kiểm tra cancellation theo row/column, không trả partial image, và concurrent call không dùng shared mutable state.
+
+## Edit History / Undo Redo từ PLAN 24
+
+`IEditHistoryService` là stateless factory tạo một `IEditHistorySession` riêng cho từng editor. Session giữ linear operation history độc lập WinUI và serialize mọi mutation bằng private lock. Public state, entry và stack view đều immutable; Core không dùng `ICommand`, XAML, Dispatcher, localized label, filesystem hoặc process.
+
+```text
+ImageEditorState
+  ├─ immutable InternalImage reference
+  ├─ InteractiveImageTransformState
+  └─ ImageAdjustmentSettings
+       → EditHistorySession
+       → stable RevisionId
+       → Undo / Redo
+```
+
+Snapshot strategy là hybrid. Transform/crop và non-destructive adjustment chỉ snapshot lightweight state, reuse cùng `InternalImage`; resize/destructive image state giữ exact immutable image reference để undo không dùng lossy inverse. History memory accounting tính mỗi image buffer một lần theo reference identity cộng estimated entry overhead 512 bytes. Default budget là 100 entries và 256 MiB; configurable options vẫn bị hard-cap ở 10.000 entries/4 GiB. Budget bao gồm current image cùng mọi unique image được history giữ. Khi vượt budget, oldest undo entry bị evict; current state không bị evict. Nếu một entry mới vẫn không vừa sau eviction, commit bị reject atomically.
+
+Revision tăng đơn điệu và không reuse sau khi redo branch bị discard. Saved checkpoint lưu exact revision; `IsDirty` so current/saved revision và phản ánh pending transaction update. Standard linear behavior áp dụng: undo chuyển latest entry sang redo; redo phục hồi exact after-state; edit mới sau undo xóa toàn redo branch.
+
+Transaction hỗ trợ `Begin → Update* → Commit | Cancel` để coalesce slider hoặc pointer drag. Intermediate update thay preview state nhưng không tăng revision hoặc tạo entry. Commit tạo đúng một entry; cancel phục hồi exact before-state. Nested transaction và push/undo/redo/save/clear trong transaction bị reject có cấu trúc. History chỉ ghi state sau khi caller đã thực hiện edit thành công; PLAN 24 không replay operation, persist project history hoặc cung cấp UI command.
+
+## Alpha Channel Utilities từ PLAN 25
+
+`IAlphaChannelService` là boundary stateless, UI-neutral làm việc trực tiếp trên canonical immutable `InternalImage`. Service không đọc/ghi file, không biết DDS/archive/UI và không thêm native dependency. Năm operation đúng roadmap là View, Extract, Replace, Invert và Threshold.
+
+```text
+InternalImage RGBA8 straight-alpha sRGB
+  → validate operation/resource/numeric input
+  → view | extract | replace | invert | threshold
+  → InternalImage hoặc immutable AlphaChannelData
+```
+
+View tạo `InternalImage` grayscale opaque với `R=G=B=source A`, `A=255`. Extract tạo channel plane một byte/pixel, stride bằng width; đây là dữ liệu kênh, không phải image pixel model thay thế. Replace yêu cầu channel có exact dimensions. Invert dùng `A' = 255 - A`. Threshold dùng rule cố định `A >= threshold → 255`, `A < threshold → 0`, threshold nguyên trong `0..255`.
+
+Replace, Invert và Threshold chỉ thay alpha; RGB, kể cả hidden RGB tại pixel fully transparent, được giữ byte-exact. Không premultiply/unpremultiply trong utility nên output vẫn straight alpha. Nếu Replace/Threshold không đổi byte alpha nào thì immutable source được reuse. Managed loops kiểm tra cancellation theo row, không publish partial output và không dùng mutable state dùng chung. Alpha edit có `EditOperationKind.Alpha` để orchestrator tương lai lưu before/after image references; service không tự ghi history.
+
+## Game Catalog từ PLAN 26
+
+`Core` định nghĩa stable value object `GameId`, immutable `GameDefinition` và read-only contract `IGameCatalog`. `AuditionModStudio.Mods` cung cấp `GameCatalog`; composition root tạo và validate built-in catalog ngay khi bootstrap rồi đăng ký singleton. Catalog hiện có đúng game đầu tiên với ID machine-friendly `audition` và display metadata `Audition`.
+
+```text
+Code-owned built-in definitions
+  → validate IDs/null/empty/duplicate
+  → deterministic sort bằng GameId ordinal
+  → immutable GameCatalog singleton
+  → GetGames | TryGetGame
+```
+
+`GameId` chỉ nhận 1–64 lowercase ASCII letter/digit/underscore/hyphen, bắt đầu bằng letter/digit; display name hỗ trợ Unicode/khoảng trắng nhưng không tham gia identity. `GetGames` trả immutable snapshot đã sort; `TryGetGame` coi unknown/default ID là expected miss, không ném `KeyNotFoundException`. Provider không đọc file/settings/network và không expose mutable dictionary/list nên concurrent reads không cần lock.
+
+PLAN 26 cố ý không đặt archive filename, source path, template/version/hash, engine, region, country selection hoặc install path trong `GameDefinition`. Các relationship `Game → Mod Type → Archive Template → Engine/Region` thuộc `ModDefinition` của PLAN 27; cách tách này ngăn screen dùng Game Catalog để hard-code `015.ab` trước khi mapping semantic được định nghĩa đúng PLAN.
+
+## Mod Definition từ PLAN 27
+
+`Core` định nghĩa immutable `ModDefinition`, stable `ModId`, `ModCategory`, validated `ModRelativePath`, `ModKeydatStrategy` và read-only `IModCatalog`. `AuditionModStudio.Mods` cung cấp `ModCatalog`; identity của mod là cặp `(GameId, ModId)`, không phải display name, archive filename hoặc convention prefix. `GameId` và `ModId` dùng chung lowercase ASCII validation policy 1–64 ký tự.
+
+```text
+IGameCatalog
+  → GameDefinition
+  → ModCatalog.GetMods(GameId) / TryGetMod(GameId, ModId)
+  → ModDefinition
+       ├─ semantic display/category/cover/description
+       ├─ AuditionArchiveTemplate id + version + filename + extract folder
+       ├─ explicit ArchiveEngineType
+       ├─ RegionProfileId → IGameRegionProfileResolver
+       ├─ ReuseOrGenerate keydat strategy
+       └─ legacy install-relative path + compatibility information
+```
+
+`ModCatalog.Create` kiểm tra dependency, null definition, unknown game, unknown region và duplicate `(GameId, ModId)`, rồi chỉ publish catalog khi toàn bộ input hợp lệ. Danh sách mỗi game sort ordinal theo `ModId`; dictionary và snapshot đều immutable nên concurrent read không cần lock. Empty catalog hợp lệ vì master roadmap PLAN 27 không cung cấp đủ semantic name/category/cover/install/compatibility để định nghĩa một built-in Mod Type mà không suy đoán. Composition root vẫn đăng ký đúng một singleton rỗng đã validate; definition code-owned sẽ được thêm khi có metadata có thẩm quyền. Legacy `InstallRelativePath` không được dùng để tìm hoặc ghi game directory; export destination là boundary độc lập từ PLAN 51.
+
+`AuditionArchiveTemplate` được reuse nguyên trạng; engine được map explicit và không infer từ `.ab`/`.acv`. `GameRegionProfile` cùng `IGameRegionProfileResolver` được đặt tại `Core.Archives` để Mods chỉ phụ thuộc Core; implementation `GameRegionProfileCatalog` vẫn thuộc Archives. `ModDefinition` chỉ giữ `RegionProfileId`, không expose ACV raw country selection. Archive engine mới vẫn được resolution tại archive boundary. PLAN 27 không đọc template file, không detect game install, không tạo UI và không nối project lifecycle của PLAN 30.
+
+## Texture Manifest từ PLAN 28
+
+Quan hệ domain được mở rộng theo chuỗi `Game → ModDefinition → TextureManifest → TextureSlot`. Mỗi manifest gắn explicit với `(GameId, ModId)`; mỗi slot có semantic `TextureSlotId` riêng và ánh xạ tới một `ModRelativePath` DDS đã normalize. Display name không phải identity. Catalog reject atomically manifest của mod không tồn tại, duplicate manifest, duplicate slot ID và asset path collide theo `OrdinalIgnoreCase`, nhất quán với collision semantics của scanner trên Windows.
+
+Slot chỉ chứa metadata được roadmap yêu cầu: display name, typed category, description, immutable tags, preview/editable flags và typed recommended edit mode. Manifest không chứa DDS format, dimensions, mip count hoặc header; `IDdsMetadataReader` tiếp tục là source of truth cho file thật. Không có required/optional semantics hoặc manifest version trong PLAN này.
+
+`TextureManifestCatalog` là immutable code-owned metadata. Lookup thiếu manifest hoặc mapping trả fallback gồm normalized relative path và raw filename, không scan filesystem và không đoán semantic metadata. Production catalog hiện rỗng có chủ ý vì chưa có authoritative texture mapping. PLAN 28 không triển khai smart scan PLAN 29, thumbnail generation, editor state, DDS conversion, replacement hoặc archive execution.
+
+## Smart Mod Scan từ PLAN 29
+
+`ISmartModScanService` nhận typed `(GameId, ModId)` và một `IProjectArchiveWorkspace` đã extract. `SmartModScanService` không enumerate filesystem lần hai mà gọi `IArchiveAssetScanner`, giữ nguyên full observed catalog, lọc `TextureAsset` cho texture pipeline, rồi xử lý tuần tự theo relative path để giới hạn peak memory.
+
+```text
+ModDefinition + optional TextureManifest + extracted project workspace
+  → IArchiveAssetScanner
+  → each observed TextureAsset
+       → IDdsMetadataReader (runtime source of truth)
+       → IDdsPreviewService → immutable PNG memory
+       → IImageImportService.ImportMemoryAsync → IImageResizeService
+       → bounded InternalImage thumbnail
+       → exact ITextureManifestCatalog resolution
+  → deterministic folder groups + missing slots + raw/unknown assets
+```
+
+Exact manifest mapping dùng normalized full relative path với Windows `OrdinalIgnoreCase`; không filename-only, fuzzy, similarity hay category inference. DDS ngoài manifest vẫn xuất hiện với raw filename/path, `UnknownSemantics=true` và `CanBeLabeled=true`. Slot khai báo nhưng không observed nằm trong informational `MissingManifestSlots`, không làm scan fail vì PLAN 28 không có required/optional semantics. Output chỉ được publish khi scanner, metadata và thumbnail cho mọi DDS đều thành công; cancellation/failure không trả partial catalog.
+
+Thumbnail tối đa 256 mặc định, hard-cap 1024. Decode reuse controlled preview boundary; PNG được chuyển thẳng qua immutable memory import và resize, không tạo bridge file riêng. Preview implementation có thể dùng isolated temporary `BuildOutput` operation theo PLAN 15 và cleanup trong `finally`; Smart Scan không sửa extracted files, archive hoặc manifest. Production manifest rỗng được hỗ trợ: toàn bộ DDS trở thành raw unknown assets. Admin labeling persistence/UI, editor, replacement/repack và Template Versioning PLAN 30 không thuộc PLAN 29.
+
+## Template Versioning từ PLAN 30
+
+Template có canonical identity bất biến `TemplateId + TemplateVersion + TemplateSha256 + CompatibleGameBuild`. `TemplateVersion` là opaque, bounded ASCII identifier: catalog không áp đặt SemVer, không so sánh lớn/nhỏ và không suy ra "latest" từ chuỗi. Mỗi `TemplateId` có thể chứa nhiều version nhưng phải đánh dấu đúng một `IsCurrent` explicit; lookup exact luôn dùng cặp `(TemplateId, TemplateVersion)`.
+
+```text
+Trusted TemplateVersionCatalog
+  ├─ exact (TemplateId, TemplateVersion) → AuditionArchiveTemplate
+  └─ current TemplateId → explicitly marked version
+
+Project ArchiveTemplateReference
+  → exact TemplateId + version + SHA-256 + compatible game build snapshot
+  → Resolve(snapshot)
+       ├─ ExactMatch
+       ├─ CurrentVersionDiffers (không suy ra upgrade/downgrade, không mutate/rebind)
+       └─ structured missing/hash/build/legacy-invalid status
+```
+
+`AuditionArchiveTemplate` vẫn giữ filename, source-relative path, engine, region và extract-folder mapping của archive boundary, đồng thời expose typed identity PLAN 30. `ArchiveTemplateReference` trong project lưu exact identity; project creation mới từ chối template thiếu version/hash/build. Manifest schema 1 đọc được field build bị thiếu từ dữ liệu legacy nhưng không tự điền current/default: identity đó được xem là invalid cho resolution và không bao giờ silently migrate.
+
+`TemplateVersionCatalog` immutable, construction atomic và đăng ký singleton. Catalog production hiện rỗng có chủ ý vì chưa có authoritative built-in template metadata. Version và SHA-256 là hai trục riêng: cùng version khác hash là conflict/mismatch, không phải version mới. Compatible game build dùng exact ordinal equality. Vì version không có ordering, `CurrentVersionDiffers` cố ý không kết luận upgrade hay downgrade; migration execution, project model `.audproj`, UI prompt, network/download và external manifest không thuộc PLAN 30.
+
+## Project Model `.audproj` từ PLAN 31
+
+`AuditionProject` là immutable aggregate và là schema domain duy nhất cho file `.audproj`. Model lưu `ProjectId`/name, typed `(GameId, ModId)`, exact `TemplateIdentity`, logical workspace reference, edited texture records, image/AI asset references, durable edit/history references, build snapshot, timestamps và schema version. Collection được copy sang `ImmutableArray`, sort deterministic và chỉ publish khi toàn graph hợp lệ.
+
+```text
+AuditionProject schema v1
+  ├─ project/game/mod + exact template identity
+  ├─ workspace ID + relative working archive/extracted root
+  ├─ edited texture identities → current image asset references
+  ├─ image assets + AI assets (relative path + content SHA-256)
+  ├─ edit state/history (revision + before/after asset references)
+  └─ build state + timestamps
+```
+
+`Sha256Digest` centralize generic content-hash validation; `TemplateSha256` tiếp tục là typed template-specific wrapper. Relative references reuse `ModRelativePath` canonical semantics và không chứa absolute path. `ProjectAssetId` là stable machine ID, không phải filename/display name. Validation reject unsupported schema, default identity, malformed workspace reference, Windows path collision, duplicate asset ID/path, dangling texture/history asset reference, invalid revision graph, inconsistent build artifact và timestamp đảo ngược.
+
+PLAN 31 chỉ định nghĩa aggregate/validation; chưa ghi hoặc load filesystem, chưa tạo workspace, extract/scan/save workflow, recovery, Texture State Machine hay reset. Runtime `IProjectArchiveWorkspace`, thumbnail pixels và process/tool path không được serialize vào model.
+
+## Create Project Workflow từ PLAN 32
+
+`IProjectCreationService` điều phối đúng selection `(GameId, ModId, ProjectName)`; UI không truyền template path, archive engine, region selector hoặc entitlement flag. Workflow resolve trusted catalogs trước, gọi `ITemplateEntitlementService`, acquire exact template qua `IProjectTemplateAcquisitionService`, xác minh region, rồi reuse project workspace/archive/Smart Scan boundaries hiện có.
+
+```text
+Game + Mod + Name
+  → trusted game/mod lookup
+  → entitlement decision → exact template acquisition
+  → IProjectArchiveWorkspaceService (verified working copy)
+  → ReuseOrGenerate keydat policy inside archive engine
+  → IAuditionArchiveService.ExtractAsync
+  → ISmartModScanService (scanner + DDS metadata + manifest)
+  → ProjectMetadataCache
+  → AuditionProjectStore (.audproj)
+```
+
+Workflow có typed phase/progress, cancellation và structured failure. Chỉ sau extract + complete Smart Scan + atomic metadata cache + atomic `.audproj` save mới trả success cùng live workspace lease. Mọi failure sau workspace allocation sẽ xóa exact project/cache ID và dispose workspace; rollback failure được báo riêng, không che thành success.
+
+`AuditionProjectStore` dùng filename `<ProjectId:N>.audproj` dưới managed `Projects`; project name không tham gia path. `ProjectMetadataCache` lưu full observed DDS metadata dưới managed `Cache/ProjectMetadata`, sort theo normalized path và reject Windows collision. Cả hai ghi temp cùng filesystem, flush-to-disk rồi atomic replace. Production DI đăng ký provider entitlement/acquisition fail-closed vì chưa có authoritative premium/template distribution; không tự tin local setting hoặc network endpoint. PLAN 32 chưa load/recover project, re-extract policy, Texture State Machine hay reset.
+
+## Load/Recover Project từ PLAN 33
+
+`IProjectLoadService` load exact `<ProjectId:N>.audproj`, reject JSON lạ/schema không hỗ trợ/model sai, sau đó resolve exact template `(TemplateId, Version)` và bắt buộc hash + compatible build khớp snapshot. Không fallback sang current template và không infer từ archive filename.
+
+Luồng recovery phân biệt rõ:
+
+1. Workspace + manifest + working archive hợp lệ, cache hợp lệ: trả project ngay, không extract và không scan.
+2. Workspace hợp lệ nhưng cache thiếu/hỏng: chỉ chạy Smart Scan để dựng lại observed DDS metadata cache.
+3. Workspace thiếu/không hợp lệ: kiểm tra entitlement, acquire lại exact trusted template, tạo workspace cùng `ProjectId`, extract, scan/cache và atomic-save workspace reference mới.
+
+`ISecureWorkspaceRecoveryService` chỉ mở direct managed child có lowercase-hex ID, marker `version=1`, cấu trúc thư mục đầy đủ và không reparse point. Project workspace được retain chỉ sau khi `.audproj` save thành công; nhờ đó rollback workspace mới vẫn xóa atomically, cò close/reopen project chỉ nhả/tái chiếm lock. PLAN 33 không triển khai Texture State Machine, reset hay thumbnail cache.
+
+## Texture State Machine từ PLAN 34
+
+`ITextureStateMachine` là pure domain evaluator, nhận immutable `AuditionProject`, normalized `ModRelativePath` và explicit runtime observation; service không đọc filesystem hay DDS header. Sáu state typed là `Original`, `Modified`, `AiGenerated`, `Pending`, `Invalid`, `Missing`.
+
+Thứ tự quyết định deterministic: asset không tồn tại → `Missing`; metadata không valid → `Invalid`; operation đang chạy → `Pending`; edited texture tham chiếu AI asset → `AiGenerated`; edited texture tham chiếu imported image asset → `Modified`; không có edit record → `Original`. Lookup path theo Windows collision semantics, cò display name/filename không drive state. Optional previous state chỉ dùng báo transition, không mutate project và không thay edit history. PLAN 34 không reset file/project, encode/replace DDS, cache thumbnail hay tự poll filesystem.
+
+## Reset Texture / Reset Project từ PLAN 35
+
+`IProjectResetService` luôn resolve exact template version/hash/build, kiểm tra entitlement + trusted acquisition + region, sau đó extract một fresh project workspace qua existing archive boundary. Không đọc texture trực tiếp từ global template và không mutate pristine source.
+
+Reset operations được serialize qua async cancellation-aware gate của singleton service để hai transaction không ghi chồng cùng workspace/project snapshot.
+
+Reset một texture dùng `IProjectTextureRestoreService` copy exact normalized relative asset từ extracted tree của disposable pristine workspace sang current project workspace. Copy dùng temp + durable flush + atomic move và giữ backup transaction; scan/model/save fail thì rollback bytes cũ. Khi commit, edit/history của texture đó bị loại, asset không còn reference bị prune, revision tăng và build state thành `Dirty`.
+
+Reset Project tạo fresh workspace cùng `ProjectId`, extract + Smart Scan, tạo project snapshot rỗng edits/assets/history và `NotBuilt`. Fresh workspace được retain trước atomic `.audproj` save; save fail thì explicit removal fresh workspace, save thành công mới remove exact previous workspace. Cache, old-workspace cleanup hoặc temporary-backup cleanup fail sau commit được trả bằng recovery flags, không hạ success thành failure giả sau khi project đã commit. PLAN 35 không có thumbnail cache/UI và không triển khai PLAN 36.
+
+## Thumbnail Cache từ PLAN 36
+
+`IThumbnailCache` là boundary duy nhất để Smart Scan lấy thumbnail. Cache key được dẫn xuất deterministic từ schema cache, SHA-256 nội dung DDS nguồn và `MaximumDimension`; đường dẫn, filename, display metadata và timestamp không tham gia identity. Do đó cùng nội dung và cùng kích thước có thể dùng chung thumbnail, còn thay đổi bytes hoặc kích thước luôn tạo key mới.
+
+```text
+Smart Scan observed DDS + content SHA-256
+  → IThumbnailCache
+      ├─ bounded immutable memory cache
+      ├─ managed Cache/Thumbnails/v1 disk cache
+      └─ miss/corrupt → IDdsPreviewService → IImageImportService → IImageResizeService
+```
+
+Disk entry dùng schema/version và tự mô tả source hash, requested dimension cùng immutable RGBA image metadata. Đọc entry phải kiểm tra đầy đủ header, enum, dimensions, stride, pixel length và exact file length. Entry hỏng là derived data: bị loại và tạo lại, không làm thay đổi DDS nguồn. Publish dùng temporary file cùng thư mục, durable flush rồi atomic move; cancellation không publish partial entry. Memory/disk có giới hạn cấu hình, disk eviction deterministic theo lần truy cập và chỉ chạm file cache do ứng dụng quản lý.
+
+Các request đồng thời cùng key được gộp bằng async single-flight per-key; key khác không bị global serialization. `ThumbnailCache` đăng ký singleton để memory tier được chia sẻ và mọi collection công khai vẫn immutable. PLAN 36 không triển khai metadata-first UI, lazy full-texture load, background queue, crash recovery hoặc App Shell.
+
+## Lazy Loading từ PLAN 37
+
+Smart Scan giờ là tầng metadata-first: scanner/hash, real `DdsMetadata` và manifest resolution được phát hành trong immutable `SmartTextureAsset`, nhưng model không chứa `InternalImage`. `SmartModScanRequest` cũng không còn thumbnail size vì scan không tạo thumbnail.
+
+```text
+Open/recover project → Smart Scan → metadata-only texture catalog
+                                      ├─ LoadThumbnailAsync → IThumbnailCache
+                                      └─ user selection → LoadSelectedTextureAsync
+                                                           → IDdsPreviewService
+                                                           → IImageImportService
+                                                           → full InternalImage
+```
+
+`ITextureLazyLoadingService` là orchestration boundary cho hai bước sau metadata. Thumbnail reuse content-hash cache PLAN 36. Selected-texture load decode mip 0 qua DirectXTex preview boundary hiện có, đối chiếu toàn bộ observed DDS metadata với snapshot scan trước khi import pixels, rồi trả immutable full image. Service stateless và không giữ full-resolution cache; lifetime ảnh full thuộc caller/editor tương lai.
+
+Thumbnail miss có thể transiently decode nguồn để tạo ảnh nhỏ theo pipeline PLAN 36, nhưng full-resolution editor image không được publish hoặc resident cho đến explicit selected API. PLAN 37 chưa có UI selection model, viewport prefetch, task queue, notification, crash recovery hay App Shell.
+
+## Background Task Manager từ PLAN 38
+
+`IBackgroundTaskManager` là queue trung tâm, UI-independent cho tám typed job kind: `Extract`, `Scan`, `Thumbnail`, `Resize`, `Convert`, `Build`, `Download`, `Ai`. Request cung cấp internal async operation nhận `IProgress<BackgroundTaskProgress>` và manager-owned cancellation token; operation thực tế vẫn phải gọi archive/DDS/image/AI boundary tương ứng.
+
+```text
+typed request → bounded Channel
+                → N workers (configured cap)
+                → Queued → Running → Succeeded | Failed | Cancelled
+                            └─ validated progress snapshots
+                                  └─ ordered per-task notifications
+```
+
+Manager là singleton hosted service. Queue có backpressure fail-fast, worker concurrency có hard cap, cancellation source riêng từng job được link với application shutdown. Cancel queued job publish terminal state ngay và operation không chạy; cancel running job truyền token cho operation. Exception ngoài dự kiến được cô lập thành safe diagnostic code nên worker tiếp tục xử lý job sau.
+
+Snapshot/notification là immutable; invalid progress không thay thế last valid progress; completed history được giữ in-memory có giới hạn và evict oldest completion. PLAN 38 không persist task/delegate/result payload, không tự động chuyển toàn bộ workflow cũ vào queue, không triển khai download/AI backend, UI notification, session file hoặc crash recovery PLAN 39.
+
+## Temp Cleanup & Crash Recovery từ PLAN 39
+
+Mỗi secure workspace giữ exclusive `.workspace.lock`, đồng thời file này là versioned session marker chứa random session ID, process ID, creation timestamp và retained state. Session ID/PID/timestamp hỗ trợ diagnostics; bằng chứng workspace còn active duy nhất là khả năng giữ exclusive file handle, không phải PID lookup hay tuổi timestamp.
+
+`SecureWorkspaceService` đồng thời triển khai `IWorkspaceCrashRecoveryService` và chạy discovery khi host start. Discovery chỉ enumerate direct lowercase-hex child dưới managed `Temp/Workspaces`, kiểm tra containment/reparse/tree/marker rồi atomic-publish immutable inventory:
+
+- `ActiveOrInaccessible`: lock đang được giữ hoặc không đủ bằng chứng an toàn; không action.
+- `StaleRecoverable`: lock đã nhả, marker hợp lệ và đủ `Working/Extracted/BuildOutput`; cho recover hoặc explicit cleanup.
+- `StaleCleanupOnly`: marker hợp lệ nhưng workspace chưa hoàn tất; chỉ explicit cleanup.
+- `Unsafe`: marker/path/tree không hợp lệ; không recover/cleanup tự động.
+
+Startup không xóa candidate. `RecoverAsync` re-inspect rồi reuse exact `TryOpenExistingAsync`; `CleanupAsync` chỉ nhận workspace ID, resolve lại direct managed root, acquire lock, kiểm tra marker/reparse lần nữa và giữ lock trong lúc xóa. Thành công loại candidate khỏi offer. `.audproj`, pristine template, archive, project root và workspace khác không bị sửa. PLAN 39 không có UI prompt, content repair, project migration hay Design System.
+
+## Design System từ PLAN 40
+
+WinUI resources dùng bốn dictionary merge theo dependency order: primitives → semantic theme tokens → component tokens → reusable component styles. `Default`, `Light` và `HighContrast` publish cùng semantic color-key contract; component styles không chứa raw hex và vì vậy theme switching không cần fork template.
+
+Foundation hiện có gồm shared acrylic/fallback gaming panel, standard và accent-gradient rounded cards, primary/secondary depth buttons với hover/pressed/disabled states, status badge container cùng section/body typography. Button template giữ `Button` semantics và system focus visual; motion chỉ dùng opacity/transform ngắn. Window Mica hiện hữu tiếp tục là top-level backdrop, còn acrylic chỉ là shared panel brush để giới hạn overdraw.
+
+Chi tiết token/component usage nằm trong `docs/DESIGN_SYSTEM.md`. PLAN 40 không tạo navigation, page layout, dashboard/sidebar, texture grid/editor, view model hay workflow binding; toàn bộ App Shell thuộc PLAN 41.
+
+## App Shell từ PLAN 41
+
+- `MainWindow` chỉ sở hữu window/title-bar wiring và host `MainPage` được DI cấp; không resolve route bằng service locator và không chạy business operation.
+- `AppShellViewModel` là presentation state in-memory. Route dùng enum `AppRoute` cùng một catalog code-owned; route label không được dùng làm filesystem, project, template hoặc entitlement identity.
+- `NavigationView` cung cấp sidebar thích ứng và native keyboard/selection semantics. Content PLAN 41 chỉ là placeholder; các page Home, Project Workspace, Texture Grid và Crop/Resize được mở ở PLAN tương ứng.
+- Top bar chỉ hiển thị trạng thái trung tính khi auth/cloud chưa tồn tại. Credits và connection trong client không phải authority; shell không chứa token, secret, executable path, process argument hoặc trusted hash.
+- Shell không tạo background queue, không poll process và không tự cleanup/recover workspace. Khi PLAN sau cần trạng thái task/recovery, orchestration phải reuse contract PLAN 38/39.
+
+## Home: Game → Mod First từ PLAN 42
+
+- `HomeViewModel` chỉ nhận `IGameCatalog`, `IModCatalog`, `IProjectCreationService`, `IBackgroundTaskManager` và application project session qua DI. UI option chỉ chứa typed Game/Mod ID cùng display metadata cần thiết; không expose archive template, hash, executable path hoặc region selector.
+- Chọn Game luôn xóa Mod selection cũ rồi query `IModCatalog.GetMods(GameId)`. Create chỉ được bật khi selected Mod thuộc snapshot tương thích hiện tại và project name hợp lệ. Production Mod Catalog rỗng tiếp tục là empty state an toàn, không được thay bằng fake built-in mapping.
+- Create chạy như một job được PLAN 38 quản lý; operation gọi duy nhất `IProjectCreationService`, map progress có cấu trúc và không đưa raw diagnostic/exception ra UI. Cancel đi qua task ID typed của manager.
+- `ApplicationProjectSession` là owner cấp ứng dụng cho exact `AuditionProject` cùng retained `IProjectArchiveWorkspace` do workflow trả về. Nó không parse/save project và không tạo source of truth song song; lease được dispose khi host shutdown hoặc khi session được thay thế.
+- Home không có file/archive picker, không đọc `.audproj`, không chạy ACV/DDS/image trực tiếp và không tự chọn template. Project Workspace thuộc PLAN 43.
+
+## Project Workspace UI từ PLAN 43
+
+- Route Projects resolve `ProjectWorkspacePage` qua DI. ViewModel lấy exact project/workspace lease từ application session; không mở `.audproj`, không tự dựng workspace và không dispose lease khi đổi route.
+- Texture inventory được làm mới qua một job `Scan` của PLAN 38 gọi `ISmartModScanService`. Kết quả immutable được map thành presentation model không có absolute path/tool path/trusted hash; texture state luôn đến từ `ITextureStateMachine`.
+- Left pane cung cấp folder tree, search in-memory theo display name/raw filename/relative path và mapping filter `All/ManifestMapped/Unmapped`. Center/right/status chỉ bind selected presentation record; không đọc lại DDS header hoặc filesystem.
+- Preview surface không eager-decode pixels. Editor/replace/reset buttons vẫn disabled cho đến PLAN/workflow được phê duyệt; UI không tạo mutation path giả. Texture Grid/status facets thuộc PLAN 44 và interactive canvas thuộc PLAN 45.
+- Activation idempotent theo ProjectId khi immutable scan đã được publish. No active project, loading, cancelled và safe failure đều là explicit state; raw exception/diagnostic không hiện cho người dùng.
+
+## Texture Grid + Search từ PLAN 44
+
+- `ProjectWorkspaceViewModel` giữ một immutable metadata snapshot cho tree và grid; mọi search/facet chạy trong một pipeline xác định, không enumerate filesystem hoặc đọc lại DDS.
+- Presentation record chỉ có relative identity và metadata cần hiển thị. Mapping nội bộ từ relative path sang `SmartTextureAsset` giữ source hash ngoài UI contract và chỉ phục vụ request lazy thumbnail.
+- Grid dùng native `GridView`, textual status và card semantics. Thumbnail chỉ được yêu cầu khi container được hiện thực hóa, qua job `Thumbnail` của PLAN 38 gọi `ITextureLazyLoadingService` của PLAN 37 với cạnh tối đa 192 px.
+- Size facet dùng cạnh lớn nhất: Small ≤ 512 px, Medium 513–2048 px, Large > 2048 px. Category đến từ manifest và fallback `uncategorized`; alpha đến từ DDS metadata snapshot.
+- Chuyển RGBA8 straight thumbnail sang BGRA8 premultiplied là projection giới hạn trong UI. Grid không gọi full-texture API, không cache full-resolution pixels và không mutation texture/project/archive.
+
+## Crop/Resize Canvas UI từ PLAN 45
+
+- Route `ImageEditor` resolve `ImageEditorPage`/`ImageEditorViewModel` qua DI. Presentation boundary `IWorkspaceTextureSelection` chia sẻ exact selected texture với workspace mà không công bố absolute path, hash hoặc tool metadata.
+- Khi route editor được mở, `ProjectWorkspaceViewModel` enqueue job `Convert` qua PLAN 38 rồi gọi explicit `ITextureLazyLoadingService.LoadSelectedTextureAsync` của PLAN 37. Editor giữ `InternalImage` trong lifetime route và release cả image/bitmap khi rời route; không có full-resolution service cache mới.
+- `ImageEditorViewModel` dùng `IImageTransformService` PLAN 22 cho immutable zoom/pan/crop state, pixel crop và viewport projection. Sáu lựa chọn UI map explicit tới `ManualCrop`, `Fit`, `Fill`, `Stretch`, `CanvasResize`, `TransparentPadding` của PLAN 21 và tạo typed `ImageResizeRequest` với exact DDS target dimensions.
+- Canvas chỉ là render projection: target frame giữ exact target aspect/dimension label; pointer drag cập nhật pan, wheel/slider cập nhật zoom, crop percentage đi qua normalized crop validation. RGBA8 straight → BGRA8 premultiplied adapter ghi theo từng row để tránh thêm một full-frame conversion buffer.
+- PLAN 45 không gọi `IImageResizeService`, không Apply/encode DDS, không ghi edit history/project/extracted texture/archive và không triển khai compare PLAN 46. Các mode là preview + validated request intent cho workflow sau.
+## PLAN 46 — Before/After Compare
+
+Compare là presentation layer read-only của Image Editor. `BeforeImage` reuse đúng immutable
+`InternalImage` được load từ project working copy khi editor session bắt đầu; nó không đọc pristine
+template, thumbnail hoặc cache. `AfterImage` là kết quả preview không phá hủy do
+`IImageResizeService` tạo từ current editor request. Preview chạy ngoài UI thread, có cancellation và
+generation identity để kết quả cũ không publish đè edit mới. Compare không gọi persistence, DDS
+encoder, archive service, texture state machine hoặc edit history.
+
+Side-by-side, slider và toggle dùng chung một baseline bitmap và một After bitmap từ
+`InternalImageBitmapAdapter`; các mode không tạo bitmap riêng. Slider chỉ cập nhật UI clip. Before và
+After có edit geometry độc lập nhưng dùng cùng `CompareZoom`/`ComparePan`, được chiếu qua
+`IImageTransformService`. Checkerboard chỉ là các surface dùng semantic theme brush và không đi vào
+pixel/output. Route unload hủy preview đang chạy và bỏ toàn bộ `InternalImage`/`WriteableBitmap`
+reference của editor.
+
+Với fixture 6000×1801 RGBA8, một packed pixel buffer là 43.224.000 byte (xấp xỉ 41,22 MiB).
+Trạng thái ổn định xấu nhất gồm Before + After `InternalImage` và hai `WriteableBitmap`, xấp xỉ
+164,9 MiB, chưa tính buffer native/transient trong lúc resize. Vì vậy compare không lưu frame history,
+không clone baseline và thay/release After presentation resource ngay khi generation mới được publish.
+
+## PLAN 47 — Apply Texture UX
+
+`ITextureApplyService` là orchestration boundary duy nhất cho Apply. UI chỉ gửi immutable project,
+exact retained workspace, normalized texture identity và typed `ImageResizeRequest`; operation chạy qua
+Background Task Manager và hỗ trợ progress/cancel. Pipeline bắt buộc là target DDS metadata/profile
+validation → `IImageResizeService` → `IDdsMatchOriginalService` vào candidate cùng secure workspace →
+`IDdsValidationService` độc lập → atomic replace extracted target → project history/asset snapshots →
+`TextureState.Modified` → content-hash thumbnail regeneration → atomic `.audproj` save.
+
+Before/After history asset là durable DDS snapshot dưới `BuildOutput/EditAssets`, định danh bằng role,
+revision và prefix SHA-256; target filename/path không đổi. Candidate/backup nằm trong randomized
+`BuildOutput/ApplyTransactions`. Save/thumbnail/state failure trước commit phục hồi target từ backup và
+xóa asset snapshots vừa tạo. Global/pristine archive không được resolve hoặc mutate. Sau success, app
+session nhận immutable project mới và workspace inventory được rescan; editor reload working DDS để
+session baseline kế tiếp phản ánh byte thực sau encode, không reuse preview trước nén.
+
+## Project Validator từ PLAN 48
+
+- `IProjectValidator` trong Core định nghĩa kết quả có cấu trúc `Error/Warning/Info`; implementation ở
+  Projects chỉ orchestration các boundary metadata cache, archive scanner, DDS metadata reader và tool
+  integrity probe. Core không phụ thuộc Archives/Projects implementation hoặc UI.
+- Metadata cache có API load immutable structural baseline. Baseline là metadata của exact extracted DDS
+  lúc tạo project, không phải thumbnail/cache pixels và không được dùng thay bytes hiện tại; validator luôn
+  quét và đọc lại working copy hiện tại trước khi cho phép build.
+- Workspace/archive/folder/path được kiểm tra trước; texture identity tiếp tục là normalized relative path.
+  Mỗi expected DDS được phân biệt missing, malformed, wrong dimensions và wrong format; DDS ngoài baseline
+  được báo wrong filename. Thiếu/hỏng baseline, pending edit và integrity failure đều chặn build.
+- Validator là read-only và cancellable: không save project, không tái tạo cache, không sửa DDS/archive,
+  không chạy pack và không tự xử lý lỗi. Build orchestration PLAN 49 phải gọi boundary này và chỉ tiếp tục
+  khi `CanBuild` là true.
+
+## Build Pipeline từ PLAN 49
+
+`IProjectBuildService` là orchestration boundary UI-neutral cho chuỗi bắt buộc:
+
+```text
+Save current project
+  → IProjectValidator
+  → randomized temporary ISecureWorkspace
+  → verified copy working archive + extracted tree
+  → IAuditionArchiveService.PackAsync
+  → independent non-empty/read verification
+  → SHA-256
+  → durable atomic promotion to BuildOutput/Output
+  → save immutable ProjectBuildState.Succeeded
+```
+
+- Temporary build workspace không phải project workspace và không được retain. Pack chỉ mutate archive copy
+  trong temporary `Working`; extracted project tree, project working archive và pristine template giữ nguyên.
+- Clone traversal reject reparse point, resolve từng relative path qua `IPathSecurity`, xác minh working archive
+  theo descriptor hash và áp giới hạn code-owned cho file count/total bytes.
+- Output giữ exact archive filename/extension từ template metadata, không hard-code `.ab`/`.acv`. Promotion
+  copy + flush + verify hash rồi replace/move trong project `BuildOutput/Output`; output cũ có transactional
+  backup và tự rollback nếu project save cuối fail, cancel hoặc ném exception.
+- Progress public chỉ có `Preparing/Validating/Packing/Verifying/Completed/Failed/Cancelled`, count và stable
+  diagnostic code. Không publish asset path, tool output hoặc hash trust metadata. Build concurrency được
+  serialize trong service; ACV execution tiếp tục async/cancellable và dùng progress của archive boundary.
+
+## Product Gate C từ PLAN 50
+
+- Product boundary kết thúc sau khi tạo controlled `.ab`/ACV artifact bằng production archive service và
+  xác minh bằng production re-extract/scan pipeline. Ứng dụng không launch, đăng nhập, điều khiển hoặc quan
+  sát Audition runtime.
+- Gate dùng một working copy và một intended DDS identity. Replacement phải giữ exact dimensions, format và
+  mip profile; re-extracted target phải có expected changed hash, còn toàn bộ non-target inventory phải giữ
+  byte integrity.
+- Packed artifact phải tồn tại, non-empty, đọc/re-extract được, có inventory đầy đủ và SHA-256 xác định.
+  Pristine archive, keydat, tool và source extracted fixture phải giữ nguyên hash.
+- Manual launch/visual/gameplay validation chỉ là optional external compatibility QA, không được suy ra từ
+  technical gate và không block PLAN 50 trong current application acceptance scope.
+
+## Export Destination từ PLAN 51
+
+- `IArchiveExportDestinationValidator` là boundary read-only nhận output directory/filename do user chọn,
+  trusted archive filename contract và explicit `RejectExisting`/`ReplaceExisting` policy. Nó không nhận hoặc
+  suy ra GameId, ModId, template, region, engine hay project identity từ path.
+- Directory phải absolute/canonical/existing, đọc attributes được và không chứa reparse point từ filesystem
+  root đến destination. Filename chỉ là một normalized Windows-safe segment; extension phải match contract
+  lấy từ trusted archive filename thay vì hard-code `.ab`/`.acv`.
+- Collision được trả structured; `ReplaceExisting` ở PLAN 51 chỉ là validated intent và không ghi file.
+  PLAN 52 phải revalidate ngay trước write và thực hiện temp/hash/atomic promotion/rollback.
+- PLAN 51 không persist path, không đổi `.audproj`/settings schema, không build/copy archive và không gọi process.
+
+## Atomic Archive Export từ PLAN 52
+
+- `IArchiveExportService` chỉ nhận exact `AuditionProject`/workspace có `ProjectBuildStatus.Succeeded`, resolve
+  `BuildOutput` artifact đã được PLAN 49 promote và hash lại theo stored `OutputSha256`. Export không pack/rebuild,
+  không update project và không coi destination là product identity.
+- Destination PLAN 51 được validate trước copy và revalidate ngay trước promotion. Candidate có random name cùng
+  destination filesystem, được copy async với write-through/flush rồi đối chiếu size + SHA-256 source.
+- `RejectExisting` fail trước mutation. `ReplaceExisting` dùng filesystem replace giữ backup tới khi final file
+  được đọc/hash lại. Final mismatch/exception rollback exact previous file; rollback failure là typed fatal result
+  và giữ recovery backup thay vì xóa bằng chứng.
+- Critical final verification/commit không bị cancellation cắt ngang sau promotion; cancellation trước promotion
+  cleanup candidate. Singleton service serialize transaction để tránh local destination races; PLAN 54 quản lý
+  bounded batch orchestration.
+
+## Build & Export UI từ PLAN 53
+
+- `BuildExportViewModel` compose exact active `AuditionProject`/retained workspace từ application session với
+  `IProjectBuildService`, `IArchiveExportDestinationValidator`, `IArchiveExportService` và
+  `IBackgroundTaskManager`. UI không gọi archive tool, không pack/copy file và không dựng pipeline thứ hai.
+- Mỗi lần chạy snapshot output directory, filename và explicit overwrite policy; destination preflight nằm trong
+  typed `Build` background job trước expensive build. PLAN 49 vẫn thực hiện project validation/build và PLAN 52
+  vẫn sở hữu export transaction, revalidation, hash verification, atomic promotion và rollback.
+- Progress build/export được map thành stage code giới hạn và thông điệp presentation; cancellation chỉ nhắm exact
+  manager-owned task ID. Sau success, session compare-and-swap aggregate build mới khi exact project/workspace vẫn
+  active, không ghi đè session mới; UI hiển thị final path, size, SHA-256.
+- Code-behind chỉ sở hữu WinUI folder-picker/window interop và chuyển path người dùng chọn vào ViewModel; không có
+  filesystem mutation hay business decision. Workflow nằm trong Project Workspace, dùng semantic resources,
+  explicit labels/help text, target nút tối thiểu 44 px và trạng thái không chỉ dựa vào màu.
+- PLAN 53 không persist machine-local export path, không thêm game path/detection/install/restore/launch/login hoặc
+  runtime observation. Export final archive là điểm kết thúc product pipeline.
+
+## Batch Build & Export từ PLAN 54
+
+- `IBatchBuildExportService` nhận bounded list job có unique code/caller-owned JobId, exact immutable project,
+  retained workspace lease, arbitrary output directory và explicit overwrite intent. Caller phải giữ mỗi workspace
+  sống suốt batch; service không tự load project từ raw path và không sở hữu/dispose lease.
+- Output filename deterministic là `project-{ProjectId:N}{trusted extension}`; extension lấy từ exact workspace
+  archive contract, không hard-code `.ab`/`.acv` và project display name không tham gia path. PLAN 51 preflight toàn
+  bộ destination trước khi job tương ứng build.
+- Canonical duplicate destination mặc định fail typed cho mọi job xung đột. `SerializeConflicts` chỉ cho chạy khi
+  từng job đồng thời có `ReplaceExisting`; một per-path gate bảo đảm không có hai transaction ghi cùng path.
+- Batch concurrency bị giới hạn code-owned trước khi enqueue; mỗi active job reuse một PLAN 38 `Build` task rồi gọi
+  PLAN 49 và PLAN 52. Vì vậy không spawn unbounded pack process và không có archive pipeline thay thế.
+- Per-job state/progress/result typed, giữ input order. Build/export failure của một job không stop job khác; batch
+  cancellation gọi `TryCancel` trên exact manager task ID và đợi terminal state trước khi trả kết quả.
+- Result success có deterministic filename, final path, size, SHA-256 và updated project aggregate; failure không
+  publish partial artifact. PLAN 54 không thêm UI project picker, game path, install, backup, restore hoặc launch.
+
+## File-Only Production Gate từ PLAN 55
+
+- Gate gọi đúng production boundaries cho template pack, Create Project, Smart Scan, Apply Texture, Project
+  Validator, Build Pipeline, Atomic Archive Export và archive re-extract. Test adapter chỉ cấp entitlement và
+  trusted pristine source; adapter không thay thế xử lý archive/DDS/project/export.
+- Vì ACV Tool 5 gắn companion keydat với canonical archive basename, artifact có tên user-selected được hash rồi
+  stage byte-identical thành trusted canonical `015.ab` trong verify workspace cô lập trước re-extract. Staging
+  không đổi deliverable, không yêu cầu xuất keydat và không suy ra game path.
+- Project workspace reference là normalized relative identity. Validator chuẩn hóa `\` thành `/` trước khi so
+  sánh descriptor do Windows tạo với `.audproj`, trong khi filesystem resolution vẫn nằm sau secure workspace.
+- Gate chỉ PASS khi inventory re-extract đầy đủ, target có expected changed content/metadata, mọi non-target giữ
+  byte integrity, pristine fixture/tool giữ hash và final controlled artifact có size/SHA-256 xác định.
+- Product pipeline kết thúc tại file archive đã export. Manual launch/visual/gameplay là optional external QA và
+  không thuộc acceptance scope hiện tại.
+
+## Batch Build Summary từ PLAN 56
+
+- `ITextureBatchBuildSummaryService` nhận exact immutable project/workspace và outcomes đã được caller quyết định;
+  service không resize, encode, Apply hoặc replace texture. `AuditionProject.EditedTextures` vẫn là source of truth
+  duy nhất cho texture thực sự đổi trong archive.
+- Outcome identity dùng `ModRelativePath`; duplicate được so ordinal-ignore-case sau normalization. Tập `Changed`
+  phải bằng chính xác tập edited textures, nhờ đó summary không thể bỏ sót hoặc khai thêm thay đổi trong artifact.
+- Khi có ít nhất một approved change, orchestration gọi đúng một `IProjectBuildService.BuildAsync`; summary giữ
+  deterministic path order và counts `Changed/Failed/Skipped`. Build failure/cancellation được giữ nguyên cùng
+  summary nhưng không bao giờ thành success.
+- Không có schema/persistence/UI mới. Summary là result runtime; output archive và project build state tiếp tục do
+  PLAN 49 sở hữu. PLAN 56 không export, không batch nhiều project và không tương tác game.
+
+## AI Provider Abstraction từ PLAN 57
+
+- `IAiService` nằm trong Core và định nghĩa đúng bảy operation async: Generate, Edit, Inpaint, Outpaint,
+  RemoveObject, ReplaceObject và Upscale. Mỗi operation nhận request typed, optional progress và cancellation token,
+  trả `AiImageResult` typed; không expose provider SDK, endpoint, HTTP header hoặc credential.
+- Request dùng lại immutable `InternalImage`; mask cũng là `InternalImage`, không có pixel model thứ hai. `AiPrompt`
+  giới hạn 4.000 ký tự và control characters; `AiTargetSize` hỗ trợ arbitrary NPOT tới giới hạn code-owned.
+- Desktop DI hiện bind `IAiService` tới `UnavailableAiService`. Implementation stateless này không network và fail
+  closed với `AI_TRUSTED_BACKEND_UNAVAILABLE`, hoặc typed cancellation nếu token đã cancel.
+- PLAN 57 không có UI, persistence, project schema, provider selection hoặc backend transport. Trusted gateway sẽ
+  thuộc PLAN 59; auth thuộc PLAN 58 và chưa được giả lập trong abstraction này.
+
+## Supabase Auth từ PLAN 58
+
+- `IAuthenticationService` và `ISecureSessionStore` nằm trong Core, chỉ expose value/result typed cho sign up,
+  sign in, sign out, refresh, password reset và profile. Contract không expose `HttpClient`, Supabase DTO, raw
+  authorization header, filesystem path hoặc Windows native handle.
+- `SupabaseAuthService` nằm trong Cloud và gọi duy nhất Supabase Auth `auth/v1` qua HTTPS với publishable key.
+  Password grant/session refresh được gửi async với cancellation; refresh được serialize để request sau đọc token
+  mới nhất sau rotation. Sign-up chờ email confirmation có thể trả profile mà không giả lập session.
+- `WindowsCredentialSessionStore` nằm trong Security và lưu access token, refresh token, expiry thành một Generic
+  Credential giới hạn kích thước trong Windows Credential Manager. Store không nhận JSON path và không ghi vào
+  settings/project. Native buffer tạm được zero sau serialize/copy; native errors được chuẩn hóa thành I/O failure.
+- Desktop composition đọc `AUDITION_SUPABASE_URL` và `AUDITION_SUPABASE_PUBLISHABLE_KEY`; cấu hình thiếu/sai bind
+  `UnavailableAuthenticationService`. Publishable key chỉ định danh public client; service-role/provider/payment
+  secret không thuộc desktop. PLAN 58 không thêm UI, `.audproj` schema, gateway endpoint hoặc credit operation.
+
+## Backend Trusted Gateway từ PLAN 59
+
+- `AuditionModStudio.Gateway` là ASP.NET Core server host riêng, chỉ phụ thuộc Core. Desktop/App không reference
+  Gateway và Gateway không reference WinUI, Cloud client, archive/DDS/image/project implementation hoặc game path.
+- Fallback authorization policy yêu cầu authenticated principal cho mọi route trừ `/health`. Custom bearer handler
+  gọi Supabase Auth `GET /auth/v1/user` bằng exact HTTPS project origin, publishable key và bearer access token;
+  redirect bị tắt, timeout 15 giây, response giới hạn 64 KiB. UserId duy nhất truyền vào trusted service đến từ
+  verified response, không từ route/body/header tùy ý của client.
+- Endpoint surface gồm bảy route `/v1/ai/*`, read-only `/v1/credits` và
+  `/v1/templates/entitlement`. AI request được validate theo operation, bounded prompt/dimensions/base64 bytes và
+  signature PNG/JPEG/WebP/BMP; unknown JSON member, null body, field thừa/sai operation và oversized body bị reject
+  trước service. Entitlement reuse exact `TemplateIdentity` của Core.
+- `ITrustedAiGateway`, `ITrustedCreditQueryService` và `ITrustedTemplateEntitlementService` là server application
+  boundaries. Default implementations trả unavailable; không gọi provider hoặc mô phỏng commercial success khi
+  cấu hình/storage chưa tồn tại. Provider endpoint/key chỉ đọc từ server configuration `Gateway:*` và không có
+  trong desktop/request/response contract.
+- PLAN 59 không tạo persistence/table, wallet mutation, ledger, reservation, refund, pricing, job system, RLS hay
+  payment state. Credit transaction semantics thuộc PLAN 60; AI pricing/job orchestration thuộc PLAN sau.
+
+## Credit Ledger từ PLAN 60
+
+- PostgreSQL là authority duy nhất cho credit. `private.credit_wallets` là mutable projection của available/reserved
+  credits; `private.credit_ledger`, `private.credit_refunds` và `private.credit_idempotency` là append-only bằng
+  trigger chặn UPDATE/DELETE. `private.credit_reservations` giữ state machine `open → captured|released` và exact
+  reserve/terminal transaction lineage.
+- `private.credit_grant`, `credit_reserve`, `credit_capture`, `credit_release` và `credit_refund` là năm
+  `SECURITY DEFINER` functions có fixed search path. Mỗi call là một transaction, dùng transaction-scoped advisory
+  lock cho `(user, operation, idempotency key)` và row lock cho wallet/reservation/captured transaction. Unique
+  `(user_id, operation, idempotency_key)` cùng canonical request SHA-256 tạo replay deterministic; cùng key nhưng
+  payload khác bị reject.
+- Reserve chuyển available sang reserved. Capture chỉ nhận server-resolved cost, trả phần reserve dư và ghi capture
+  transaction. Release trả toàn bộ open reservation. Refund chỉ nhận server-authorized amount, khóa captured
+  transaction và không cho tổng refund vượt captured cost. Grant yêu cầu server authority reference; không mô hình
+  successful payment state và không phải payment endpoint.
+- `ICreditLedgerService` chỉ tồn tại trong Gateway/server assembly. `PostgresCreditLedgerService` dùng một pooled
+  `NpgsqlDataSource`, positional parameters, explicit transaction và cancellation; DB failure trả unavailable và
+  không phản chiếu database error. `ITrustedCreditQueryService` reuse cùng service/source of truth cho read-only
+  `/v1/credits`. Không có HTTP route cho grant/reserve/capture/release/refund.
+- `Gateway:CreditDatabaseConnectionString` là server-only deployment secret, bắt buộc TLS
+  `Require/VerifyCA/VerifyFull`, bị loại khỏi `ToString()` và không nằm trong App/.audproj. Khi cấu hình thiếu/sai,
+  cả query và ledger mutations fail closed. PLAN 83 cho `authenticated` đọc explicit safe columns của own rows qua RLS;
+  chỉ server `service_role` được EXECUTE exact functions và client không có direct mutation privilege.
+- PLAN 60 không chứa pricing rule, AI job, payment webhook/provider hoặc store UI. Server-hosted pricing thuộc
+  PLAN 61 — AI Pricing.
+
+## AI Pricing từ PLAN 61
+
+- `IAiPricingService` là boundary chỉ tồn tại trong Gateway. Catalog được nạp một lần từ server configuration
+  `Gateway:AiPricing`, gồm version bất biến, thời điểm hiệu lực UTC và giá credit nguyên dương cho đủ bảy
+  `TrustedAiOperation`; desktop/client không chứa catalog hay nguồn giá thứ hai.
+- `POST /v1/ai/pricing/quote` yêu cầu bearer token đã xác minh, body tối đa 4 KiB và chỉ nhận operation cùng optional
+  expected pricing version. JSON enum số, member lạ, cost/price/provider do client gửi và version sai grammar đều bị
+  từ chối trước service. Response là display estimate gồm operation, integer credit cost, pricing version và effective time.
+- Khi expected version cũ, Gateway trả `409 AI_PRICE_CHANGED` kèm current server quote. Catalog thiếu, chưa hiệu lực,
+  không đủ operation hoặc có giá ngoài `1..1,000,000,000` fail closed với 503. Cấu hình hợp lệ được giữ như process
+  snapshot; đổi rule/version có hiệu lực sau controlled restart/reload của deployment.
+- Quote không gọi ledger và không reserve/charge. PLAN 62 phải resolve lại giá qua server pricing authority khi tạo job
+  và chỉ truyền server-resolved cost vào internal ledger contract; giá hiển thị hoặc amount từ client không có authority.
+  PLAN 61 không thêm database migration, AI job/provider execution, payment, admin pricing UI hoặc desktop UI.
+
+## AI Job System từ PLAN 62
+
+- `private.ai_jobs` là durable state authority cho `Pending/Queued/Processing/Completed/Failed/Cancelled`; mỗi row
+  giữ verified owner, bounded JSON metadata (không raw image), pricing version, reservation/final credits, opaque output,
+  provider request ID, retry/lease state và timestamps. `(user_id, idempotency_key)` là unique request identity.
+- `private.ai_job_enqueue` gọi `private.credit_reserve` rồi insert/chuyển Pending→Queued trong cùng PostgreSQL
+  transaction. Client không truyền cost; `PostgresAiJobService` resolve current `IAiPricingService` quote, validate lại
+  trusted output và truyền integer server price vào function. Conflict/stale version không chạm DB/credit.
+- Worker claim dùng `FOR UPDATE SKIP LOCKED`, lease token/expiry và bounded retry. Complete chỉ với live lease rồi gọi
+  `credit_capture`; failure terminal/cancel trước capture gọi `credit_release`. Retry chỉ requeue, không reserve lại.
+  Expired lease được reclaim; hết retry hoặc cancel-requested được terminal hóa và release bằng deterministic key.
+- Public Gateway cung cấp authenticated enqueue/get/list/cancel. Owner luôn từ verified principal; history query có
+  owner predicate, tối đa 100 rows. Provider request ID/lease token không được phản chiếu ra client. PLAN 83 cho
+  authenticated direct read chỉ own-row safe columns; internal columns/table và mọi DML/RPC vẫn denied. Service role
+  SELECT history và EXECUTE exact functions.
+- PLAN 62 không thêm provider executor, raw input/output storage, desktop UI, image Apply, payment hoặc gameplay.
+  PLAN 85 đã bổ sung local real-PostgreSQL transaction/concurrency evidence; Supabase staging/live vẫn chưa verified.
+
+## AI Studio UI từ PLAN 63
+
+- `AiStudioPage` là WinUI surface thật trong shell, dùng `AiStudioViewModel`: operation, bounded prompt/negative prompt,
+  model/quality hint, aspect, selected project reference, server quote, progress, cancel, preview và server history.
+  Layout dùng native controls, semantic theme resources, adaptive stacked/wide state, visible labels, heading levels,
+  live status và interaction targets tối thiểu 44 px.
+- Long AI execution chạy qua PLAN 38 `IBackgroundTaskManager` với `BackgroundTaskKind.Ai`, cancellation và typed progress.
+  `IAiService` trả `InternalImage`; ViewModel chỉ giữ image trong memory làm preview. Không gọi project apply/state machine,
+  DDS/archive service hoặc filesystem write. Reference image chỉ được đọc qua `IWorkspaceTextureSelection`.
+- `IAiStudioService` là client presentation boundary cho quote/history/cancel. `GatewayAiStudioService` chỉ bật khi
+  `AUDITION_GATEWAY_URL` là HTTPS root; bearer token được load/refresh qua secure session/auth services bên trong Cloud,
+  không đi qua Page/ViewModel. Response body giới hạn 256 KiB và schema giá/job được validate trước khi hiển thị.
+- Price và history vẫn là server authority; model/quality là bounded client preference, không phải provider/cost authority.
+  Thiếu config/auth/network bind `UnavailableAiStudioService` và hiện offline rõ, không ảnh hưởng local editor/build/export.
+- PLAN 63 không thêm DB migration, mask, Apply/DDS replacement, provider key, raw token persistence hay game integration.
+  Chưa có production provider adapter cho `IAiService`; configured Gateway chỉ cung cấp quote/history/cancel hiện tại.
+
+## AI Mask Editor từ PLAN 64
+
+- `AiMask` là giá trị bất biến một byte opacity cho mỗi pixel, luôn có đúng kích thước ảnh nguồn và giới hạn 16 triệu
+  pixel. `IAiMaskEditingService` nằm ở Core; implementation Imaging thực hiện stroke source-coordinate deterministic,
+  paint/erase với size/hardness/opacity, clear, invert và composition overlay có cancellation.
+- `AiMaskEditorViewModel` chỉ khởi tạo từ `InternalImage` preview đã chọn của PLAN 63. Source và overlay dùng cùng phép
+  biến đổi Uniform/zoom/pan; pointer được chiếu ngược về tọa độ nguồn trước khi ghi mask. Các nút pan/reset/stamp-center
+  giữ toàn bộ chức năng khả dụng bằng bàn phím và screen reader.
+- Mỗi edit được mã hóa thành state của `IEditHistoryService` PLAN 24 với tối đa 64 entry và 256 MiB. Edit, undo/redo,
+  show-hide và composition không mutate source preview hay project texture.
+- `IAiMaskAssetStore` chỉ ghi khi người dùng chọn Save, vào `ai/masks/current.amsmask` bên trong secure project workspace.
+  File tạm cùng thư mục được flush rồi atomic replace; cancellation/failure trước replace giữ nguyên asset trước đó.
+- PLAN 64 không điều phối provider operation, không gọi Apply/Match Original/DDS/archive và không tương tác runtime/game.
+
+## AI operation pipeline từ PLAN 65
+
+- Inpaint/Outpaint/RemoveObject/ReplaceObject/Upscale đi qua `IAiStudioService` tới authenticated Gateway. Desktop mã hóa
+  source và PLAN 64 mask thành PNG transport, upload private content, enqueue PLAN 62 job với idempotency key và poll typed
+  state. Authenticated output được tải với hard cap 16 MiB, allowlist content type và decode bằng `IImageImportService`.
+- `IAiContentStore` dùng opaque `AiContentId` và metadata owner/kind/media/dimensions/bytes/SHA-256/expiry; binary không nằm
+  trong PostgreSQL job/ledger. Store implementation và credential là server deployment concern; default thiếu cấu hình
+  fail closed. Content endpoint luôn derive owner từ verified bearer subject và output download chỉ nhận ProviderOutput.
+- `ITrustedAiProviderCatalog` map `(semantic operation, public option ID)` sang trusted provider/model profile từ server
+  config. `ITrustedAiProvider` là typed privileged boundary; desktop không gửi endpoint/key/model ID/final price. Chưa chọn
+  vendor nên production bind `UnavailableTrustedAiProvider`; fake provider chỉ dùng trong contract tests.
+- `IAiJobWorkerService` expose PLAN 62 SQL claim/complete/fail và PLAN 65 reconciliation transition. Worker atomically claim
+  bằng lease, load content theo owner/kind, validate exact mask dimensions, gọi provider, validate+persistence output rồi
+  mới complete/capture. Clear failure đi fail/release; ambiguous response, invalid success output, uncertain persistence
+  hoặc completion đi `ReconciliationRequired` và không tự capture/release/retry provider.
+- AI output trên desktop chỉ là preview candidate. Nút approval riêng reuse `ITextureApplyService`, do đó Match Original,
+  DDS validation, rollback, thumbnail, Modified state và project edit history vẫn thuộc một pipeline hiện hữu.
+- PLAN 65 không auto Apply/build/export/install, không thêm game path/detection/launch/runtime QA và không triển khai
+  PLAN 66 Prompt Presets.
+# Prompt Presets từ PLAN 66
+
+`PromptPreset` là user-content/editor convenience thuộc Core, không phải commercial authority. Identity là stable preset ID cộng positive version; applicability là tập `AiStudioOperation` cùng exact `(GameId, ModId, TextureSlotId)`. Model không có provider endpoint/key, trusted model ID, credit, user identity, storage path hoặc raw provider payload.
+
+`LocalPromptPresetStore` lưu catalog schema-v1 dưới managed Settings/PromptPresets bằng write-through temporary file và atomic replace. JSON cấm unknown member, enum số, dữ liệu quá giới hạn và schema khác; không silent migration. Import/export dùng bounded stream để caller tự chọn UI/file destination mà không đưa arbitrary path vào store.
+
+Merge local/cloud chọn version cao nhất theo ID, sắp thứ tự ordinal. Hai nội dung khác nhau có cùng ID+version bị loại khỏi catalog và trả diagnostic conflict; cloud unavailable chỉ để lại local catalog. `ICloudPromptPresetService.ListOwnedAsync` là boundary cho adapter authenticated tương lai; default implementation fail closed, không giả cloud success. AI Studio chỉ nạp prompt/negative prompt khi operation tương thích; selection không gọi AI, job, pricing, credit, mask, Apply hoặc build.
+
+## Server-authoritative entitlement grants từ PLAN 70
+
+`IEntitlementRecordService` là authority server-side cho premium entitlement. Authenticated endpoint `/v1/entitlements/grants` lấy user duy nhất từ verified Gateway principal; request không có UserId, expiry, nonce, audience, grant decision hoặc local premium boolean. Scope `PremiumTemplate` gắn exact template + `(GameId, ModId)`; `PremiumAi` là user-scoped và không mang resource claim.
+
+`SignedEntitlementGrantService` chỉ issue sau record check thành công. Grant ES256/P-256 schema-v1 chứa verified user, closed scope, code-owned audience, exact resource claims khi applicable, server issued/expiry năm phút và random nonce. Validation xác minh signature/claims/owner/scope/audience/expiry trước khi gọi atomic `IEntitlementNonceStore`; nonce chỉ consume một lần nên replay bị reject.
+
+Private signing key chỉ được import trong Gateway từ deployed secret authority và object rendering luôn redacted. Default record, nonce và grant services đều unavailable, nên offline/missing config không cấp premium capability; premium AI không chạy offline. Durable/distributed entitlement record và nonce-store adapter là deployment requirement trước multi-instance production. PLAN 70 không download template/package, không gọi AI provider/payment, không lưu grant vào project/settings và không liên quan game install/runtime.
+
+## Phân phối premium template từ PLAN 71
+
+`PremiumTemplatePackageManifest` bind canonical `TemplateIdentity` (ID, version, trusted SHA-256, compatible build) với exact `GameId`, `ModId`, content length có giới hạn và media type code-owned. Manifest được ký ES256 bằng khóa server/release được bảo vệ; Gateway chỉ giữ verification key công khai. Version không thay thế hash và client không được gửi expected hash, storage reference, access URL, expiry hoặc premium flag.
+
+Authenticated catalog `/v1/premium-templates/catalog` chỉ trả metadata hiển thị, không trả hash authority, storage reference hay credential. `/v1/premium-templates/access` lấy user từ verified principal, resolve exact server catalog record, từ chối missing/revoked/resource mismatch/signature mismatch, rồi reuse exact `PremiumTemplate` grant PLAN 70 và atomic nonce consume trước khi yêu cầu private storage tạo HTTPS access tối đa hai phút. Storage reference chỉ xuất phát từ trusted record; access URL có thể mang opaque provider signature nhưng không được lưu vào project/settings.
+
+Catalog, entitlement/nonce và private storage production adapters mặc định unavailable/fail-closed. PLAN 71 xác lập package/access contract và fake-storage gates; concrete authenticated download/acquisition adapter vẫn chưa được cấu hình. PLAN 72 cung cấp encrypted cache/key wrapping/atomic materialization cho adapter tương lai; bytes vẫn phải được stream với bound/timeout/cancellation và đối chiếu exact length + trusted SHA-256 trước khi cache nhận chúng.
+
+Cache chỉ là derived optimization, không phải entitlement authority. Expiry/revocation chặn acquisition mới nhưng không xóa cache từ xa, không phá project đã tạo, không ngăn local edit/build/export và không invalidate standalone `.ab`/`.acv`. Authorized user cuối cùng nhận archive hoàn chỉnh có thể recover nội dung; mục tiêu là chống unauthorized download/casual harvesting, không phải DRM tuyệt đối.
+
+## Encrypted local template cache từ PLAN 72
+
+`IPremiumTemplateCache` lưu package theo exact `TemplateId/TemplateVersion/trusted SHA-256` dưới managed `SecureTemplateCacheDirectory`; filename, game path và download URL không tham gia identity. `EncryptedPremiumTemplateCache` tạo random AES-256 key cho từng lần ghi entry và dùng chunked AES-GCM (1 MiB/chunk, nonce prefix ngẫu nhiên + monotonic counter, tag 128-bit). Binary schema-v1 header bind toàn bộ `PremiumTemplatePackageManifest`, wrapped key và length; hash header là additional authenticated data của mọi chunk.
+
+`WindowsDpapiTemplateCacheKeyProtector` wrap data key bằng Windows DPAPI current-user với entropy derive từ exact cache identity. Key, plaintext/cipher buffers, nonce, tag và transient header/wrapped-key buffers được zero best-effort. Write dùng temp cùng filesystem, flush-to-disk rồi atomic replace. Cùng exact identity được serialize process-wide; source truncated/oversized/hash mismatch, authentication corruption hoặc key loss không publish plaintext và entry lỗi bị cleanup.
+
+Materialization chỉ được phép dưới managed `WorkspacesDirectory`, ghi vào random temp, xác minh AEAD + exact length + SHA-256 rồi mới atomic promote. Caller/workspace lifecycle phải xóa plaintext ngay sau copy/use; không có plaintext global cache. Cache không cấp entitlement và chưa được wire như offline acquisition authority: acquisition mới vẫn phải qua PLAN 71. DPAPI/AES-GCM không phải DRM và không chống Administrator/compromised user/process-memory capture; secure deletion trên SSD không được cam kết.
+
+## Quyết định vị trí build từ PLAN 73
+
+[ADR-0001](ADR/0001-template-exposure-and-build-location.md) chọn hybrid cho V1: server-controlled catalog/authorization/package access, encrypted local cache và client-side local build qua pipeline hiện hữu. Server-side worker không được chọn vì tăng privacy/latency/Windows-worker operations nhưng final archive vẫn extractable. Quyết định không thay đổi runtime code; legal evidence, production download integration và PLAN 74/75 là release gates. Backend không nhận game path, không install output và export vẫn kết thúc tại standalone `.ab`/`.acv`.
+
+## Protected workspace hardening từ PLAN 74
+
+`SecureWorkspaceService` tiếp tục cấp random 128-bit lowercase hex identity dưới managed `Temp/Workspaces`; không dùng project/template/user/secret trong directory name. `IWorkspaceProtection` được áp dụng ngay sau root creation và trước khi tạo lock/content. Trên Windows, `WindowsWorkspaceProtection` đặt protected DACL chính xác chỉ cho Owner Rights, SYSTEM và Built-in Administrators, với container/object inheritance; create fail nếu không thể apply/read-back exact policy và cleanup root vừa tạo.
+
+Open/recovery xác minh no-reparse tree rồi re-apply/read-back policy trước khi nhận exclusive marker lock. Active/retained/unsafe candidates giữ semantics crash recovery hiện hữu: startup chỉ inventory, không auto-delete evidence; explicit cleanup cần exact 32-hex ID, valid marker, no reparse và exclusive ownership. ACL failure không mutate project/cache/pristine roots. Cleanup là best-effort exposure reduction, không secure deletion trên SSD.
+
+## Privilege model decision từ PLAN 75
+
+[ADR-0002](ADR/0002-privilege-model.md) kết luận runtime file-only không có operation chứng minh cần Administrator toàn ứng dụng. PLAN 90 đã hoàn tất migration sang unelevated `asInvoker`, `uiAccess=false`; không có broker hoặc self-elevation implementation.
+
+LocalApplicationData, Credential Manager/DPAPI, owned workspace ACL, ACV Tool 5/DirectXTex trong isolated workspace và writable user-selected export đều thuộc user context. Nếu future installer/update có privileged operation thật, broker phải separate/signed, explicit UAC, closed versioned protocol và exact canonical path/operation allowlist; không arbitrary command/path và không game authority. Migration phải giữ schema/data cùng identity, fail safely với alternate-admin profile và chạy standard-user/real-tool compatibility matrix trước manifest change.
+
+## App code signing từ PLAN 76
+
+App code signing là release trust boundary độc lập, không nằm trong Core/runtime editor. Protected release workflow
+publish exact self-contained x64 app, rồi script signing nhận danh sách app-owned artifact explicit, ký Authenticode
+SHA-256 với RFC 3161 timestamp SHA-256 và verify lại signature, exact publisher subject/thumbprint cùng timestamp trước
+khi upload. Script đã sẵn sàng cho `.exe/.dll/.msix/.msixbundle/.msi`; installer thực tế vẫn thuộc PLAN 95.
+
+Private key chỉ thuộc certificate store/HSM/managed signing service trên protected runner; repository/workspace/CI
+artifact không nhận PFX/PEM/password. PR/push test workflow không tham chiếu production signing environment hoặc secret.
+Debug/local build unsigned vẫn hợp lệ; production workflow thiếu identity/tool/timestamp hoặc verify lỗi thì fail closed.
+`Package.appxmanifest` vẫn có publisher placeholder development; runtime manifest dùng `asInvoker` từ PLAN 90. PLAN 76
+không đổi packaging/privilege. Xem `docs/APP_CODE_SIGNING.md` cho vận hành, rotation/revocation và trạng thái verification.
+
+## App update signing và verification từ PLAN 77
+
+`AuditionModStudio.Updater` sở hữu verification/orchestration UI-independent. Signed envelope schema-v1 chứa exact raw
+manifest payload schema-v2 và ES256/P-256 signature có domain `AUDITION_APP_UPDATE_MANIFEST_V1`; payload chỉ được parse/dùng sau
+signature verification. Manifest bind product `AuditionAIModStudio`, channel `Stable`, rollout basis points, version bốn phần,
+HTTPS artifact URI, exact filename/length/SHA-256 và expected Authenticode subject/thumbprint. Update-manifest public key tách khỏi app signing, entitlement và template keys; bounded
+verifier set cho phép rollover tối đa ba public key trong cửa sổ được phê duyệt.
+
+Pipeline là `signed envelope → verify signature → strict manifest parse → typed newer-version gate → randomized staging
+download → exact URI/length/SHA-256 → WinVerifyTrust + exact signer → IVerifiedAppUpdateInstaller`. Mọi failure/cancel
+trước bước cuối không gọi installer và cleanup staging best-effort với stable diagnostic không chứa path. Production
+`HttpClientHandler` phải tắt redirect; service vẫn reject final response URI khác signed URI.
+
+PLAN 77 cung cấp verification và verified-installer boundary; PLAN 96 mở rộng đúng boundary này bằng MSIX identity, rollout,
+deferral và typed Windows handoff. Chưa có live manifest key, release endpoint hoặc production signer; default App composition
+wire `UnavailableAppUpdateService` fail-closed nên local editor không phụ thuộc network/update availability.
+
+## Binary obfuscation strategy từ PLAN 78
+
+[ADR-0003](ADR/0003-binary-obfuscation-strategy.md) đánh giá Dotfuscator Professional 7.2.2 là candidate pilot ưu
+tiên nhưng quyết định `EVALUATED / NOT ADOPTED`. Không có vendor package/target/license/config trong build và Debug/Release
+hiện không bị transform. Lý do là chưa có WinUI 3/XAML/reflection/DI/JSON/PInvoke/native tool/AV evidence trên output thật.
+
+Future pilot phải bắt đầu renaming-only với keep rules, rồi mới thử control flow/string/resource theo performance và
+compatibility evidence; anti-tamper vẫn disabled. Nếu adopt, obfuscation nằm sau unsigned publish và trước PLAN 76 signing;
+PLAN 77 manifest chỉ bind final signed bytes. Map/report là private per-version/commit/tool/config artifact, không vào
+repository/public release. Obfuscation không đổi Core/server authority và không phải nơi giữ secrets.
+
+## Native AOT evaluation từ PLAN 79
+
+[ADR-0004](ADR/0004-native-aot-evaluation.md) ghi nhận probe `dotnet publish` Release x64 thật đã fail closed ở
+`IL2026`/`IL3050` trên các đường JSON của Security, Infrastructure, Projects, Cloud/Supabase và Updater. Vì publish chưa
+đi tới native link và runtime smoke, WinUI/XAML, SkiaSharp và Windows interop chưa được tuyên bố tương thích production.
+
+Quyết định là `EVALUATED / NOT ADOPTED / PRODUCTION NOT VERIFIED`: project/publish profile không bật `PublishAot`.
+DirectXTex vẫn là external-process boundary sau `IDdsService`; repository không có dynamic plugin loader. Mọi lần xem xét
+lại phải chuyển serializer sang source generation, đạt analyzer-zero, full real-tool/runtime matrix và benchmark có lợi ích
+đo được. AOT/native core chỉ là deployment/hardening option, không phải DRM hay nơi giữ client secret.
+
+## Client integrity gate từ PLAN 80
+
+`ClientIntegrityService` trong Security là orchestration UI-independent cho moderate integrity checks. Nó nhận application
+root, exact executable/manifest relative path, trusted manifest SHA-256 và production publisher identity. Khi production
+policy yêu cầu signature, `UpdaterClientExecutableTrustVerifier` adapter dùng lại `WindowsAuthenticodeUpdateVerifier` của
+PLAN 77 thay vì tạo WinTrust implementation thứ hai.
+
+Service xác minh executable path/no-reparse và signature trước, exact manifest bytes/SHA-256 trước parse, rồi strict
+schema-v1 inventory tối đa 512 explicit `resource_bundle`/`companion_tool` entries. Mỗi entry phải là normalized relative
+path dưới app root, no-reparse, exact length và SHA-256. Failure trả stable diagnostic không chứa full path và capability
+`DiagnosticsOnly`, tắt archive/build/export, update install và resource-dependent mutation; không crash/xóa project.
+
+`New-ClientIntegrityManifest.ps1` sinh deterministic inventory từ explicit release paths và trả manifest SHA-256. Expected
+hash phải được bind bằng signed release/package/update authority; đặt manifest và `.sha256` cạnh nhau không tự tạo trust.
+Production executable/manifest/resource bundle binding và UI diagnostics chưa được release artifact thực tế xác minh, nên
+trạng thái vận hành là `IMPLEMENTED CONTRACT / PRODUCTION NOT VERIFIED`. ACV vẫn có PLAN 07/31 specialized manifest,
+copy/pre-launch hash gate; PLAN 80 không thay archive abstraction hoặc giải quyết Administrator/TOCTOU tuyệt đối.
+
+## DLL search và process launch hardening từ PLAN 81
+
+`WindowsProcessLaunchHardening` là platform implementation trong Infrastructure, dùng chung bởi Archives, DDS và App.
+App áp dụng application-directory + System32 DLL policy trước XAML initialization. Child process dùng absolute canonical
+verified executable, structured arguments, shell disabled và sanitized minimal environment; executable không resolve qua
+`PATH`, còn current working directory bị loại khỏi DLL search của unpackaged child.
+
+ACV giữ workspace cwd vì data/keydat protocol nhưng standalone tool policy reject unexpected adjacent DLL. DirectXTex
+rehash/no-reparse và yêu cầu exact single-file tool directory ngay trước start. Timeout/cancellation/process-tree kill và
+stdout/stderr semantics giữ nguyên. Xem [PROCESS_LAUNCH_HARDENING.md](PROCESS_LAUNCH_HARDENING.md) cho inventory và residual
+TOCTOU. Không có game process/install/launcher behavior; PLAN 90 chuyển runtime manifest sang `asInvoker`, còn
+signing/update authority không đổi.
+
+## API replay và abuse protection từ PLAN 82
+
+Gateway pipeline là `trusted forwarded headers → routing → redacted audit wrapper → HTTPS/type/size/IP gate → Supabase
+authentication → per-user limiter → authorization → endpoint`. `X-Forwarded-For`/`X-Forwarded-Proto` chỉ được xử lý từ
+known proxy và tối đa một hop; cleartext bị reject tại Gateway, không redirect request có bearer/body.
+
+Tầng trước auth là fixed-window partition theo remote IP nhằm giới hạn call tới auth authority. Tầng sau auth dùng
+ASP.NET Core named policy partition theo verified subject; enqueue tính phí có ngưỡng riêng và queue bằng 0. Các limiter
+này per-process, không thay edge/distributed quota. Rate-limit response là stable `RATE_LIMIT_EXCEEDED` cùng `Retry-After`.
+
+Supabase access token tiếp tục được gửi tới exact HTTPS `/auth/v1/user` với redirect tắt. Gateway còn parse bounded
+JWT claims để reject token thiếu/sai `sub`, `iat`, `exp`, quá hạn, not-before tương lai hoặc lifetime trên một giờ; parsed
+claims không tự tạo trust và authoritative user trả về phải trùng token subject. Ownership vẫn chỉ derive từ principal.
+
+`/v1/ai/jobs` giữ durable `(user, operation, idempotency key, canonical request hash)` của PLAN 62 nên retry cùng payload
+trả cùng row và khác payload bị conflict, không double-reserve. PLAN 70 one-time entitlement nonce giữ nguyên. AI enqueue
+không thêm nonce làm hỏng retry semantics; timestamp đã được bind trong short-lived token.
+
+Audit chỉ gồm method, code-owned route template, status, one-way subject fingerprint và duration; không ghi URL query,
+body, prompt/image, Authorization, raw user UUID hay server credential. Chi tiết cấu hình/vận hành ở
+[API_REPLAY_ABUSE_PROTECTION.md](API_REPLAY_ABUSE_PROTECTION.md).
+
+## Supabase RLS hardening từ PLAN 83
+
+Migration thứ tư harden tại chỗ 6 user-owned tables của PLAN 60/62/65. Tất cả dùng ENABLE+FORCE RLS. Wallet,
+reservation, ledger, refund và AI job có policy SELECT-only theo `(SELECT auth.uid()) = user_id`; `credit_idempotency`
+không có client policy. `authenticated` chỉ được SELECT explicit contract-safe columns; `anon` không có schema usage và
+không client role nào có DML hoặc private-function EXECUTE.
+
+Gateway/service-role path giữ nguyên và server identity vẫn verified principal. Column/RLS read là defense-in-depth cho
+Supabase access, không thay Gateway ownership predicate hay cấp commercial mutation authority. Chi tiết matrix/test ở
+[SUPABASE_RLS_HARDENING.md](SUPABASE_RLS_HARDENING.md).
+
+Real PostgreSQL 17.6 gate đã apply migrations và chứng minh own/cross-user/column/DML/RPC/anon behavior. Gate PLAN 83 từng
+phát hiện PLAN 60 function ambiguity `42702`; PLAN 85 đã sửa tại chỗ và verified bằng concurrency tests thật.
+
+## Payment security từ PLAN 84
+
+`/v1/payments/webhooks/stripe` là server ingress riêng, `AllowAnonymous` chỉ ở bearer layer và được xác thực bằng Stripe
+HMAC trên exact raw body với signed timestamp tolerance 5 phút. Endpoint giữ HTTPS/type/128 KiB/IP gate của PLAN 82;
+signature, body và payment identity không đi vào audit log.
+
+Verifier chỉ chấp nhận paid one-time Checkout events đúng live/test mode. Signed product selector phải khớp exact immutable
+server catalog `product + amount_minor + currency → credits`; client redirect/success state và provider-supplied credit
+không tồn tại trong authority contract. Gateway chỉ chuyển typed verified event sang `IPaymentFulfillmentService`.
+
+PostgreSQL `private.payment_apply_verified` serialize theo provider/payment, deduplicate cả event ID lẫn payment ID, phát
+hiện conflicting payload và chỉ sau đó gọi exact PLAN 60 `private.credit_grant`. `private.payment_events` append-only,
+ENABLE+FORCE RLS và server-only. Thiếu secret/catalog/database đều fail closed. Xem
+[PAYMENT_SECURITY.md](PAYMENT_SECURITY.md); PLAN 85 đã có local real transaction evidence, còn production Stripe/Supabase
+chỉ được tuyên bố sau deployment evidence tương ứng.
+
+## Credit concurrency integration gate từ PLAN 85
+
+Migration thứ sáu sửa tại chỗ cả năm PLAN 60 functions. PostgreSQL `RETURNS TABLE` biến output đã va chạm tên cột không
+qualify; function mới dùng explicit table aliases trong mọi mutable projection nhưng giữ nguyên signature, advisory/row
+locks, append-only tables, request hash và exact `service_role` grants. Không có schema, wallet hay C# credit service mới.
+
+Real PostgreSQL 17.6 tests dùng connection riêng cho concurrent calls và kiểm cả response lẫn persisted cardinality/state.
+Evidence PASS cho full lifecycle, khác-key overspend, same-key replay, conflicting payload rollback, capture-vs-release,
+concurrent over-refund và verified payment-to-grant replay. Wallet lock bảo toàn tổng credit, reservation lock cho đúng một
+terminal transition, captured-ledger lock cap aggregate refund. Chi tiết ở
+[CREDIT_CONCURRENCY_INTEGRATION_GATE.md](CREDIT_CONCURRENCY_INTEGRATION_GATE.md).
+
+Đây là local engine evidence, không phải Supabase staging/live, multi-region/failover hay production operations evidence.
+HTTP/client authority không đổi: public chỉ đọc snapshot; amount/cost/refund/payment vẫn do trusted server quyết định.
+
+## Device session abuse control từ PLAN 86
+
+Gateway có optional middleware sau Supabase authentication và trước rate-limit/authorization endpoint để kiểm tra binding
+`verified user + random DeviceId + server SessionId`. Management API đăng ký/liệt kê/thu hồi nằm trong Gateway, vẫn cần bearer
+và rate limit nhưng được miễn chính session gate. PostgreSQL private table/RPC giữ registration count, idempotency, last-seen
+throttling và revoke; RLS chỉ cho authenticated SELECT own safe columns, mutation là server-only.
+
+Desktop Cloud adapter chỉ opt-in khi `AUDITION_DEVICE_SESSIONS_ENABLED=true`; nó dùng Credential Manager binding store riêng,
+không đổi Supabase token store. Archives/DDS/Imaging/Projects không tham chiếu device-session service và local pipeline không
+đi qua Gateway. Xem [DEVICE_SESSION_ABUSE_CONTROLS.md](DEVICE_SESSION_ABUSE_CONTROLS.md).
+
+## Privacy và logging security từ PLAN 87
+
+Contract `ISensitiveDataRedactor` và `IDiagnosticExportService` nằm trong Core, không phụ thuộc UI/hạ tầng. Desktop composition
+dùng một redactor cho file sink và diagnostic export; Gateway production thay provider mặc định bằng redacting console
+provider. Structured property nhạy cảm bị che theo tên, còn message/exception được quét password, auth token/JWT, signed URL,
+provider secret và payment secret trước khi ghi.
+
+Diagnostic export là allowlist `safe manifest + redacted local logs`, không enumerate project/image/template/archive/workspace,
+không đọc settings/credential và không upload. Implementation nằm trong Infrastructure, reuse destination/path security,
+giới hạn file/count/bytes, đổi tên log nguồn, tạo temp cùng filesystem rồi atomic move không overwrite; task hỗ trợ
+cancellation/progress. Xem [PRIVACY_LOGGING_SECURITY.md](PRIVACY_LOGGING_SECURITY.md).
+
+## Dependency và supply-chain security từ PLAN 88
+
+NuGet graph dùng central exact versions, source mapping chỉ tới HTTPS NuGet.org, signature validation và một
+`packages.lock.json` cho mỗi project. CI restore bằng locked mode, audit direct/transitive vulnerability và verify tracked
+SPDX 2.3 SBOM. GitHub Actions được pin full commit SHA; release candidate mang theo SBOM cùng provenance/redistribution record.
+
+Native/proprietary inventory tách technical integrity khỏi legal authority. DirectXTex May 2026 x64 có exact version/hash,
+valid Microsoft Authenticode và official MIT source record. `acv.exe`, pristine template và game asset chỉ có known local
+fixture/integrity evidence, không có authoritative publisher/license/right evidence, nên commercial redistribution fail closed.
+Không binary proprietary nào được track/tải/bundle bởi PLAN 88. Xem
+[DEPENDENCY_AND_REDISTRIBUTION.md](supply-chain/DEPENDENCY_AND_REDISTRIBUTION.md).
+
+## Security test matrix từ PLAN 89
+
+PLAN 89 không thêm runtime service hoặc authority mới. `docs/security-test-matrix.json` là mapping máy đọc được của 12
+negative-security boundary; `scripts/Invoke-SecurityTestMatrix.ps1` thực thi các test thật theo project, real PostgreSQL cho
+idempotency/ownership, real ACV fixture cho malformed archive và secret scan trên source + output App/Gateway.
+
+Runner fail closed khi thiếu dependency môi trường; platform-conditional skip được báo riêng và không được dùng để thay control
+không phụ thuộc platform. Core/local file pipeline vẫn độc lập Gateway; không có game discovery/install/launch/process/runtime
+behavior. Chi tiết tại [SECURITY_TEST_MATRIX.md](SECURITY_TEST_MATRIX.md).
+
+## Release penetration/crack-resistance review từ PLAN 90
+
+Manual review tám attack path giữ crack-resistance tại server-authority boundary: patched client/local flag không cấp user,
+entitlement, price, credit, AI profile, package URL hoặc payment authority. Runtime đã chuyển sang `asInvoker`; không có broker,
+self-elevation hay privileged file/game operation. Release pipeline chuẩn bị public layout bằng exposure policy trước signing,
+loại symbols/source/private material và proprietary fixture thay vì giả định obfuscation bảo vệ authorization.
+
+Real PostgreSQL forged role claim không đổi `current_user`/BYPASSRLS hoặc cross-user visibility. ACV/DirectXTex vẫn dùng exact
+absolute verified process boundary dưới medium-integrity token. Production deployment/external review blockers không được đổi
+thành local PASS. Xem [RELEASE_PENETRATION_REVIEW.md](RELEASE_PENETRATION_REVIEW.md).
+
+## Remote Product Catalog từ PLAN 91
+
+`IProductCatalogService` là boundary read-only cho taxonomy chính thức `Game → Mod → Template/Manifest`. Document schema-v1
+dùng canonical `GameId`, `ModId`, `TemplateId`, `TemplateVersion` và exact template SHA-256/build; revision monotonic của catalog
+khác template version opaque. Metadata không chứa executable, argument, install path, registry, launcher, secret hoặc storage
+credential. Cờ premium chỉ mô tả yêu cầu truy cập và không cấp entitlement.
+
+Gateway authenticated phục vụ exact signed envelope từ server configuration tại `/v1/product-catalog`, kèm ETag dẫn xuất từ
+bytes. Desktop pin tối đa ba public key ES256/P-256, verify chữ ký trước parse payload, rồi validate schema, bounds, duplicate,
+parent relationship và rollback trước khi publish immutable snapshot. Unknown JSON member bị từ chối. Private signing key và
+quy trình tạo document không thuộc desktop/repository.
+
+Cache tại managed `Cache/ProductCatalog` chỉ ghi bằng temporary file, durable flush và atomic replace sau khi toàn document
+PASS. Offline load luôn verify lại chữ ký/schema; cache thiếu/hỏng không trở thành authority. Refresh được serialize và
+cancellable; snapshot cũ/project đã tạo không bị mutate hoặc rebind khi revision mới xuất hiện. Cấu hình/key/session/network
+thiếu bind service unavailable và không ảnh hưởng local project/editor/build/export. Live signing key, Gateway deployment và
+catalog production chưa verified.
+
+## File-Only Template Admin Tool từ PLAN 92
+
+`ITemplateAdminWorkflow` là workflow quản trị tin cậy trong lớp Archives, không phải màn hình desktop công khai. Workflow chỉ
+nhận đường dẫn tuyệt đối tới archive do admin chọn rõ ràng, kiểm tra role trước mọi truy cập file, tạo working copy cô lập qua
+`IProjectArchiveWorkspaceService`, rồi gọi `IAuditionArchiveService` để extract. DDS được quét qua `IArchiveAssetScanner`, đọc
+metadata qua `IDdsMetadataReader` và phải có nhãn chính xác theo normalized relative path trước khi publish.
+
+`ITemplateAdminPublisher` là boundary publish. Implementation local ghi package đã mã hóa, metadata đầy đủ label/DDS compatibility
+được ký ES256 và audit tối thiểu vào staging directory, durable-flush từng file rồi atomic directory move tới
+`TemplateId/TemplateVersion`. Exact version
+đã tồn tại là immutable conflict; publish đồng thời chỉ một operation được commit. AES/HMAC/private signing key là cấu hình
+server/admin deployment, không thuộc client hoặc repository. Workflow không dò game, registry, launcher, process hay sửa archive
+template pristine. Production admin identity, object storage/catalog promotion, key custody và deployment vẫn chưa verified.
+
+## Account/Profile/Credit History UI từ PLAN 93
+
+`IAccountOverviewService` là read-only client boundary cho một server snapshot gồm profile, wallet, usage và tối đa 50 credit
+transaction mới nhất. Desktop adapter chỉ gọi authenticated `GET /v1/account`, giới hạn response 256 KiB, strict-parse toàn bộ
+shape/value/order và không cache snapshot. Khi session thiếu/hết hạn nó dùng luồng refresh PLAN 58; response lỗi/cancel không giữ
+balance/history cũ làm authority.
+
+Gateway derive `UserId`, email và display name từ Supabase-authenticated principal; query string/body không có user hoặc balance
+authority. `PostgresAccountQueryService` reuse `private.credit_wallets` và append-only `private.credit_ledger` của PLAN 60, đọc
+wallet/usage/history trong một `REPEATABLE READ, READ ONLY` transaction và sắp history theo timestamp/transaction ID. Không có
+migration, mutation endpoint hoặc ledger thứ hai. `/v1/credits` giữ nguyên để tương thích.
+
+WinUI thêm route Account theo MVVM/design tokens, responsive cards, keyboard-focusable Refresh, polite live status và các trạng
+thái loading/error/empty/success riêng. Shell badge chỉ cập nhật từ snapshot đã được adapter validate. Account/cloud failure không
+đi vào Core file pipeline và không chặn mở project, edit, Apply, build, pack hay export.
+
+## Payment provider abstraction từ PLAN 94
+
+`IPaymentProvider` là provider-neutral boundary nhận exact raw webhook bytes và trả typed event result
+`Verified/Pending/Ignored/Invalid/Retryable`. `PaymentProviderResolver` chỉ resolve provider ID server-side và fail closed khi
+provider thiếu, sai ID hoặc đăng ký trùng. `IPaymentApplicationService` là orchestration duy nhất: chỉ typed `Verified` event có
+provider identity nhất quán mới được chuyển tới `IPaymentFulfillmentService`; mọi trạng thái khác không chạm ledger.
+
+`StripePaymentProvider` là adapter cụ thể hiện có của PLAN 84. Stripe signature header, HMAC/timestamp, event taxonomy, live mode
+và Checkout JSON không rò vào contract provider-neutral. Route duy nhất vẫn là `POST /v1/payments/webhooks/stripe`; không có
+checkout/status/success mutation endpoint, provider thứ hai, webhook thứ hai, wallet hoặc ledger thứ hai.
+
+Success fulfillment tiếp tục dùng nguyên transaction `private.payment_apply_verified → private.credit_grant` của PLAN 60/84/85.
+Pending event được acknowledge nhưng không grant; provider/config/database outage trả typed `Retryable`/HTTP 503 để provider
+retry, không fabricate success. Signed refund/failure/expiry event được ignore an toàn vì PLAN 94 không định nghĩa credit reversal
+policy. Production Stripe webhook deployment, live endpoint/secret/product và reconciliation vẫn chưa verified.
+
+## Audition AI Mod Studio Application Installer từ PLAN 95
+
+Distribution chọn single-project MSIX x64 per-user đã có sẵn trong WinUI project, không tạo installer stack thứ hai.
+`New-AppInstallerPackage.ps1` bind exact four-part version vào package/assembly/file identity, sinh manifest dưới `obj` với
+stable package name `AuditionAIModStudio` và inject publisher production từ protected environment. Windows package deployment
+quản lý package volume, read-only binaries, Start Menu registration, atomic upgrade và clean uninstall; không custom action,
+service, driver, shell hoặc app self-elevation. Runtime giữ `asInvoker`, `uiAccess=false`.
+
+Application data vẫn nằm dưới `%LocalAppData%\AuditionModStudio` qua `IAppPaths`, ngoài package ownership. Credential Manager,
+DPAPI CurrentUser cache, projects, exports và recoverable workspace không do installer migrate/xóa. MSIX chỉ khai báo Windows
+App Runtime prerequisite; không downloader/bootstrapper/helper URL. Public package scanner reject PDB/source/key/log/script,
+user project/workspace, `acv.exe`, `texconv.exe`, fixture và mọi `.ab/.acv`; không file association/protocol/game behavior.
+
+Protected CI ký/timestamp app-owned EXE/DLL trước package generation, rồi ký/timestamp/verify exact MSIX bằng PLAN 76 identity;
+package được content/identity/version/signature/hash scan trước upload. PLAN 77 vẫn là pre-install update trust boundary; channel,
+staged rollout/rollback/deferral thuộc PLAN 96. Chi tiết tại [APP_INSTALLER.md](APP_INSTALLER.md). Production signer,
+timestamp, exact publisher và redistribution vẫn **NOT VERIFIED**.
+
+## Audition AI Mod Studio Application Updater từ PLAN 96
+
+PLAN 96 không tạo updater hoặc trust domain thứ hai. `AppUpdateService` tiếp tục dùng envelope ES256/domain và
+WinVerifyTrust của PLAN 77, đồng thời dùng đúng MSIX identity của PLAN 95. Signed payload schema-v2 ràng buộc product,
+strongly typed `Stable` channel, rollout basis points, four-part version, exact artifact URI/length/SHA-256 và signer.
+`AppUpdatePolicy` pin độc lập product/package/application/x64/publisher/thumbprint và allowlist tối đa tám HTTPS host; localhost,
+IP literal, non-443, user-info, fragment và redirect/final URI khác signed URI đều bị từ chối.
+
+Luồng là verify envelope/signature trước parse authority, kiểm tra product/channel/publisher/version/rollout, defer khi
+Background Task Manager có Build/Export queued/running, stream có bound vào random app-owned operation directory với tên
+`candidate.msix.partial`, exact length/SHA-256 rồi atomic rename thành `candidate.msix`. Candidate sau đó phải khớp
+`AppxManifest.xml` package name `AuditionAIModStudio`, application `App`, publisher, four-part version và x64 trước
+WinVerifyTrust. Activity được kiểm tra lại ngay trước `IVerifiedAppUpdateInstaller`; single-flight ngăn race download/install.
+
+`WindowsMsixUpdateInstaller` re-hash exact verified file ngay trước typed `PackageManager.AddPackageAsync` với
+`DeploymentOptions.None`, rồi kiểm tra package/version đã đăng ký cho current user. Không shell, custom action, runas,
+process kill hoặc `ForceUpdateFromAnyVersion`; failure để package đang dùng cho Windows quản lý, không manual file rollback.
+Equal version trả `NoUpdate`; downgrade bị chặn; ngoài rollout hoặc active build/export trả `Deferred`; thành công báo
+restart required nhưng không tự đóng app. Partial chỉ tồn tại trong random operation root và được dọn ở success/failure/cancel;
+crash residue không được discover/reuse, stale directory có dạng chính xác chỉ được dọn sau bảy ngày.
+
+Không có automatic scheduler, mandatory update, repair/same-version reinstall, Beta/Dev channel, resume, installer cache hay UI
+trong PLAN 96. Production feed/CDN/public verification key/certificate/HSM/timestamp và trusted deployment vẫn
+**NOT VERIFIED**; App đăng ký unavailable service có structured fail-closed result, nên open/edit/Apply/build/export offline
+không thay đổi. Updater chỉ cập nhật Audition AI Mod Studio và không có game path/process/registry/archive/install authority.
+
+## Archive File-Pipeline Integration Test Suite từ PLAN 97
+
+PLAN 97 không thêm runtime service hay thay đổi production pipeline. Cổng tích hợp dùng lại đúng composition hiện có:
+`IAuditionArchiveService`/`IArchiveToolRunner`, project workspace, scanner, DDS Match Original, Apply, validator, build và export.
+Fixture thật được hash trước, chỉ được sao chép vào workspace ngẫu nhiên có khoảng trắng/Unicode, rồi đi hết chuỗi
+extract → scan → replace → validate → pack/build → export → re-extract. Điểm kết thúc vẫn là một archive standalone `.ab`;
+không có phát hiện, cài đặt hay chạy Audition.
+
+Oracle `ArchiveFilePipelineEvidence` chỉ nằm trong IntegrationTests. Nó chuẩn hóa texture identity theo relative path, từ chối
+path traversal/identity trùng, yêu cầu inventory trước và sau giống hệt, yêu cầu tập file thay đổi bằng chính xác tập dự kiến và
+đối chiếu hash replacement sau re-extract. Cổng thật hiện chứng minh 320 file, chỉ
+`texture/hud/pointer.dds` thay đổi và 319 file ngoài target byte-identical; DDS target giữ 164×128, BC3, một mip, alpha
+interpolated cùng header/resource semantics gốc.
+
+Nhánh hủy export được kích hoạt có tính quyết định sau durable copy nhưng trước promote. Destination đã tốt phải giữ nguyên hash,
+transaction temp/backup phải được dọn và retry bằng service bình thường phải thành công. Fixture pristine `015.ab`, `015.keydat`,
+`acv.exe` và DDS gốc được hash lại sau pipeline. Packed archive không được so với golden hash vì container có thể không
+deterministic; correctness dựa trên re-extracted logical inventory và exact content hash.
+
+## DDS File-Pipeline Compatibility Matrix từ PLAN 98
+
+PLAN 98 không thêm runtime service và không mở rộng format production. Một executable evidence model trong IntegrationTests phân
+biệt bốn trạng thái `SUPPORTED`, `UNSUPPORTED`, `INVALID`, `NOT VERIFIED` cho từng stage: metadata, preview + InternalImage import,
+encode, Match Original + validate, re-decode và archive roundtrip. Tài liệu
+[DDS_FILE_PIPELINE_COMPATIBILITY_MATRIX.md](DDS_FILE_PIPELINE_COMPATIBILITY_MATRIX.md) được exact-test với model này để không drift.
+
+Level A dùng synthetic corpus có kiểm soát cho BC1/BC3/RGBA8/BGRA8 qua Legacy/DX10, linear/sRGB, mip, alpha và kích thước không
+power-of-two. Level B dùng working copy của archive thật: 52 DDS được ghi record per-file và preview/import toàn bộ; representative
+của từng format đi qua Match Original, validation và re-decode. Chỉ pointer slot PLAN 97 có full archive roundtrip, nên các format
+hoặc Mod Type khác không thừa hưởng `SUPPORTED`. Production Mod Catalog rỗng đồng nghĩa corpus Mod Type tương lai là
+`NOT VERIFIED`, không được suy đoán từ path/filename.
+
+BC2/BC4/BC5/BC6H/BC7, legacy bitmask khác, Texture1D/3D, array và cubemap vẫn là boundary typed; metadata recognition không phải
+editor support. Matrix là test/evidence layer dùng lại `IDdsMetadataReader`, `IDdsPreviewService`, `IImageImportService`,
+`IDdsEncoder`, `IDdsMatchOriginalService` và `IDdsValidationService`; UI không gọi DirectXTex và archive operation vẫn chỉ qua
+`IAuditionArchiveService`/`IArchiveToolRunner`. Điểm cuối không thay đổi: DDS hoặc standalone `.ab`/`.acv`, không có game runtime.
+
+## Kiến trúc crash/recovery từ PLAN 99
+
+PLAN 99 giữ nguyên các transaction boundary hiện hữu và bổ sung bằng chứng fault-injection xác định. Extract chỉ ghi vào cây staging; scan chỉ publish kết quả hoàn chỉnh; Apply dùng candidate/backup; build/pack chỉ promote output đã verify; export durable-copy vào `.export.tmp`, verify rồi mới move/replace; updater chỉ đổi `.partial` thành candidate sau exact length/SHA-256. Cache template mã hóa và publish template admin đều commit bằng rename/move trong cùng managed root.
+
+Trạng thái recovery được phân loại thành committed, recoverable workspace, incomplete transaction, stale residue, corrupt artifact và unknown/untrusted. Unknown hoặc reparse-backed residue không bao giờ được tự trust hay promote. Workspace retained chỉ được phát hiện không mutation và reopen bằng exact ID sau hành động tường minh. Checkpoint observer của publisher là `internal`, không đọc environment/config và production constructor mặc định không có observer.
+
+Nguồn sự thật thực thi và checklist nằm tại [CRASH_RECOVERY_EVIDENCE.md](CRASH_RECOVERY_EVIDENCE.md) và [CRASH_RECOVERY_CHECKLIST.md](CRASH_RECOVERY_CHECKLIST.md). Kiến trúc vẫn file-only, không thêm game discovery/install/patch/launch hoặc runtime validation.
+
+## Kiến trúc bằng chứng hiệu năng từ PLAN 100
+
+PLAN 100 không thêm runtime service và không đổi production pipeline. Executable evidence nằm trong IntegrationTests, dùng lại đúng `IDdsMetadataReader`, `ThumbnailCache`, image resize/adjustment service, DirectXTex Match Original, Background Task Manager và full archive file pipeline. Test archive/DDS chỉ đọc fixture pristine hoặc working copy cô lập; điểm cuối vẫn là standalone `.ab`.
+
+Phép đo phân biệt first pass với repeated pass, cache `Generated`/`Memory`/`Disk`, single-flight đồng thời và bounded batch orchestration. Không gọi first pass là cold vì OS page cache không được kiểm soát. UI responsiveness chỉ có bằng chứng ở service/dispatch contract; GUI frame/input latency và startup end-to-end chưa được instrument. Số đo, môi trường, giới hạn working-set/allocation và non-goals nằm tại [PERFORMANCE_TEST_REPORT.md](PERFORMANCE_TEST_REPORT.md).
+
+## Visual Product Acceptance và portable ZIP từ PLAN 101
+
+Kênh V1 chính là WinUI 3 **unpackaged + Windows App SDK self-contained + .NET self-contained**, target `win-x64`.
+Publish tạo một thư mục nhiều file và ZIP nguyên thư mục đó; không dùng Native AOT, không yêu cầu package registration,
+installer hoặc .NET SDK/runtime cài riêng. MSIX PLAN 95 vẫn tồn tại như kiến trúc lịch sử/kênh tương lai nhưng không phải
+primary V1 distribution. Unpackaged app không có package identity; automatic updater thuộc PLAN 102.
+
+```text
+dotnet publish (Release, win-x64, self-contained)
+  → staging/AuditionAI-ModStudio/
+  → allowlist + deny-pattern artifact scan
+  → exact inventory/hash report
+  → AuditionAI-Mod-Studio-<version>-win-x64.zip
+  → extract vào unrelated path có spaces/Unicode
+  → launch exact AuditionModStudio.App.exe
+```
+
+Binary directory là read-only về mặt kiến trúc. `IAppPaths`, Credential Manager, DPAPI và user-selected project/export
+locations tiếp tục sở hữu mutable state; app không ghi token/log/workspace cạnh executable. Portable release không bundle
+`acv.exe`, `texconv.exe`, `.ab/.acv`, keydat, private DDS/template hoặc source/test/PDB/private key. Helper thiếu phải làm
+operation tương ứng unavailable/fail closed nhưng không ngăn local shell khởi động offline.
+
+Shell chỉ hiển thị route V1 có surface thật: Home, Project Workspace (gồm Texture Grid và Build & Export), Image Editor
+(gồm Crop/Resize và Before/After), AI Studio, Account và Settings. Route placeholder lịch sử bị loại khỏi navigation.
+Startup maximize bằng `OverlappedPresenter` trong work area monitor hiện tại; không đổi resolution/exclusive fullscreen.
+Layout tiếp tục dùng adaptive triggers/scrolling, semantic Dark/Light/HighContrast resources và minimum target 1366×768.
+
+## Portable Automatic Updater từ PLAN 102
+
+PLAN 102 thay primary updater path từ MSIX PLAN 96 sang Portable ZIP, nhưng giữ nguyên envelope ES256/P-256,
+domain separation và verify-before-authority của PLAN 77. Payload portable schema 3 bind product `AuditionAI.ModStudio`,
+stable channel, typed version/policy, exact HTTPS ZIP URL/length/SHA-256, release notes, `win-x64`/`portable` identity,
+full file inventory và signed removal inventory.
+
+`PortableUpdateStager` stream vào `.partial`, verify trước atomic promote, extract vào LocalAppData operation root,
+chặn ZIP Slip/absolute/drive/UNC/duplicate/link/reparse/expansion và verify từng file. `AuditionAI.Updater.exe`
+chạy từ staging bằng exact path/typed arguments, đợi main PID thoát, verify lại manifest/package/inventory,
+backup app-owned file, replace qua `.update-new`, post-verify và rollback exact byte khi failure. Unknown file và user data
+không thuộc signed inventory được bảo toàn.
+
+UI Settings/command palette/Activity Log chỉ hiển thị service state thật, tiếng Việt và không block startup.
+Extract/Convert/Build active hoặc editor còn state có thể Apply thì handoff bị defer. Production feed/trust
+root chưa được cung cấp nên default composition fail closed; local file-only pipeline vẫn độc lập. Chi tiết tại
+[PORTABLE_UPDATE_ARCHITECTURE.md](PORTABLE_UPDATE_ARCHITECTURE.md).
+
+## Public website và deployment boundary từ PLAN 103
+
+Website marketing nằm trong `public-release/`, tách khỏi desktop runtime và được xuất sang một Git repository chuyên dụng bằng
+exact deny-by-default allowlist. Build zero-dependency chỉ copy 14 file web đã liệt kê vào `dist`; CI từ chối file lạ, symlink,
+binary/archive, credential và mẫu secret. Cây này không chứa source desktop, companion tool, fixture, DDS private, updater feed,
+production key hoặc ZIP nội bộ.
+
+Netlify là static hosting boundary: `main` dành cho production và `develop` dành cho branch deploy, nhưng PLAN 103 chỉ chuẩn bị
+config/checklist local vì remote/dashboard chưa được xác minh. Website không gọi Supabase, AI, payment hay updater; không thêm cloud
+dependency vào `AuditionModStudio.Core` hoặc file-only pipeline. Public download chỉ có thể là GitHub Release asset sau release gate
+riêng, không phải blob repository và không tự động kế thừa artifact internal PLAN 102.
+# PLAN 104 — Device identity và entitlement thương mại
+
+- Supabase Anonymous Auth là credential root cho lần chạy đầu; access/refresh token chỉ nằm trong Windows Credential Manager.
+- `private.device_profiles` ánh xạ duy nhất `auth.users.id` sang Device Code công khai dạng `AMS-XXXX-XXXX-XXXX`. Device Code chỉ để hiển thị/hỗ trợ, không phải secret và không dùng để đăng nhập.
+- PLAN 86 tiếp tục là authority của phiên thiết bị; PLAN 60 tiếp tục là authority duy nhất của ví/ledger. Gift Code Credits bắt buộc gọi `private.credit_grant`.
+- Gateway là trusted boundary cho đăng ký, làm mới entitlement và redeem Gift Code. Client chỉ nhận capability grant ES256 cùng họ `AMS-ENT` v1 của PLAN 70.
+- `ICapabilityAuthorizationService` là cổng tập trung cho `CanUseAi`, `CanBuild`, `CanExport`, `CanUsePremiumTemplates`. AI và Build/Export fail-closed khi grant hết hạn, blocked hoặc revoked.
+- Grant offline được lưu trong Windows Credential Manager và chỉ dùng đến `expiresAt` do Gateway ký. Hết hạn gói không xóa dự án/dữ liệu cục bộ và không ngăn xem trang Tài khoản.

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="AuditionModStudio.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:AuditionModStudio.App.Converters"
+    xmlns:local="using:AuditionModStudio.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="DesignSystem/PrimitiveTokens.xaml" />
+                <ResourceDictionary Source="DesignSystem/SemanticTokens.xaml" />
+                <ResourceDictionary Source="DesignSystem/ComponentTokens.xaml" />
+                <ResourceDictionary Source="DesignSystem/Components.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+            <converters:VietnameseEnumLabelConverter x:Key="VietnameseEnumLabelConverter" />
+            <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{ThemeResource AmsAccentColor}" />
+            <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="{ThemeResource AmsAccentHoverColor}" />
+            <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="{ThemeResource AmsAccentPressedColor}" />
+            <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="{ThemeResource AmsAccentColor}" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,21 @@
+AUDITION AI MOD STUDIO — THIRD-PARTY NOTICES
+
+This Development/Internal QA build contains third-party components distributed under their respective licenses.
+The dependency inventory and SPDX SBOM are maintained in the source repository under docs/supply-chain/.
+
+Microsoft Windows App SDK
+Copyright Microsoft Corporation. Licensed under the MIT License.
+https://github.com/microsoft/WindowsAppSDK
+
+.NET Runtime and libraries
+Copyright .NET Foundation and contributors. Licensed under the MIT License.
+https://github.com/dotnet/runtime
+
+SkiaSharp
+Copyright Microsoft Corporation and contributors. Licensed under the MIT License.
+https://github.com/mono/SkiaSharp
+
+This portable package intentionally does not include ACV Tool 5 (acv.exe), texconv.exe, Audition archives,
+keydat files, private DDS files, templates, game assets, source code, tests, debug symbols or private keys.
+
+This notice is informational and does not replace the complete SPDX inventory or individual license texts.

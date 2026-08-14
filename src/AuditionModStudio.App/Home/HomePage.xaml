@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="AuditionModStudio.App.Home.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="Transparent">
+    <ScrollViewer HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto">
+        <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="{StaticResource AmsSpace24}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border Style="{StaticResource AmsAccentCardStyle}" CornerRadius="{StaticResource AmsRadiusXLarge}">
+                <Grid>
+                    <FlipView x:Name="HeroSlider" Height="280" AutomationProperties.Name="Giới thiệu tính năng" Background="Transparent" IsTabStop="True" SelectionChanged="OnHeroSelectionChanged">
+                        <FlipViewItem>
+                            <Grid MinHeight="210" Padding="12" ColumnSpacing="40">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="1.45*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Spacing="12"><StackPanel Orientation="Horizontal" Spacing="10"><Border Width="36" Height="6" VerticalAlignment="Center" Background="{ThemeResource AmsAccentSecondaryBrush}" CornerRadius="3" /><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="CREATIVE TECH STUDIO" /></StackPanel><TextBlock x:Name="HomeHeading" x:Uid="HomeHeading" AutomationProperties.HeadingLevel="Level1" MaxWidth="760" Style="{StaticResource AmsDisplayTitleStyle}" Text="Tạo Mod dễ dàng. Kiểm soát từng bước." /><TextBlock MaxWidth="760" HorizontalAlignment="Left" Style="{StaticResource AmsBodyTextStyle}" Text="Tạo dự án → Chỉnh sửa → Build → Xuất tệp độc lập." /></StackPanel>
+                                <Grid Grid.Column="1" Width="360" Height="160" HorizontalAlignment="Center" VerticalAlignment="Center"><Border Width="250" Height="126" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsStrongBorderBrush}" BorderThickness="1" CornerRadius="12" /><Border Width="250" Height="126" Margin="42,28,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{ThemeResource AmsSurfaceSelectedBrush}" BorderBrush="{ThemeResource AmsFocusBrush}" BorderThickness="1" CornerRadius="12"><StackPanel Margin="24" Spacing="10"><FontIcon HorizontalAlignment="Left" Foreground="{ThemeResource AmsFocusBrush}" FontSize="28" Glyph="&#xE8A5;" /><TextBlock FontSize="18" FontWeight="SemiBold" Text="Project.ab" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Working copy · Sẵn sàng chỉnh sửa" /></StackPanel></Border><Border Width="54" Height="54" HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="{ThemeResource AmsAccentSecondaryBrush}" CornerRadius="12"><FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="22" Glyph="&#xE73E;" /></Border></Grid>
+                            </Grid>
+                        </FlipViewItem>
+                        <FlipViewItem>
+                            <Grid MinHeight="210" Padding="12" ColumnSpacing="40"><Grid.ColumnDefinitions><ColumnDefinition Width="1.4*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><StackPanel VerticalAlignment="Center" Spacing="12"><StackPanel Orientation="Horizontal" Spacing="10"><Border Width="36" Height="6" VerticalAlignment="Center" Background="{ThemeResource AmsFocusBrush}" CornerRadius="3" /><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="AI STUDIO" /></StackPanel><TextBlock AutomationProperties.HeadingLevel="Level1" Style="{StaticResource AmsDisplayTitleStyle}" Text="Tạo và tinh chỉnh hình ảnh với AI." /><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Mô tả ý tưởng, xem trước kết quả rồi chủ động chọn ảnh phù hợp." /></StackPanel><Grid Grid.Column="1" Width="320" Height="160"><Border Margin="32,0,0,24" Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsStrongBorderBrush}" BorderThickness="1" CornerRadius="12"><Grid><FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource AmsFocusBrush}" FontSize="56" Glyph="&#xE945;" /><Border Width="80" Height="6" Margin="0,0,0,22" HorizontalAlignment="Center" VerticalAlignment="Bottom" Background="{ThemeResource AmsAccentSecondaryBrush}" CornerRadius="3" /></Grid></Border></Grid></Grid>
+                        </FlipViewItem>
+                        <FlipViewItem>
+                            <Grid MinHeight="210" Padding="12" ColumnSpacing="40"><Grid.ColumnDefinitions><ColumnDefinition Width="1.4*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><StackPanel VerticalAlignment="Center" Spacing="12"><StackPanel Orientation="Horizontal" Spacing="10"><Border Width="36" Height="6" VerticalAlignment="Center" Background="{ThemeResource AmsSuccessBrush}" CornerRadius="3" /><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="BUILD &amp; XUẤT TỆP" /></StackPanel><TextBlock AutomationProperties.HeadingLevel="Level1" Style="{StaticResource AmsDisplayTitleStyle}" Text="Build an toàn. Tệp nguồn luôn nguyên vẹn." /><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Mọi thao tác diễn ra trên working copy và kết thúc ở tệp .ab/.acv độc lập." /></StackPanel><Grid Grid.Column="1" Width="340" Height="160"><Border Width="112" Height="136" HorizontalAlignment="Left" Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsStrongBorderBrush}" BorderThickness="1" CornerRadius="12"><FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource AmsFocusBrush}" FontSize="34" Glyph="&#xE8A5;" /></Border><FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource AmsSuccessBrush}" FontSize="32" Glyph="&#xE72A;" /><Border Width="112" Height="136" HorizontalAlignment="Right" Background="{ThemeResource AmsSurfaceSelectedBrush}" BorderBrush="{ThemeResource AmsFocusBrush}" BorderThickness="1" CornerRadius="12"><StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" FontSize="34" Glyph="&#xE7C3;" /><TextBlock FontFamily="Cascadia Mono" FontWeight="SemiBold" Text="015.ab" /></StackPanel></Border></Grid></Grid>
+                        </FlipViewItem>
+                    </FlipView>
+                    <StackPanel Margin="0,0,0,2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="8"><Button x:Name="HeroDot0" Width="44" Height="44" Padding="0" AutomationProperties.Name="Trang giới thiệu 1" Click="OnHeroDotClicked" Tag="0" Style="{StaticResource AmsGhostButtonStyle}"><FontIcon FontSize="9" Glyph="&#xEA3B;" /></Button><Button x:Name="HeroDot1" Width="44" Height="44" Padding="0" AutomationProperties.Name="Trang giới thiệu 2" Click="OnHeroDotClicked" Tag="1" Style="{StaticResource AmsGhostButtonStyle}"><FontIcon FontSize="9" Glyph="&#xEA3B;" /></Button><Button x:Name="HeroDot2" Width="44" Height="44" Padding="0" AutomationProperties.Name="Trang giới thiệu 3" Click="OnHeroDotClicked" Tag="2" Style="{StaticResource AmsGhostButtonStyle}"><FontIcon FontSize="9" Glyph="&#xEA3B;" /></Button></StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid x:Name="HomeWorkspace" Grid.Row="1" MinHeight="470" ColumnSpacing="24" RowSpacing="24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="2.2*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+
+                <Border Style="{StaticResource AmsGamingPanelStyle}">
+                    <Grid ColumnSpacing="24">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <StackPanel Spacing="18">
+                            <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsPageTitleStyle}" Text="Dự án mới" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Hoàn thành ba bước để Studio chuẩn bị không gian làm việc." />
+                            <Border Height="1" Background="{ThemeResource AmsCardBorderBrush}" />
+                            <StackPanel Spacing="14">
+                                <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="28" Height="28" Background="{ThemeResource AmsButtonPrimaryBrush}" CornerRadius="6"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontWeight="SemiBold" Text="1" /></Border><TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource AmsLabelTextStyle}" Text="Chọn game" /></Grid>
+                                <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="28" Height="28" Background="{ThemeResource AmsSurfaceLowBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" Text="2" /></Border><TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource AmsLabelTextStyle}" Text="Chọn loại Mod" /></Grid>
+                                <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="30" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Border Width="28" Height="28" Background="{ThemeResource AmsSurfaceLowBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6"><TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" Text="3" /></Border><TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource AmsLabelTextStyle}" Text="Đặt tên dự án" /></Grid>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Spacing="16">
+                            <Border Padding="18" Background="{ThemeResource AmsSurfaceLowBrush}" CornerRadius="8">
+                                <StackPanel Spacing="10"><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="01  ·  Chọn game" /><ComboBox x:Name="GamePicker" AutomationProperties.Name="Game" DisplayMemberPath="DisplayName" IsEnabled="{x:Bind ViewModel.CanSelectGame, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.Games}" MinHeight="44" PlaceholderText="Chọn game" SelectedItem="{x:Bind ViewModel.SelectedGame, Mode=TwoWay}" /></StackPanel>
+                            </Border>
+                            <Border x:Name="ModStep" Padding="18" Background="{ThemeResource AmsSurfaceLowBrush}" CornerRadius="8">
+                                <StackPanel Spacing="10"><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="02  ·  Chọn loại Mod" /><ComboBox x:Name="ModPicker" AutomationProperties.Name="Loại Mod tương thích" DisplayMemberPath="DisplayName" IsEnabled="{x:Bind ViewModel.CanSelectMod, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.CompatibleMods, Mode=OneWay}" MinHeight="44" PlaceholderText="Chọn loại Mod" SelectedItem="{x:Bind ViewModel.SelectedMod, Mode=TwoWay}" /><TextBlock AutomationProperties.LiveSetting="Polite" Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" /></StackPanel>
+                            </Border>
+                            <Border x:Name="NameStep" Padding="18" Background="{ThemeResource AmsSurfaceLowBrush}" CornerRadius="8">
+                                <StackPanel Spacing="10"><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="03  ·  Thông tin dự án" /><TextBox x:Name="ProjectNameInput" AutomationProperties.Name="Tên dự án" Header="Tên dự án" IsEnabled="{x:Bind ViewModel.CanEditProjectName, Mode=OneWay}" MaxLength="128" PlaceholderText="Ví dụ: Texture đăng nhập" Style="{StaticResource AmsInputStyle}" Text="{x:Bind ViewModel.ProjectName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /><TextBlock AutomationProperties.LiveSetting="Polite" Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ProjectNameValidationMessage, Mode=OneWay}" /></StackPanel>
+                            </Border>
+                            <Grid ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><ProgressBar VerticalAlignment="Center" AutomationProperties.Name="Tiến trình tạo dự án" Maximum="100" Value="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" /><Button Grid.Column="1" AutomationProperties.Name="Hủy tạo dự án" Click="OnCancelClicked" IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}" Style="{StaticResource AmsGhostButtonStyle}">Hủy</Button><Button Grid.Column="2" AutomationProperties.Name="Tạo dự án" Click="OnCreateClicked" IsEnabled="{x:Bind ViewModel.CanCreate, Mode=OneWay}" Style="{StaticResource AmsPrimaryButtonStyle}"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon FontSize="14" Glyph="&#xE8A5;" /><TextBlock Text="Tạo dự án" /></StackPanel></Button></Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border x:Name="RecentPanel" Grid.Column="1" Style="{StaticResource AmsCardStyle}">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center" Spacing="16">
+                            <Border Width="52" Height="52" HorizontalAlignment="Left" Background="{ThemeResource AmsAccentSubtleBrush}" CornerRadius="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" FontSize="23" Glyph="&#xE8B7;" /></Border>
+                            <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Chưa có dự án gần đây" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Dự án bạn tạo hoặc mở sẽ xuất hiện tại đây để tiếp tục nhanh hơn." />
+                            <Border Height="1" Background="{ThemeResource AmsCardBorderBrush}" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Hãy bắt đầu bằng biểu mẫu bên trái." />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+            <Grid Grid.Row="2" ColumnSpacing="16">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.1*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Border Style="{StaticResource AmsCardStyle}"><Grid ColumnSpacing="14"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><Border Width="44" Height="44" Background="{ThemeResource AmsAccentSubtleBrush}" CornerRadius="10"><FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource AmsFocusBrush}" Glyph="&#xE8A5;" /></Border><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock FontWeight="SemiBold" Text="Thao tác nhanh" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Bắt đầu quy trình mới" /></StackPanel><Button Grid.Column="2" AutomationProperties.Name="Bắt đầu tạo dự án" Click="OnStartProjectClicked" Style="{StaticResource AmsPrimaryButtonStyle}" Content="Tạo dự án" /></Grid></Border>
+                <Border Grid.Column="1" Style="{StaticResource AmsCardStyle}"><StackPanel Spacing="8"><Grid><TextBlock FontWeight="SemiBold" Text="Tiến độ dự án" /><Border HorizontalAlignment="Right" Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="CHƯA CÓ DỮ LIỆU" /></Border></Grid><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Số Texture, thay đổi và cảnh báo sẽ xuất hiện khi có dự án." TextWrapping="Wrap" /></StackPanel></Border>
+                <Border Grid.Column="2" Style="{StaticResource AmsCardStyle}"><StackPanel Spacing="8"><Grid><TextBlock FontWeight="SemiBold" Text="Mẹo an toàn" /><FontIcon HorizontalAlignment="Right" Foreground="{ThemeResource AmsSuccessBrush}" Glyph="&#xE72E;" /></Grid><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Studio chỉ làm việc trên bản sao; tệp nguồn gốc luôn được giữ nguyên." TextWrapping="Wrap" /></StackPanel></Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</Page>

@@ -15,7 +15,12 @@
     "web/assets/screenshots/home-dark.png",
     "web/assets/screenshots/home-light.png",
     "web/assets/screenshots/image-editor.png",
-    "web/assets/screenshots/update-available.png"
+    "web/assets/screenshots/update-available.png",
+    "web/admin/404.html",
+    "web/admin/index.html",
+    "web/admin/robots.txt",
+    "web/admin/script.js",
+    "web/admin/styles.css"
   ],
   "repositoryFiles": [
     ".github/workflows/public-site-ci.yml",
@@ -25,6 +30,7 @@
     "docs/DEPLOYMENT.md",
     "docs/RELEASE_STATUS.json",
     "netlify.toml",
+    "netlify/functions/admin-config.mjs",
     "package-lock.json",
     "package.json",
     "public-allowlist.json",
@@ -44,6 +50,11 @@
     "web/assets/screenshots/home-dark.png",
     "web/assets/screenshots/home-light.png",
     "web/assets/screenshots/image-editor.png",
-    "web/assets/screenshots/update-available.png"
+    "web/assets/screenshots/update-available.png",
+    "web/admin/404.html",
+    "web/admin/index.html",
+    "web/admin/robots.txt",
+    "web/admin/script.js",
+    "web/admin/styles.css"
   ]
 }

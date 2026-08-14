@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Tonal hierarchy deliberately avoids live blur on large editor surfaces. -->
+    <SolidColorBrush x:Key="AmsWindowBackgroundBrush" Color="{ThemeResource AmsWindowBackgroundColor}" />
+    <SolidColorBrush x:Key="AmsShellBackgroundBrush" Color="{ThemeResource AmsShellBackgroundColor}" />
+    <SolidColorBrush x:Key="AmsSidebarBackgroundBrush" Color="{ThemeResource AmsSidebarBackgroundColor}" />
+    <SolidColorBrush x:Key="AmsSurfaceLowBrush" Color="{ThemeResource AmsSurfaceLowColor}" />
+    <SolidColorBrush x:Key="AmsPanelBrush" Color="{ThemeResource AmsSurfaceColor}" />
+    <SolidColorBrush x:Key="AmsCardBrush" Color="{ThemeResource AmsSurfaceHighColor}" />
+    <SolidColorBrush x:Key="AmsSurfaceHoverBrush" Color="{ThemeResource AmsSurfaceHoverColor}" />
+    <SolidColorBrush x:Key="AmsSurfaceSelectedBrush" Color="{ThemeResource AmsSurfaceSelectedColor}" />
+    <SolidColorBrush x:Key="AmsCardBorderBrush" Color="{ThemeResource AmsBorderSubtleColor}" />
+    <SolidColorBrush x:Key="AmsStrongBorderBrush" Color="{ThemeResource AmsBorderStrongColor}" />
+    <SolidColorBrush x:Key="AmsTextPrimaryBrush" Color="{ThemeResource AmsTextPrimaryColor}" />
+    <SolidColorBrush x:Key="AmsTextSecondaryBrush" Color="{ThemeResource AmsTextSecondaryColor}" />
+    <SolidColorBrush x:Key="AmsTextMutedBrush" Color="{ThemeResource AmsTextMutedColor}" />
+    <SolidColorBrush x:Key="AmsTextDisabledBrush" Color="{ThemeResource AmsTextDisabledColor}" />
+    <SolidColorBrush x:Key="AmsFocusBrush" Color="{ThemeResource AmsFocusColor}" />
+    <SolidColorBrush x:Key="AmsAccentSecondaryBrush" Color="{ThemeResource AmsAccentSecondaryColor}" />
+    <SolidColorBrush x:Key="AmsCanvasBrush" Color="{ThemeResource AmsCanvasColor}" />
+    <SolidColorBrush x:Key="AmsAccentSubtleBrush" Color="{ThemeResource AmsAccentSubtleColor}" />
+    <SolidColorBrush x:Key="AmsStatusBarBrush" Color="{ThemeResource AmsSidebarBackgroundColor}" />
+    <LinearGradientBrush x:Key="AmsHeroGradientBrush" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Offset="0" Color="{ThemeResource AmsSurfaceHighColor}" />
+        <GradientStop Offset="0.72" Color="{ThemeResource AmsAccentSubtleColor}" />
+        <GradientStop Offset="1" Color="{ThemeResource AmsSurfaceColor}" />
+    </LinearGradientBrush>
+
+    <!-- Flat daylight button tokens. -->
+    <SolidColorBrush x:Key="AmsButtonPrimaryBrush" Color="{ThemeResource AmsAccentColor}" />
+    <SolidColorBrush x:Key="AmsButtonPrimaryDepthBrush" Color="{ThemeResource AmsAccentDepthColor}" />
+    <SolidColorBrush x:Key="AmsButtonSecondaryBrush" Color="{ThemeResource AmsSurfaceRaisedColor}" />
+    <SolidColorBrush x:Key="AmsButtonSecondaryDepthBrush" Color="{ThemeResource AmsBorderColor}" />
+    <SolidColorBrush x:Key="AmsButtonHoverOverlayBrush" Color="{ThemeResource AmsAccentHoverColor}" />
+    <SolidColorBrush x:Key="AmsButtonPressedBrush" Color="{ThemeResource AmsAccentPressedColor}" />
+    <SolidColorBrush x:Key="AmsButtonContentBrush" Color="{ThemeResource AmsTextOnAccentColor}" />
+
+    <!-- Status and accent component tokens. -->
+    <SolidColorBrush x:Key="AmsSuccessBrush" Color="{ThemeResource AmsSuccessColor}" />
+    <SolidColorBrush x:Key="AmsWarningBrush" Color="{ThemeResource AmsWarningColor}" />
+    <SolidColorBrush x:Key="AmsErrorBrush" Color="{ThemeResource AmsErrorColor}" />
+    <SolidColorBrush x:Key="AmsInfoBrush" Color="{ThemeResource AmsInfoColor}" />
+    <SolidColorBrush x:Key="AmsAccentGradientBrush" Color="{ThemeResource AmsAccentColor}" />
+    <StaticResource x:Key="AmsHeroBackgroundBrush" ResourceKey="AmsHeroGradientBrush" />
+
+    <StaticResource x:Key="AmsButtonPadding" ResourceKey="AmsControlPadding" />
+    <StaticResource x:Key="AmsCompactButtonPadding" ResourceKey="AmsPrimitiveCompactControlPadding" />
+    <StaticResource x:Key="AmsStatusBadgePadding" ResourceKey="AmsBadgePadding" />
+    <StaticResource x:Key="AmsShellHeaderPadding" ResourceKey="AmsPrimitiveShellHeaderPadding" />
+    <StaticResource x:Key="AmsShellContentPadding" ResourceKey="AmsPrimitiveShellContentPadding" />
+</ResourceDictionary>

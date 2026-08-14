@@ -36,7 +36,20 @@ async function collect(directory, prefix = "") {
   return result;
 }
 
-const actual = (await collect(scanRoot)).sort();
+async function collectSourceInventory() {
+  const publicTree = await collect(path.join(root, "web"), "web");
+  const explicitFiles = [...expected].filter((item) => !item.startsWith("web/"));
+  for (const relative of explicitFiles) {
+    const absolute = path.join(root, relative);
+    const info = await lstat(absolute);
+    if (!info.isFile() || info.isSymbolicLink()) {
+      throw new Error(`Public source không phải regular file: ${relative}`);
+    }
+  }
+  return [...publicTree, ...explicitFiles];
+}
+
+const actual = (distMode ? await collect(scanRoot) : await collectSourceInventory()).sort();
 const unexpected = actual.filter((item) => !expected.has(item));
 const missing = [...expected].filter((item) => !actual.includes(item)).sort();
 if (unexpected.length || missing.length) {

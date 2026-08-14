@@ -52,5 +52,32 @@ expect(/prefers-reduced-motion/.test(await readFile(path.join(webRoot, "styles.c
 expect(/Content-Security-Policy:/.test(await readFile(path.join(webRoot, "_headers"), "utf8")), "_headers: thiếu CSP");
 expect(!/href="[^"]*(download|\.zip)/i.test(index), "index.html: public download chưa được phê duyệt");
 
+const adminHeaders = await readFile(path.join(webRoot, "_headers"), "utf8");
+expect(/\/admin\/\*/.test(adminHeaders) && /X-Robots-Tag: noindex/i.test(adminHeaders), "admin headers missing noindex hardening");
+const admin = await readFile(path.join(webRoot, "admin", "index.html"), "utf8");
+const adminScript = await readFile(path.join(webRoot, "admin", "script.js"), "utf8");
+const adminStyles = await readFile(path.join(webRoot, "admin", "styles.css"), "utf8");
+const adminRpcMigration = await readFile(path.join(root, "supabase", "migrations", "202608150002_admin_portal_netlify_supabase.sql"), "utf8");
+const adminConfigFunction = await readFile(path.join(root, "netlify", "functions", "admin-config.mjs"), "utf8");
+expect(/<html lang="vi"/i.test(admin), "admin/index.html missing lang=vi");
+expect((admin.match(/<h1\b/gi) ?? []).length === 1, "admin/index.html must have exactly one h1");
+expect(/href="\/admin\/styles\.css"/.test(admin), "admin/index.html stylesheet must be under /admin/");
+expect(/src="\/admin\/script\.js"/.test(admin), "admin/index.html script must be under /admin/");
+expect(/data-login-form/i.test(admin), "admin/index.html missing secure login form");
+expect(!/data-api-base|data-token/i.test(admin), "admin/index.html must not expose manual API/token configuration");
+expect(/AbortController/.test(adminScript), "admin/script.js missing request cancellation");
+expect(/admin_portal_api/.test(adminScript), "admin/script.js missing Supabase admin RPC");
+expect(/grant_type=password/.test(adminScript), "admin/script.js missing Supabase password login");
+expect(/\/v1\/admin\/users/.test(adminScript), "admin/script.js missing user management route");
+expect(/\/v1\/admin\/transactions/.test(adminScript), "admin/script.js missing transaction search route");
+expect(/Authorization/.test(adminScript) && /sessionStorage/.test(adminScript), "admin/script.js missing authenticated session handling");
+expect(/auth\.uid\(\)/.test(adminRpcMigration), "admin RPC must derive actor from Supabase JWT");
+expect(/SECURITY DEFINER/.test(adminRpcMigration) && /REVOKE ALL[^;]+anon/s.test(adminRpcMigration), "admin RPC missing privilege boundary");
+expect(/codycn2804@gmail\.com/.test(adminRpcMigration), "admin RPC missing approved bootstrap owner");
+expect(/AS metric_day/.test(adminRpcMigration) && !/::date\s+day\b/.test(adminRpcMigration), "admin analytics uses a PostgreSQL-safe day alias");
+expect(!/service_role/i.test(adminConfigFunction), "Netlify config function must not expose privileged Supabase key");
+expect(/SUPABASE_URL/.test(adminConfigFunction) && /SUPABASE_PUBLISHABLE_KEY/.test(adminConfigFunction), "Netlify config function missing public Supabase variables");
+expect(/prefers-reduced-motion/.test(adminStyles), "admin/styles.css missing reduced-motion");
+
 if (failures.length) throw new Error(`PUBLIC SITE TEST FAIL\n- ${failures.join("\n- ")}`);
 console.log(`PUBLIC SITE TEST PASS: ${pages.length} trang, liên kết nội bộ, semantic, a11y và release gate.`);

@@ -1,0 +1,32 @@
+name: Supply-chain verification
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-policy:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 10.0.302
+      - name: Restore exact locked graph
+        run: dotnet restore AuditionModStudio.sln --locked-mode --nologo
+      - name: Reject vulnerable dependencies
+        shell: pwsh
+        run: ./scripts/Invoke-DependencyAudit.ps1
+      - name: Verify deterministic SPDX SBOM
+        shell: pwsh
+        run: ./scripts/New-DependencySbom.ps1 -Verify
+      - name: Verify supply-chain policy records
+        shell: pwsh
+        run: ./scripts/Test-SupplyChainPolicy.ps1

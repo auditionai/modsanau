@@ -1,0 +1,15 @@
+{
+  "name": "audition-ai-mod-studio-admin-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cổng quản trị bảo mật cho Audition AI Mod Studio.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs",
+    "check": "npm test && npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

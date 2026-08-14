@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AuditionModStudio.AI\AuditionModStudio.AI.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Archives\AuditionModStudio.Archives.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Cloud\AuditionModStudio.Cloud.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Core\AuditionModStudio.Core.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Dds\AuditionModStudio.Dds.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Imaging\AuditionModStudio.Imaging.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Infrastructure\AuditionModStudio.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Mods\AuditionModStudio.Mods.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Projects\AuditionModStudio.Projects.csproj" />
+    <ProjectReference Include="..\..\src\AuditionModStudio.Security\AuditionModStudio.Security.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\AuditionModStudio.App\Shell\AppRoute.cs" Link="AppShell\AppRoute.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Shell\AppShellViewModel.cs" Link="AppShell\AppShellViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Shell\ShellNavigationItem.cs" Link="AppShell\ShellNavigationItem.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Shell\ApplicationProjectSession.cs" Link="Home\ApplicationProjectSession.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Home\HomeOptions.cs" Link="Home\HomeOptions.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Home\HomeViewModel.cs" Link="Home\HomeViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Workspace\WorkspacePresentationModels.cs" Link="Workspace\WorkspacePresentationModels.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Workspace\IWorkspaceTextureSelection.cs" Link="Workspace\IWorkspaceTextureSelection.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Workspace\ProjectWorkspaceViewModel.cs" Link="Workspace\ProjectWorkspaceViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Workspace\BuildExportViewModel.cs" Link="Workspace\BuildExportViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Editor\ImageEditorPresentationModels.cs" Link="Editor\ImageEditorPresentationModels.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Editor\ImageEditorViewModel.cs" Link="Editor\ImageEditorViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\AiStudio\AiStudioPresentationModels.cs" Link="AiStudio\AiStudioPresentationModels.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\AiStudio\AiStudioViewModel.cs" Link="AiStudio\AiStudioViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\AiStudio\AiMaskEditorViewModel.cs" Link="AiStudio\AiMaskEditorViewModel.cs" />
+    <Compile Include="..\..\src\AuditionModStudio.App\Account\AccountViewModel.cs" Link="Account\AccountViewModel.cs" />
+  </ItemGroup>
+
+</Project>

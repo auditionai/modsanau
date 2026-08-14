@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "plan": 89,
+  "controls": [
+    {
+      "id": "STM-01",
+      "requirement": "modified acv.exe rejected",
+      "evidence": ["Archives.Tests.ArchiveToolIntegrityPolicyTests.Modified_byte_is_rejected_with_hash_mismatch"]
+    },
+    {
+      "id": "STM-02",
+      "requirement": "corrupt template rejected",
+      "evidence": ["Projects.Tests.ProjectArchiveWorkspaceServiceTests.Expected_source_hash_mismatch_returns_structured_failure"]
+    },
+    {
+      "id": "STM-03",
+      "requirement": "path traversal rejected",
+      "evidence": ["IntegrationTests.PathSecurityTests"]
+    },
+    {
+      "id": "STM-04",
+      "requirement": "forged local credit ignored",
+      "evidence": [
+        "Gateway.Tests.TrustedGatewayEndpointTests.Client_cannot_mutate_credit_or_send_client_authority_fields",
+        "Gateway.Tests.TrustedGatewayEndpointTests.Job_enqueue_rejects_client_cost_unsafe_metadata_and_numeric_operation"
+      ]
+    },
+    {
+      "id": "STM-05",
+      "requirement": "expired token rejected",
+      "evidence": ["Gateway.Tests.SupabaseAccessTokenValidatorTests.Expired_overlong_or_cross_subject_token_is_rejected_fail_closed"]
+    },
+    {
+      "id": "STM-06",
+      "requirement": "duplicate AI charge idempotent",
+      "evidence": ["Gateway.Tests.SecurityMatrixPostgresTests.Duplicate_ai_enqueue_reserves_credit_exactly_once_and_replays_one_job"]
+    },
+    {
+      "id": "STM-07",
+      "requirement": "concurrent wallet spend safe",
+      "evidence": ["Gateway.Tests.CreditConcurrencyIntegrationTests.Parallel_reservations_cannot_overspend_one_wallet"]
+    },
+    {
+      "id": "STM-08",
+      "requirement": "wrong user cannot read another project/job",
+      "evidence": ["Gateway.Tests.SecurityMatrixPostgresTests.Wrong_user_cannot_get_list_or_cancel_another_users_ai_job"]
+    },
+    {
+      "id": "STM-09",
+      "requirement": "update with wrong signature rejected",
+      "evidence": [
+        "Security.Tests.AppUpdateVerificationTests.Replaced_manifest_metadata_is_rejected_before_network_or_install",
+        "Security.Tests.AppUpdateVerificationTests.Unsigned_wrong_publisher_or_altered_artifact_is_rejected_before_install"
+      ]
+    },
+    {
+      "id": "STM-10",
+      "requirement": "leaked plaintext token search returns none",
+      "evidence": [
+        "Security.Tests.SecretScanTests",
+        "scripts/Invoke-SecretScan.ps1:source,tests,docs,supabase,scripts,.github,App/Gateway release outputs"
+      ]
+    },
+    {
+      "id": "STM-11",
+      "requirement": "tampered template package rejected",
+      "evidence": ["Gateway.Tests.PremiumTemplateDistributionTests.Package_bytes_require_exact_length_hash_and_manifest_signature"]
+    },
+    {
+      "id": "STM-12",
+      "requirement": "app survives malformed DDS/archive inputs safely",
+      "evidence": [
+        "Dds.Tests.DdsPreviewServiceTests.Invalid_or_malformed_dds_is_rejected_before_decoder",
+        "Dds.Tests.DirectXTexEvaluationHarnessTests.Malformed_dds_is_rejected_before_native_process",
+        "IntegrationTests.Plan89MalformedArchiveSecurityTests.Real_acv_malformed_archive_fails_structurally_without_escape_or_process_exception"
+      ]
+    }
+  ]
+}
