@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 — 2026-08-14
+
+- Chuyển toàn bộ landing sang dark cosmic với starfield canvas, nebula và hệ chữ spectral chuyển động.
+- Làm mới header liquid-glass và footer nhiều tầng theo cùng ngôn ngữ vũ trụ.
+- Bổ sung khu vực AI Studio với bảy tác vụ, luồng preview, user approval và DDS validation.
+- Bổ sung bảng thuê ứng dụng tuần/tháng/năm và bảng nạp Credits; chưa tự đặt giá khi catalog thương mại chưa được phê duyệt.
+- Giữ reduced-motion, keyboard navigation, touch target và ảnh sản phẩm nguyên tỷ lệ.
+
 ## 0.3.0 — 2026-08-14
 
 - Thiết kế lại toàn bộ landing theo hướng creative workstation nền sáng, bố cục module và typography vừa phải.

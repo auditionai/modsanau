@@ -56,14 +56,15 @@ try {
   for (const capture of [
     { name: "desktop-1440x1100.png", size: "1440,1100", target: "" },
     { name: "features-1440x1100.png", size: "1440,1100", target: "cong-cu" },
+    { name: "ai-studio-1440x1100.png", size: "1440,1100", target: "ai-studio" },
     { name: "gallery-1440x1100.png", size: "1440,1100", target: "giao-dien" },
+    { name: "pricing-1440x1100.png", size: "1440,1100", target: "bang-gia" },
     { name: "mobile-500x900.png", size: "500,900", target: "" }
   ]) {
     await execute(chrome, [
       "--headless=new",
       "--disable-gpu",
       "--hide-scrollbars",
-      "--force-prefers-reduced-motion=reduce",
       "--virtual-time-budget=1500",
       `--window-size=${capture.size}`,
       `--screenshot=${path.join(evidenceRoot, capture.name)}`,

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f4f1e9">
+  <meta name="theme-color" content="#060713">
   <meta name="description" content="Audition AI Mod Studio là ứng dụng Windows hỗ trợ chỉnh sửa texture, giữ metadata DDS và xuất archive .ab/.acv theo quy trình file-only.">
   <meta name="robots" content="index,follow,max-image-preview:large">
   <meta property="og:type" content="website">
@@ -11,7 +11,7 @@
   <meta property="og:title" content="Audition AI Mod Studio — Công cụ chỉnh sửa texture trên Windows">
   <meta property="og:description" content="Chỉnh ảnh, khớp DDS và xuất archive trong một quy trình rõ ràng, chạy cục bộ trên máy tính.">
   <meta property="og:url" content="https://modsanau.netlify.app/">
-  <meta property="og:image" content="https://modsanau.netlify.app/assets/screenshots/home-light.png">
+  <meta property="og:image" content="https://modsanau.netlify.app/assets/screenshots/home-dark.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://modsanau.netlify.app/">
   <link rel="icon" type="image/svg+xml" href="/assets/brand/brand-mark.svg">
@@ -20,6 +20,8 @@
 </head>
 <body>
   <a class="skip-link" href="#noi-dung">Bỏ qua điều hướng</a>
+  <canvas class="starfield" data-starfield aria-hidden="true"></canvas>
+  <div class="cosmic-backdrop" aria-hidden="true"><i></i><i></i><i></i></div>
   <div class="page-light" aria-hidden="true"></div>
 
   <header class="site-header" data-header>
@@ -33,10 +35,10 @@
       </button>
       <nav id="site-nav" class="site-nav" aria-label="Điều hướng chính" data-nav>
         <a href="#cong-cu">Công cụ</a>
-        <a href="#quy-trinh">Quy trình</a>
+        <a href="#ai-studio">AI Studio</a>
         <a href="#giao-dien">Giao diện</a>
-        <a href="#an-toan">Phạm vi</a>
-        <a class="nav-status" href="#phat-hanh"><span></span>Bản thử nghiệm</a>
+        <a href="#bang-gia">Bảng giá</a>
+        <a class="nav-status" href="#phat-hanh"><span></span>Trạng thái</a>
       </nav>
     </div>
   </header>
@@ -47,7 +49,7 @@
       <div class="hero-layout">
         <div class="hero-copy reveal">
           <p class="eyebrow"><span>Ứng dụng Windows</span><span>File-only workflow</span></p>
-          <h1 id="hero-title">Chỉnh sửa texture Audition trong một quy trình rõ ràng.</h1>
+          <h1 id="hero-title">Chỉnh sửa <span class="stellar-text">texture Audition</span> trong một quy trình rõ ràng.</h1>
           <p class="hero-description">Mở dự án, chỉnh ảnh, khớp lại thông số DDS và xuất archive độc lập. Mọi thao tác đều diễn ra trên file do bạn chọn.</p>
           <div class="hero-actions">
             <a class="button button-primary" href="#giao-dien"><span>Xem giao diện</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
@@ -66,7 +68,7 @@
           <div class="stage-note note-two" aria-hidden="true"><span>02</span>Kiểm tra DDS</div>
           <figure class="app-window">
             <div class="window-bar"><span class="window-dots"><i></i><i></i><i></i></span><b>Audition AI Mod Studio</b><small>Trang chủ</small></div>
-            <div class="window-image"><img src="/assets/screenshots/home-light.png" width="1920" height="1080" alt="Màn hình trang chủ sáng của Audition AI Mod Studio" fetchpriority="high"></div>
+            <div class="window-image"><img src="/assets/screenshots/home-dark.png" width="1920" height="1080" alt="Màn hình trang chủ tối của Audition AI Mod Studio" fetchpriority="high"></div>
           </figure>
           <div class="stage-card" aria-hidden="true"><span class="stage-card-icon"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8m-8 4h5"/></svg></span><p><small>Trạng thái dự án</small><strong>Sẵn sàng chỉnh sửa</strong></p><i></i></div>
         </div>
@@ -104,10 +106,32 @@
       </div>
     </section>
 
+    <section id="ai-studio" class="section ai-section" aria-labelledby="ai-title">
+      <div class="ai-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="ai-heading reveal">
+        <div><span class="section-number">02</span><p class="section-kicker">AI Studio</p></div>
+        <div><h2 id="ai-title">Hỗ trợ chỉnh ảnh bằng <span class="stellar-text">AI</span>, nhưng bạn vẫn là người quyết định.</h2><p>Chọn tác vụ, nhập yêu cầu và xem bản preview. Kết quả chỉ được áp dụng vào texture sau khi bạn xác nhận và hệ thống kiểm tra lại DDS.</p></div>
+      </div>
+      <div class="ai-layout">
+        <div class="ai-console reveal" data-tilt data-depth="1.5">
+          <div class="ai-console-top"><span><i></i>AI workspace</span><small>PREVIEW MODE</small></div>
+          <div class="ai-prompt"><small>Yêu cầu chỉnh sửa</small><p>Thay nền thành bầu trời đêm, giữ nguyên nhân vật và vùng trong suốt.</p><span class="typing-caret" aria-hidden="true"></span></div>
+          <div class="ai-preview" aria-hidden="true"><div class="preview-source"><span>Ảnh nguồn</span></div><div class="preview-arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></div><div class="preview-result"><span>AI preview</span><i></i><i></i><i></i></div></div>
+          <div class="ai-console-bottom"><span><i></i>Đang chờ người dùng duyệt</span><button type="button" disabled>Áp dụng sau khi kiểm tra</button></div>
+        </div>
+        <div class="ai-capabilities">
+          <article class="ai-capability reveal"><span>01</span><div><h3>Tạo và chỉnh ảnh</h3><p>Generate, Edit, Inpaint và Outpaint theo prompt và ảnh tham chiếu.</p></div></article>
+          <article class="ai-capability reveal"><span>02</span><div><h3>Xử lý đối tượng</h3><p>Remove Object hoặc Replace Object trên vùng mask do bạn chọn.</p></div></article>
+          <article class="ai-capability reveal"><span>03</span><div><h3>Nâng kích thước</h3><p>Upscale ảnh theo kích thước mục tiêu trước khi đi vào pipeline DDS.</p></div></article>
+          <article class="ai-capability reveal"><span>04</span><div><h3>Credits minh bạch</h3><p>Ứng dụng lấy báo giá từ server trước mỗi tác vụ; số dư và chi phí không do client tự quyết định.</p></div></article>
+        </div>
+      </div>
+    </section>
+
     <section id="quy-trinh" class="section process" aria-labelledby="process-title">
       <div class="process-layout">
         <div class="process-intro reveal">
-          <span class="section-number">02</span><p class="section-kicker">Quy trình làm việc</p>
+          <span class="section-number">03</span><p class="section-kicker">Quy trình làm việc</p>
           <h2 id="process-title">Bốn bước từ file nguồn đến archive mới.</h2>
           <p>Mỗi bước có trạng thái riêng. Bạn có thể kiểm tra lại trước khi chuyển sang bước tiếp theo.</p>
           <div class="process-progress" aria-hidden="true"><span data-progress></span></div>
@@ -123,7 +147,7 @@
 
     <section id="giao-dien" class="section gallery" aria-labelledby="gallery-title" data-gallery>
       <div class="gallery-heading reveal">
-        <div><span class="section-number">03</span><p class="section-kicker">Giao diện ứng dụng</p></div>
+        <div><span class="section-number">04</span><p class="section-kicker">Giao diện ứng dụng</p></div>
         <div><h2 id="gallery-title">Ảnh chụp từ bản Windows hiện tại.</h2><p>Chọn từng màn hình để xem đầy đủ. Ảnh được giữ nguyên tỷ lệ và không cắt nội dung.</p></div>
       </div>
       <div class="gallery-layout reveal">
@@ -145,7 +169,7 @@
 
     <section id="an-toan" class="section scope" aria-labelledby="scope-title">
       <div class="scope-layout">
-        <div class="scope-copy reveal"><span class="section-number">04</span><p class="section-kicker">Phạm vi hoạt động</p><h2 id="scope-title">Ứng dụng làm việc với file, không điều khiển game.</h2><p>Bạn chủ động chọn dữ liệu đầu vào và vị trí lưu đầu ra. Studio không tìm kiếm thư mục cài đặt, không chạy game và không tự cài mod.</p></div>
+        <div class="scope-copy reveal"><span class="section-number">05</span><p class="section-kicker">Phạm vi hoạt động</p><h2 id="scope-title">Ứng dụng làm việc với file, không điều khiển game.</h2><p>Bạn chủ động chọn dữ liệu đầu vào và vị trí lưu đầu ra. Studio không tìm kiếm thư mục cài đặt, không chạy game và không tự cài mod.</p></div>
         <div class="scope-board reveal" data-card-light>
           <div class="scope-center" aria-hidden="true"><span><img src="/assets/brand/brand-mark.svg" width="42" height="42" alt=""></span><strong>Working copy</strong><small>Workspace riêng</small></div>
           <div class="scope-item item-a"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h6l2 2h8v10H4z"/></svg><span><strong>File do bạn chọn</strong><small>Đầu vào rõ ràng</small></span></div>
@@ -153,6 +177,33 @@
           <div class="scope-item item-c"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/></svg><span><strong>Không chạm game</strong><small>Không runtime automation</small></span></div>
           <svg class="scope-lines" viewBox="0 0 700 420" preserveAspectRatio="none" aria-hidden="true"><path d="M350 210C270 210 225 115 148 115M350 210c80 0 125-95 202-95M350 210c0 85 0 115 0 155"/></svg>
         </div>
+      </div>
+    </section>
+
+    <section id="bang-gia" class="section pricing" aria-labelledby="pricing-title">
+      <div class="pricing-heading reveal">
+        <div><span class="section-number">06</span><p class="section-kicker">Bảng giá</p></div>
+        <div><h2 id="pricing-title">Thuê ứng dụng theo thời gian, nạp Credits khi cần dùng AI.</h2><p>Các mức giá chính thức chưa được cấu hình trên hệ thống. Bảng dưới đây thể hiện đầy đủ cấu trúc gói để bạn theo dõi trước khi mở bán.</p></div>
+      </div>
+
+      <div class="pricing-block reveal">
+        <div class="pricing-block-head"><div><span>01</span><h3>Thời hạn sử dụng ứng dụng</h3></div><p>Mỗi gói mở quyền sử dụng ứng dụng trong thời hạn tương ứng. Credits AI được quản lý riêng.</p></div>
+        <div class="rental-grid">
+          <article class="price-card" data-price-card><span class="price-label">7 ngày</span><h4>Gói tuần</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
+          <article class="price-card price-featured" data-price-card><span class="price-badge">Phổ biến</span><span class="price-label">30 ngày</span><h4>Gói tháng</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
+          <article class="price-card" data-price-card><span class="price-label">365 ngày</span><h4>Gói năm</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
+        </div>
+      </div>
+
+      <div class="pricing-block credit-pricing reveal">
+        <div class="pricing-block-head"><div><span>02</span><h3>Gói nạp Credits</h3></div><p>Credits dùng cho Generate, Edit, Inpaint, Outpaint, Remove, Replace và Upscale. Chi phí từng tác vụ do server báo trước khi chạy.</p></div>
+        <div class="credit-grid">
+          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>100 Credits</h4><p>Gói dùng thử các tác vụ AI.</p><strong>Chưa công bố giá</strong></article>
+          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>500 Credits</h4><p>Phù hợp với nhu cầu chỉnh sửa thường xuyên.</p><strong>Chưa công bố giá</strong></article>
+          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>1.000 Credits</h4><p>Dành cho nhiều tác vụ hoặc ảnh độ phân giải cao.</p><strong>Chưa công bố giá</strong></article>
+          <article class="credit-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/></svg><div><h4>Cách tính an toàn</h4><p>Server giữ Credits trước khi xử lý, chốt chi phí khi tác vụ hoàn tất và hoàn lại phần giữ nếu tác vụ thất bại theo chính sách hệ thống.</p></div></article>
+        </div>
+        <p class="pricing-disclaimer">Giá hiển thị trên website chỉ được cập nhật sau khi Product Owner phê duyệt catalog thương mại. Website không tự tạo giao dịch hoặc cấp Credits.</p>
       </div>
     </section>
 
@@ -178,7 +229,12 @@
   </main>
 
   <footer class="site-footer">
-    <div class="footer-inner"><a class="brand" href="#dau-trang"><span class="brand-icon"><img src="/assets/brand/brand-mark.svg" width="34" height="34" alt=""></span><span><strong>Audition AI</strong><small>Mod Studio</small></span></a><p>Công cụ chỉnh sửa texture và build archive trên Windows.</p><nav aria-label="Liên kết pháp lý"><a href="/privacy.html">Quyền riêng tư</a><a href="/terms.html">Điều khoản</a></nav><small>© <span data-year>2026</span> Audition AI. Website giới thiệu sản phẩm thử nghiệm.</small></div>
+    <div class="footer-nebula" aria-hidden="true"></div>
+    <div class="footer-main">
+      <div class="footer-brand"><a class="brand" href="#dau-trang"><span class="brand-icon"><img src="/assets/brand/brand-mark.svg" width="34" height="34" alt=""></span><span><strong>Audition AI</strong><small>Mod Studio</small></span></a><h2>Một workspace dành cho texture Audition.</h2><p>Chỉnh ảnh, hỗ trợ AI, kiểm tra DDS và build archive trên Windows.</p></div>
+      <div class="footer-links"><div><h3>Sản phẩm</h3><a href="#cong-cu">Công cụ</a><a href="#ai-studio">AI Studio</a><a href="#giao-dien">Giao diện</a></div><div><h3>Thông tin</h3><a href="#bang-gia">Bảng giá</a><a href="#an-toan">Phạm vi</a><a href="#phat-hanh">Trạng thái</a></div><div><h3>Pháp lý</h3><a href="/privacy.html">Quyền riêng tư</a><a href="/terms.html">Điều khoản</a></div></div>
+    </div>
+    <div class="footer-bottom"><span>© <span data-year>2026</span> Audition AI</span><span class="footer-signal"><i></i>Website thử nghiệm · chưa mở tải xuống</span><a href="#dau-trang">Về đầu trang <b>↑</b></a></div>
   </footer>
   <script src="/script.js" defer></script>
 </body>
