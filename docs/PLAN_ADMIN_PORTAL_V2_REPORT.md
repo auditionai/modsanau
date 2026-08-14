@@ -34,3 +34,5 @@ provision trên cloud. Không được báo portal đã tự kết nối dữ li
   báo dynamic-skip dưới dạng failure vì thiếu approved `texconv.exe`, không liên quan thay đổi admin.
 - Supabase linked migration check trả HTTP 403 do tài khoản CLI hiện tại không có quyền project; migration và
   owner credential chưa thể provision từ workspace này.
+- Public source inventory kiểm kê toàn bộ cây `web/` và các file build/deploy allowlist trong monorepo; dist
+  tiếp tục được kiểm kê tuyệt đối sau build.
