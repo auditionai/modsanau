@@ -37,7 +37,7 @@ const server = createServer(async (request, response) => {
     if (relative === "index.html" && captureTarget) {
       const html = body.toString("utf8");
       const safeTarget = captureTarget.replace(/[^a-z0-9-]/gi, "");
-      const captureStyles = `<style>main>*{display:none!important}main>#${safeTarget}{display:block!important;margin-top:78px}.reveal{opacity:1!important;transform:none!important}</style>`;
+      const captureStyles = `<style>main>*{display:none!important}main>#${safeTarget}{display:block!important;margin-top:78px}.reveal,.tool-scene.is-active{opacity:1!important;transform:none!important;animation:none!important}</style>`;
       body = Buffer.from(html.replace("</head>", `${captureStyles}</head>`));
     }
     response.writeHead(200, { "Content-Type": contentTypes[path.extname(target)] ?? "application/octet-stream" });
@@ -54,18 +54,18 @@ await new Promise((resolve, reject) => {
 
 try {
   for (const capture of [
-    { name: "desktop-1440x1100.png", size: "1440,1100", target: "" },
+    { name: "desktop-1440x1100.png", size: "1440,1100", target: "dau-trang" },
     { name: "features-1440x1100.png", size: "1440,1100", target: "cong-cu" },
     { name: "ai-studio-1440x1100.png", size: "1440,1100", target: "ai-studio" },
     { name: "gallery-1440x1100.png", size: "1440,1100", target: "giao-dien" },
     { name: "pricing-1440x1100.png", size: "1440,1100", target: "bang-gia" },
-    { name: "mobile-500x900.png", size: "500,900", target: "" }
+    { name: "mobile-500x900.png", size: "500,900", target: "dau-trang" }
   ]) {
     await execute(chrome, [
       "--headless=new",
       "--disable-gpu",
       "--hide-scrollbars",
-      "--virtual-time-budget=1500",
+      "--virtual-time-budget=3000",
       `--window-size=${capture.size}`,
       `--screenshot=${path.join(evidenceRoot, capture.name)}`,
       `http://127.0.0.1:4173/${capture.target ? `?capture=${capture.target}` : ""}`

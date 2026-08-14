@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-08-14
+
+- Thay hoàn toàn lưới công cụ 2×2 bằng interactive technology deck ba vùng.
+- Bổ sung tab điều khiển bằng chuột/bàn phím và bốn scene riêng cho Image Lab, DDS Matrix, Visual Diff, Archive Core.
+- Thêm holographic border, scan beam, telemetry, animated pipeline, waveform, data orbit và chuyển scene.
+- Tối ưu bố cục deck cho desktop, tablet, mobile và reduced-motion.
+
 ## 0.4.0 — 2026-08-14
 
 - Chuyển toàn bộ landing sang dark cosmic với starfield canvas, nebula và hệ chữ spectral chuyển động.

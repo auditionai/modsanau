@@ -82,27 +82,51 @@
     </section>
 
     <section id="cong-cu" class="section tools" aria-labelledby="tools-title">
-      <div class="section-heading reveal">
-        <div><span class="section-number">01</span><p class="section-kicker">Các công cụ chính</p></div>
-        <div><h2 id="tools-title">Những phần cần thiết được đặt cạnh nhau.</h2><p>Không phải chuyển qua nhiều phần mềm chỉ để hoàn thành một texture. Các bước chỉnh sửa và kiểm tra nằm trong cùng một dự án.</p></div>
+      <div class="tools-heading reveal">
+        <div><span class="section-number">01</span><p class="section-kicker">Technology deck</p></div>
+        <div><h2 id="tools-title">Bốn công cụ, <span class="stellar-text">một workspace</span> thống nhất.</h2><p>Chọn một module để xem cách dữ liệu đi từ chỉnh sửa hình ảnh đến archive hoàn chỉnh.</p></div>
+        <div class="tools-system-status"><span><i></i>SYSTEM READY</span><small>LOCAL PIPELINE / 4 MODULES</small></div>
       </div>
-      <div class="tool-grid">
-        <article class="tool-card tool-editor reveal" data-card-light>
-          <div class="tool-copy"><span>Chỉnh sửa hình ảnh</span><h3>Thay đổi nội dung ảnh ngay trong dự án.</h3><p>Crop, resize, canvas, alpha và các điều chỉnh cơ bản được tổ chức theo từng bước dễ theo dõi.</p></div>
-          <div class="editor-demo" aria-hidden="true"><div class="editor-toolbar"><i></i><i></i><i></i><i></i></div><div class="editor-canvas"><span></span><b></b><i></i></div><div class="editor-slider"><span></span><span></span><span></span></div></div>
-        </article>
-        <article class="tool-card tool-dds reveal" data-card-light>
-          <div class="tool-copy"><span>Thông số DDS</span><h3>Giữ đúng định dạng của texture gốc.</h3><p>Kích thước, compression, alpha và mip được kiểm tra trước khi xuất file thay thế.</p></div>
-          <div class="dds-demo" aria-hidden="true"><div><small>FORMAT</small><strong>BC3 / DXT5</strong></div><div><small>SIZE</small><strong>6000 × 1801</strong></div><div><small>MIP</small><strong>1</strong></div><span><i></i>Đã khớp</span></div>
-        </article>
-        <article class="tool-card tool-compare reveal" data-card-light>
-          <div class="tool-copy"><span>So sánh</span><h3>Xem trước thay đổi trước khi lưu.</h3><p>Thanh Before/After giúp đối chiếu ảnh gốc và ảnh đã chỉnh trong cùng một khung.</p></div>
-          <div class="compare-demo" aria-hidden="true"><div class="compare-before"></div><div class="compare-after"></div><span><i></i></span><small>BEFORE</small><small>AFTER</small></div>
-        </article>
-        <article class="tool-card tool-build reveal" data-card-light>
-          <div class="tool-copy"><span>Build archive</span><h3>Xuất thành một file độc lập.</h3><p>Ứng dụng kiểm tra working copy rồi tạo archive mới tại vị trí bạn chọn.</p></div>
-          <div class="build-demo" aria-hidden="true"><div><svg viewBox="0 0 24 24"><path d="M4 7h6l2 2h8v10H4z"/></svg><span>project-working-copy</span></div><i></i><div><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5"/></svg><span>my-texture.ab</span></div></div>
-        </article>
+
+      <div class="tool-deck reveal" data-tool-deck data-tilt data-depth="0.8">
+        <div class="deck-glow" aria-hidden="true"></div>
+        <div class="deck-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="deck-rail" role="tablist" aria-label="Chọn công cụ">
+          <button type="button" role="tab" id="tool-tab-editor" aria-selected="true" aria-controls="tool-panel-editor" data-tool="editor"><span>01</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4-1 11-11-3-3L5 16l-1 4Zm10-13 3 3M5 5h5M5 9h3"/></svg><div><strong>Image Lab</strong><small>Chỉnh sửa hình ảnh</small></div><i></i></button>
+          <button type="button" role="tab" id="tool-tab-dds" aria-selected="false" aria-controls="tool-panel-dds" tabindex="-1" data-tool="dds"><span>02</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7v10l8 4 8-4V7l-8-4Zm-8 4 8 4 8-4m-8 4v10"/></svg><div><strong>DDS Matrix</strong><small>Kiểm tra định dạng</small></div><i></i></button>
+          <button type="button" role="tab" id="tool-tab-compare" aria-selected="false" aria-controls="tool-panel-compare" tabindex="-1" data-tool="compare"><span>03</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM12 5v14M8 9l-2 3 2 3m8-6 2 3-2 3"/></svg><div><strong>Visual Diff</strong><small>So sánh thay đổi</small></div><i></i></button>
+          <button type="button" role="tab" id="tool-tab-build" aria-selected="false" aria-controls="tool-panel-build" tabindex="-1" data-tool="build"><span>04</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8m-8 4h8m-8 4h5"/></svg><div><strong>Archive Core</strong><small>Build file đầu ra</small></div><i></i></button>
+        </div>
+
+        <div class="deck-viewport">
+          <div class="deck-topbar"><span><i></i>LIVE MODULE</span><strong data-tool-counter>01 / 04</strong><small>AUDITION AI ENGINE</small></div>
+          <div class="tool-scenes">
+            <article class="tool-scene is-active" role="tabpanel" id="tool-panel-editor" aria-labelledby="tool-tab-editor" data-tool-panel="editor">
+              <div class="scene-copy"><span>IMAGE LAB / 01</span><h3>Chỉnh texture trong một canvas có kiểm soát.</h3><p>Crop, resize, canvas, alpha và adjustment được thực hiện trên working copy, không sửa trực tiếp file nguồn.</p><ul><li>Non-destructive preview</li><li>Undo / Redo</li><li>Alpha channel</li></ul></div>
+              <div class="holo-editor" aria-hidden="true"><div class="holo-toolbar"><i></i><i></i><i></i><i></i><i></i></div><div class="holo-canvas"><span class="shape-a"></span><span class="shape-b"></span><span class="shape-c"></span><div class="selection-box"><i></i><i></i><i></i><i></i></div><b class="cursor-beam"></b></div><div class="holo-timeline"><i></i><span></span><span></span><span></span></div></div>
+            </article>
+            <article class="tool-scene" role="tabpanel" id="tool-panel-dds" aria-labelledby="tool-tab-dds" data-tool-panel="dds" hidden>
+              <div class="scene-copy"><span>DDS MATRIX / 02</span><h3>Quét và đối chiếu metadata trước khi xuất.</h3><p>Kích thước, compression, alpha và mip phải khớp profile texture gốc trước khi file được chấp nhận.</p><ul><li>Header validation</li><li>Format matching</li><li>Decode verification</li></ul></div>
+              <div class="matrix-scanner" aria-hidden="true"><div class="matrix-core"><span>DDS</span><i></i><i></i><i></i></div><div class="matrix-ring ring-a"></div><div class="matrix-ring ring-b"></div><div class="scan-beam"></div><div class="matrix-data"><p><span>FORMAT</span><strong>BC3 / DXT5</strong></p><p><span>SIZE</span><strong>6000 × 1801</strong></p><p><span>MIP</span><strong>1</strong></p><b><i></i>PROFILE MATCHED</b></div></div>
+            </article>
+            <article class="tool-scene" role="tabpanel" id="tool-panel-compare" aria-labelledby="tool-tab-compare" data-tool-panel="compare" hidden>
+              <div class="scene-copy"><span>VISUAL DIFF / 03</span><h3>Kiểm tra thay đổi bằng mắt trước khi Apply.</h3><p>Before/After đồng bộ giúp đối chiếu bố cục, màu và alpha trong cùng một khung xem trước.</p><ul><li>Linked zoom</li><li>Pixel alignment</li><li>Instant switching</li></ul></div>
+              <div class="diff-visual" aria-hidden="true"><div class="diff-before"><span>ORIGINAL</span><i></i><b></b></div><div class="diff-after"><span>EDITED</span><i></i><b></b></div><div class="diff-divider"><i></i></div><div class="diff-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+            </article>
+            <article class="tool-scene" role="tabpanel" id="tool-panel-build" aria-labelledby="tool-tab-build" data-tool-panel="build" hidden>
+              <div class="scene-copy"><span>ARCHIVE CORE / 04</span><h3>Build archive mới qua từng gate kiểm tra.</h3><p>Working copy được validate, pack và xác minh trước khi file .ab hoặc .acv được đưa tới vị trí bạn chọn.</p><ul><li>Atomic export</li><li>Progress & cancel</li><li>Output verification</li></ul></div>
+              <div class="pipeline-visual" aria-hidden="true"><div class="pipeline-node is-done"><svg viewBox="0 0 24 24"><path d="M4 7h6l2 2h8v10H4z"/></svg><span>WORKSPACE</span><small>READY</small></div><i class="pipeline-link"><b></b></i><div class="pipeline-node is-running"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8m-8 4h8"/></svg><span>PACKING</span><small>78%</small></div><i class="pipeline-link"><b></b></i><div class="pipeline-node"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM14 3v5h5"/></svg><span>OUTPUT</span><small>.AB / .ACV</small></div><div class="pipeline-log"><span>✓ working copy verified</span><span>✓ DDS manifest matched</span><span class="log-active">› packing archive blocks...</span></div></div>
+            </article>
+          </div>
+          <div class="deck-bottombar"><span><i></i><i></i><i></i><i></i><i></i></span><small>CPU 12%</small><small>MEM 248 MB</small><b>LOCAL / SECURE</b></div>
+        </div>
+
+        <aside class="deck-telemetry" aria-label="Thông số module đang chọn">
+          <div class="telemetry-orb" aria-hidden="true"><i></i><span>01</span></div>
+          <p><span>MODULE</span><strong data-tool-name>IMAGE LAB</strong></p><p><span>STATE</span><strong class="status-online">ACTIVE</strong></p><p><span>PIPELINE</span><strong>LOCAL</strong></p>
+          <div class="telemetry-chart" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <small>Chọn module ở thanh bên để chuyển chế độ hiển thị.</small>
+        </aside>
       </div>
     </section>
 
