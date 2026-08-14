@@ -19,7 +19,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     private HomeModOption? _selectedMod;
     private ImmutableArray<HomeModOption> _compatibleMods = [];
     private string _projectName = string.Empty;
-    private string _statusMessage = "Choose a game to see compatible Mod Types.";
+    private string _statusMessage = "Chọn game để xem các loại Mod tương thích.";
     private double _progressPercentage;
     private BackgroundTaskId _activeTaskId;
     private bool _isCreating;
@@ -71,10 +71,10 @@ public sealed class HomeViewModel : INotifyPropertyChanged
                         mod.CompatibilityInformation))
                     .ToImmutableArray();
             _statusMessage = value is null
-                ? "Choose a game to see compatible Mod Types."
+            ? "Chọn game để xem các loại Mod tương thích."
                 : _compatibleMods.IsEmpty
-                    ? "No compatible Mod Types are available for this game yet."
-                    : "Choose a compatible Mod Type.";
+                ? "Game này chưa có loại Mod tương thích."
+                : "Chọn một loại Mod tương thích.";
 
             OnPropertyChanged();
             OnPropertyChanged(nameof(SelectedMod));
@@ -99,9 +99,9 @@ public sealed class HomeViewModel : INotifyPropertyChanged
             _selectedMod = value is not null && _compatibleMods.Contains(value) ? value : null;
             _statusMessage = _selectedMod is null
                 ? HasCompatibleMods
-                    ? "Choose a compatible Mod Type."
+            ? "Chọn một loại Mod tương thích."
                     : StatusMessage
-                : "Name the project, then create it.";
+                : "Đặt tên dự án rồi chọn Tạo dự án.";
             OnPropertyChanged();
             OnPropertyChanged(nameof(StatusMessage));
             OnPropertyChanged(nameof(CanCreate));
@@ -132,6 +132,8 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     public bool CanSelectMod => !_isCreating && HasCompatibleMods;
 
+    public bool CanEditProjectName => !_isCreating;
+
     public bool IsCreating => _isCreating;
 
     public bool CanCancel => _isCreating && _activeTaskId.IsValid;
@@ -144,7 +146,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
     public string ProjectNameValidationMessage =>
         string.IsNullOrEmpty(_projectName) || IsValidProjectName(_projectName)
             ? string.Empty
-            : $"Project name must be 1–{AuditionProject.MaximumNameLength} characters with no control characters.";
+            : $"Tên dự án phải có từ 1–{AuditionProject.MaximumNameLength} ký tự và không chứa ký tự điều khiển.";
 
     public string StatusMessage => _statusMessage;
 
@@ -164,7 +166,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         ProjectCreationResult? creationResult = null;
         IProgress<ProjectCreationProgress> uiProgress = new Progress<ProjectCreationProgress>(UpdateProgress);
 
-        SetCreatingState(true, "Project creation is queued.", 0);
+        SetCreatingState(true, "Dự án đang chờ được tạo.", 0);
         var enqueue = await _taskManager.EnqueueAsync(
             new BackgroundTaskRequest(
                 BackgroundTaskKind.Extract,
@@ -210,17 +212,17 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
         if (snapshot is null)
         {
-            SetCreatingState(false, "Project task is no longer available.", 0);
+            SetCreatingState(false, "Tác vụ tạo dự án không còn khả dụng.", 0);
             return;
         }
 
         switch (snapshot.State)
         {
             case BackgroundTaskState.Succeeded when creationResult?.Succeeded == true:
-                SetCreatingState(false, $"Project '{creationResult.Project!.Name}' was created.", 100);
+                SetCreatingState(false, $"Đã tạo dự án “{creationResult.Project!.Name}”.", 100);
                 break;
             case BackgroundTaskState.Cancelled:
-                SetCreatingState(false, "Project creation was cancelled.", _progressPercentage);
+                SetCreatingState(false, "Đã hủy tạo dự án.", _progressPercentage);
                 break;
             default:
                 SetCreatingState(
@@ -266,20 +268,20 @@ public sealed class HomeViewModel : INotifyPropertyChanged
 
     private static string ToFailureMessage(ProjectCreationFailureReason? reason) => reason switch
     {
-        ProjectCreationFailureReason.EntitlementDenied => "This account is not entitled to the selected template.",
-        ProjectCreationFailureReason.EntitlementUnavailable => "Template entitlement could not be verified. Try again later.",
-        ProjectCreationFailureReason.UnknownGame => "The selected game is no longer available.",
-        ProjectCreationFailureReason.UnknownMod => "The selected Mod Type is no longer available.",
-        ProjectCreationFailureReason.Cancelled => "Project creation was cancelled.",
-        _ => "Project creation failed. Review the application log and try again."
+        ProjectCreationFailureReason.EntitlementDenied => "Tài khoản này không có quyền dùng mẫu đã chọn.",
+        ProjectCreationFailureReason.EntitlementUnavailable => "Chưa thể xác minh quyền dùng mẫu. Vui lòng thử lại sau.",
+        ProjectCreationFailureReason.UnknownGame => "Game đã chọn không còn khả dụng.",
+        ProjectCreationFailureReason.UnknownMod => "Loại Mod đã chọn không còn khả dụng.",
+        ProjectCreationFailureReason.Cancelled => "Đã hủy tạo dự án.",
+        _ => "Không thể tạo dự án. Hãy xem nhật ký ứng dụng rồi thử lại."
     };
 
     private static string ToEnqueueMessage(BackgroundTaskEnqueueFailureReason reason) => reason switch
     {
-        BackgroundTaskEnqueueFailureReason.QueueFull => "The task queue is full. Try again when another task finishes.",
-        BackgroundTaskEnqueueFailureReason.ShuttingDown => "The application is shutting down and cannot create a project.",
-        BackgroundTaskEnqueueFailureReason.Cancelled => "Project creation was cancelled before it started.",
-        _ => "Project creation could not be queued."
+        BackgroundTaskEnqueueFailureReason.QueueFull => "Hàng đợi đang đầy. Hãy thử lại khi một tác vụ khác hoàn tất.",
+        BackgroundTaskEnqueueFailureReason.ShuttingDown => "Ứng dụng đang đóng nên không thể tạo dự án.",
+        BackgroundTaskEnqueueFailureReason.Cancelled => "Đã hủy tạo dự án trước khi bắt đầu.",
+        _ => "Không thể đưa tác vụ tạo dự án vào hàng đợi."
     };
 
     private void UpdateProgress(ProjectCreationProgress progress)
@@ -289,17 +291,17 @@ public sealed class HomeViewModel : INotifyPropertyChanged
             : Math.Clamp((double)progress.CompletedSteps / progress.TotalSteps * 100, 0, 100);
         _statusMessage = progress.Phase switch
         {
-            ProjectCreationPhase.ValidatingSelection => "Validating game and Mod Type.",
-            ProjectCreationPhase.CheckingEntitlement => "Checking template access.",
-            ProjectCreationPhase.AcquiringTemplate => "Acquiring the trusted template.",
-            ProjectCreationPhase.CreatingWorkspace => "Creating a protected project workspace.",
-            ProjectCreationPhase.PreparingKeydat => "Preparing archive companion data.",
-            ProjectCreationPhase.ExtractingArchive => "Extracting the working archive.",
-            ProjectCreationPhase.ScanningTextures => "Scanning textures.",
-            ProjectCreationPhase.CachingMetadata => "Caching texture metadata.",
-            ProjectCreationPhase.SavingProject => "Saving the project.",
-            ProjectCreationPhase.Completed => "Finishing project creation.",
-            _ => "Creating project."
+            ProjectCreationPhase.ValidatingSelection => "Đang kiểm tra game và loại Mod.",
+            ProjectCreationPhase.CheckingEntitlement => "Đang kiểm tra quyền dùng mẫu.",
+            ProjectCreationPhase.AcquiringTemplate => "Đang tải mẫu tin cậy.",
+            ProjectCreationPhase.CreatingWorkspace => "Đang tạo không gian dự án an toàn.",
+            ProjectCreationPhase.PreparingKeydat => "Đang chuẩn bị dữ liệu đi kèm tệp nguồn.",
+            ProjectCreationPhase.ExtractingArchive => "Đang giải nén tệp nguồn làm việc.",
+            ProjectCreationPhase.ScanningTextures => "Đang quét Texture.",
+            ProjectCreationPhase.CachingMetadata => "Đang lưu thông tin Texture.",
+            ProjectCreationPhase.SavingProject => "Đang lưu dự án.",
+            ProjectCreationPhase.Completed => "Đang hoàn tất tạo dự án.",
+            _ => "Đang tạo dự án."
         };
         OnPropertyChanged(nameof(ProgressPercentage));
         OnPropertyChanged(nameof(StatusMessage));
@@ -313,6 +315,7 @@ public sealed class HomeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsCreating));
         OnPropertyChanged(nameof(CanSelectGame));
         OnPropertyChanged(nameof(CanSelectMod));
+        OnPropertyChanged(nameof(CanEditProjectName));
         OnPropertyChanged(nameof(CanCreate));
         OnPropertyChanged(nameof(CanCancel));
         OnPropertyChanged(nameof(StatusMessage));

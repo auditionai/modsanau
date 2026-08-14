@@ -8,8 +8,8 @@
     Background="Transparent"
     mc:Ignorable="d">
 
-    <ScrollViewer AutomationProperties.Name="Account profile and credit history">
-        <Grid MaxWidth="1200" Padding="{StaticResource AmsShellContentPadding}" RowSpacing="{StaticResource AmsSpace16}">
+    <ScrollViewer AutomationProperties.Name="Hồ sơ tài khoản và lịch sử Credits" HorizontalContentAlignment="Stretch">
+        <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="{StaticResource AmsSpace20}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -22,15 +22,16 @@
                 <StackPanel Spacing="{StaticResource AmsSpace8}">
                     <TextBlock
                         x:Name="AccountHeading"
+                        x:Uid="AccountHeading"
                         AutomationProperties.HeadingLevel="Level1"
-                        Style="{StaticResource AmsSectionTitleStyle}"
-                        Text="Account" />
+                        Style="{StaticResource AmsPageTitleStyle}"
+                        Text="Tài khoản" />
                     <TextBlock
                         Style="{StaticResource AmsBodyTextStyle}"
-                        Text="Server-verified profile, wallet, usage and recent credit transactions. This page is read-only." />
+                        Text="Quản lý hồ sơ, Credits và hoạt động gần đây." />
                     <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
                         <ProgressRing
-                            AutomationProperties.Name="Loading account data"
+                            AutomationProperties.Name="Đang tải dữ liệu tài khoản"
                             IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
                         <TextBlock
                             AutomationProperties.LiveSetting="Polite"
@@ -40,12 +41,12 @@
                 </StackPanel>
                 <Button
                     Grid.Column="1"
-                    AutomationProperties.HelpText="Reload profile, wallet, usage and transaction history from the trusted server"
-                    AutomationProperties.Name="Refresh account data"
+                    AutomationProperties.HelpText="Tải lại hồ sơ, số dư Credits và lịch sử giao dịch"
+                    AutomationProperties.Name="Làm mới dữ liệu tài khoản"
                     Click="OnRefreshClicked"
                     IsEnabled="{x:Bind ViewModel.CanRefresh, Mode=OneWay}"
                     MinHeight="44"
-                    Style="{StaticResource AmsSecondaryButtonStyle}">Refresh</Button>
+                    Style="{StaticResource AmsSecondaryButtonStyle}"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon FontSize="14" Glyph="&#xE72C;" /><TextBlock Text="Làm mới" /></StackPanel></Button>
             </Grid>
 
             <InfoBar
@@ -56,7 +57,15 @@
                 IsOpen="True"
                 Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
                 Severity="Warning"
-                Title="Account data unavailable" />
+                Title="Dịch vụ tài khoản đang tạm thời gián đoạn" />
+
+            <Grid x:Name="OfflineAccount" Grid.Row="2" x:Load="{x:Bind ViewModel.HasError, Mode=OneWay}" ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace16}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="1.45*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                <Border Grid.RowSpan="2" MinHeight="360" Style="{StaticResource AmsAccentCardStyle}"><StackPanel VerticalAlignment="Center" Spacing="{StaticResource AmsSpace16}"><Border Width="64" Height="64" Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" FontSize="28" Glyph="&#xE77B;" /></Border><TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsPageTitleStyle}" Text="Tài khoản của bạn" /><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Thông tin tài khoản sẽ xuất hiện khi kết nối được khôi phục. Các công cụ chỉnh sửa cục bộ vẫn sẵn sàng." /></StackPanel></Border>
+                <Border Grid.Column="1" Style="{StaticResource AmsGamingPanelStyle}"><StackPanel Spacing="{StaticResource AmsSpace16}"><FontIcon HorizontalAlignment="Left" Foreground="{ThemeResource AmsTextMutedBrush}" FontSize="24" Glyph="&#xE8C7;" /><TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Credits" /><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Chưa thể tải số dư và mức sử dụng Credits lúc này." /><Border Margin="0,12,0,0" Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="CHƯA KẾT NỐI" /></Border></StackPanel></Border>
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource AmsGamingPanelStyle}"><StackPanel Spacing="{StaticResource AmsSpace16}"><FontIcon HorizontalAlignment="Left" Foreground="{ThemeResource AmsTextMutedBrush}" FontSize="24" Glyph="&#xE823;" /><TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Hoạt động gần đây" /><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Các giao dịch Credits đã hoàn tất sẽ xuất hiện tại đây." /><TextBlock Margin="0,12,0,0" Style="{StaticResource AmsCaptionTextStyle}" Text="Chưa có dữ liệu" /></StackPanel></Border>
+            </Grid>
 
             <StackPanel x:Name="AccountSnapshot" Grid.Row="2" x:Load="{x:Bind ViewModel.ShowProfile, Mode=OneWay}" Spacing="{StaticResource AmsSpace16}">
                 <Grid x:Name="AccountCards" ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace16}">
@@ -80,32 +89,32 @@
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <Border Style="{StaticResource AmsGamingPanelStyle}">
                         <StackPanel Spacing="{StaticResource AmsSpace8}">
-                            <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Profile" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Display name" />
+                            <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Hồ sơ" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Tên hiển thị" />
                             <TextBlock Text="{x:Bind ViewModel.DisplayName, Mode=OneWay}" TextWrapping="Wrap" />
                             <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Email" />
                             <TextBlock Text="{x:Bind ViewModel.Email, Mode=OneWay}" TextWrapping="Wrap" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="User ID" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Mã người dùng" />
                             <TextBlock Text="{x:Bind ViewModel.UserId, Mode=OneWay}" TextWrapping="Wrap" />
                         </StackPanel>
                     </Border>
                     <Border x:Name="WalletCard" Grid.Column="1" Style="{StaticResource AmsAccentCardStyle}">
                         <StackPanel Spacing="{StaticResource AmsSpace8}">
-                            <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Wallet" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Available credits" />
+                            <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Số dư Credits" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Credits khả dụng" />
                             <TextBlock FontSize="32" FontWeight="SemiBold" Text="{x:Bind ViewModel.AvailableCredits, Mode=OneWay}" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Reserved credits" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Credits đang giữ" />
                             <TextBlock FontSize="22" Text="{x:Bind ViewModel.ReservedCredits, Mode=OneWay}" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Server snapshot" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Cập nhật lúc" />
                             <TextBlock Text="{x:Bind ViewModel.ObservedAt, Mode=OneWay}" />
                         </StackPanel>
                     </Border>
                     <Border x:Name="UsageCard" Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource AmsCardStyle}">
                         <Grid ColumnSpacing="{StaticResource AmsSpace16}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                            <StackPanel><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Lifetime granted" /><TextBlock FontSize="22" Text="{x:Bind ViewModel.CreditsGranted, Mode=OneWay}" /></StackPanel>
-                            <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Lifetime used" /><TextBlock FontSize="22" Text="{x:Bind ViewModel.CreditsUsed, Mode=OneWay}" /></StackPanel>
-                            <StackPanel Grid.Column="2"><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Transactions" /><TextBlock FontSize="22" Text="{x:Bind ViewModel.TransactionCount, Mode=OneWay}" /></StackPanel>
+                            <StackPanel><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Tổng Credits đã nhận" /><TextBlock FontSize="22" Text="{x:Bind ViewModel.CreditsGranted, Mode=OneWay}" /></StackPanel>
+                            <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Tổng Credits đã dùng" /><TextBlock FontSize="22" Text="{x:Bind ViewModel.CreditsUsed, Mode=OneWay}" /></StackPanel>
+                            <StackPanel Grid.Column="2"><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Giao dịch" /><TextBlock FontSize="22" Text="{x:Bind ViewModel.TransactionCount, Mode=OneWay}" /></StackPanel>
                         </Grid>
                     </Border>
                 </Grid>
@@ -113,9 +122,9 @@
 
             <Border x:Name="AccountHistory" Grid.Row="3" x:Load="{x:Bind ViewModel.ShowHistory, Mode=OneWay}" Style="{StaticResource AmsGamingPanelStyle}">
                 <StackPanel Spacing="{StaticResource AmsSpace12}">
-                    <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Recent credit transactions" />
+                    <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Giao dịch Credits gần đây" />
                     <ListView
-                        AutomationProperties.Name="Recent credit transaction history"
+                        AutomationProperties.Name="Lịch sử giao dịch Credits gần đây"
                         IsItemClickEnabled="False"
                         ItemsSource="{x:Bind ViewModel.Transactions, Mode=OneWay}"
                         SelectionMode="None">
@@ -137,8 +146,8 @@
             <Border x:Name="EmptyAccountHistory" Grid.Row="3" x:Load="{x:Bind ViewModel.ShowEmptyState, Mode=OneWay}" Style="{StaticResource AmsGamingPanelStyle}">
                 <StackPanel HorizontalAlignment="Center" Spacing="{StaticResource AmsSpace8}">
                     <FontIcon Glyph="&#xE8C7;" FontSize="28" />
-                    <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="No credit transactions" TextAlignment="Center" />
-                    <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Your server wallet is ready. Verified transactions will appear here." TextAlignment="Center" />
+                    <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Chưa có giao dịch Credits" TextAlignment="Center" />
+                    <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Các giao dịch đã xác minh sẽ xuất hiện tại đây." TextAlignment="Center" />
                 </StackPanel>
             </Border>
         </Grid>

@@ -24,6 +24,18 @@ public sealed partial class ImageEditorPage : Page
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
+        ZoomSlider.Minimum = 0.1;
+        ZoomSlider.StepFrequency = 0.1;
+        ZoomSlider.Value = 1;
+        CropWidth.Minimum = 0.01;
+        CropHeight.Minimum = 0.01;
+        CompareZoomSlider.Minimum = 0.1;
+        CompareZoomSlider.StepFrequency = 0.1;
+        CompareZoomSlider.Value = 1;
+        CompareDividerSlider.LargeChange = 0.1;
+        CompareDividerSlider.SmallChange = 0.01;
+        CompareDividerSlider.StepFrequency = 0.01;
+        CompareDividerSlider.Value = 0.5;
         ViewModel.PropertyChanged += OnViewModelPropertyChanged;
         PopulateCheckerboard(BeforeSideCheckerboard);
         PopulateCheckerboard(AfterSideCheckerboard);
@@ -102,11 +114,14 @@ public sealed partial class ImageEditorPage : Page
 
     private void OnZoomChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
+        if (ZoomBadgeText is not null) ZoomBadgeText.Text = $"{e.NewValue * 100:0}%";
         if (ViewModel.SetZoom(e.NewValue))
         {
             UpdateCanvasProjection();
         }
     }
+
+    private void OnOneToOneClicked(object sender, RoutedEventArgs e) => ZoomSlider.Value = 1;
 
     private void OnCanvasPointerPressed(object sender, PointerRoutedEventArgs e)
     {
@@ -389,7 +404,7 @@ public sealed partial class ImageEditorPage : Page
     {
         var showAfter = ViewModel.CompareToggleState == ImageCompareToggleState.After;
         ToggleImage.Source = showAfter ? _afterBitmap : _beforeBitmap;
-        ToggleStateLabel.Text = showAfter ? "After" : "Before";
+        ToggleStateLabel.Text = showAfter ? "Sau" : "Trước";
     }
 
     private void UpdateCompareSliderClip()

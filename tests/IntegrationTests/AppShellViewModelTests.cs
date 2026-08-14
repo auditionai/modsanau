@@ -15,15 +15,12 @@ public sealed class AppShellViewModelTests
                 AppRoute.Projects,
                 AppRoute.AiStudio,
                 AppRoute.ImageEditor,
-                AppRoute.ModLibrary,
-                AppRoute.Batch,
-                AppRoute.Cloud,
                 AppRoute.Account,
                 AppRoute.Settings
             ],
             viewModel.NavigationItems.Select(item => item.Route));
         Assert.Equal(AppRoute.Home, viewModel.CurrentRoute);
-        Assert.Equal("Home", viewModel.CurrentTitle);
+        Assert.Equal("Trang chủ", viewModel.CurrentTitle);
     }
 
     [Fact]
@@ -39,7 +36,7 @@ public sealed class AppShellViewModelTests
         Assert.True(changed);
         Assert.False(duplicate);
         Assert.Equal(AppRoute.ImageEditor, viewModel.CurrentRoute);
-        Assert.Equal("Image Editor", viewModel.CurrentTitle);
+        Assert.Equal("Trình chỉnh sửa ảnh", viewModel.CurrentTitle);
         Assert.Equal(
             [nameof(viewModel.CurrentRoute), nameof(viewModel.CurrentTitle), nameof(viewModel.CurrentDescription)],
             changedProperties);

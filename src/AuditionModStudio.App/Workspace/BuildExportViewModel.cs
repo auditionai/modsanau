@@ -18,8 +18,8 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
     private BackgroundTaskId _activeTaskId;
     private string _outputDirectory = string.Empty;
     private string _outputFileName = string.Empty;
-    private string _statusMessage = "No active project is available to build.";
-    private string _stageLabel = "Ready";
+    private string _statusMessage = "Chưa có dự án để Build.";
+    private string _stageLabel = "Sẵn sàng";
     private string _finalOutputPath = "—";
     private string _finalSize = "—";
     private string _finalSha256 = "—";
@@ -44,8 +44,8 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public string ProjectStatus => _projectSession.Project is { } project
-        ? $"Project: {project.Name} · Build status: {project.BuildState.Status}"
-        : "No active project";
+            ? $"Dự án: {project.Name} · Trạng thái Build: {ToBuildStatusLabel(project.BuildState.Status)}"
+            : "Chưa mở dự án";
 
     public string OutputDirectory
     {
@@ -107,14 +107,14 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
         {
             _loadedProjectId = null;
             _outputFileName = string.Empty;
-            SetStatus("Ready", "No active project is available to build.", 0);
+            SetStatus("Sẵn sàng", "Chưa có dự án để Build.", 0);
         }
         else if (_loadedProjectId != project.ProjectId)
         {
             _loadedProjectId = project.ProjectId;
             _outputFileName = workspace.ArchiveWorkspace.WorkingArchiveRelativePath;
             ClearResult();
-            SetStatus("Ready", "Choose an export folder, then validate, build, and export the archive.", 0);
+            SetStatus("Sẵn sàng", "Chọn thư mục xuất, sau đó kiểm tra, Build và xuất tệp Mod.", 0);
         }
 
         OnPropertyChanged(nameof(OutputFileName));
@@ -133,14 +133,14 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
         var workspace = _projectSession.Workspace;
         if (project is null || workspace is null)
         {
-            SetStatus("Action required", "Create or open a project before building an archive.", 0);
+            SetStatus("Cần thao tác", "Hãy tạo hoặc mở dự án trước khi Build tệp Mod.", 0);
             return;
         }
 
         if (!ArchiveExportFileContract.TryCreate(
                 workspace.ArchiveWorkspace.WorkingArchiveRelativePath, out var fileContract))
         {
-            SetStatus("Validation failed", "The project archive type is not valid for export.", 0);
+            SetStatus("Kiểm tra không đạt", "Loại tệp nguồn của dự án không hợp lệ để xuất.", 0);
             return;
         }
 
@@ -157,7 +157,7 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
         IProgress<ArchiveExportProgress> uiExportProgress = new Progress<ArchiveExportProgress>(UpdateExportProgress);
         ClearResult();
         SetBusy(true);
-        SetStatus("Queued", "Build and export is waiting for a background worker.", 0);
+        SetStatus("Đang chờ", "Tác vụ Build và xuất file đang chờ xử lý.", 0);
 
         var enqueue = await _taskManager.EnqueueAsync(
             new BackgroundTaskRequest(
@@ -209,7 +209,7 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
         if (!enqueue.Succeeded)
         {
             SetBusy(false);
-            SetStatus("Not started", ToEnqueueMessage(enqueue.FailureReason), 0);
+            SetStatus("Chưa bắt đầu", ToEnqueueMessage(enqueue.FailureReason), 0);
             return;
         }
 
@@ -223,13 +223,13 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
         {
             _loadedProjectId = buildResult!.Project!.ProjectId;
             _finalOutputPath = exportResult.Destination!.FullPath;
-            _finalSize = $"{exportResult.Size:N0} bytes";
+            _finalSize = $"{exportResult.Size:N0} byte";
             _finalSha256 = exportResult.Sha256!.Value.Value;
             OnPropertyChanged(nameof(FinalOutputPath));
             OnPropertyChanged(nameof(FinalSize));
             OnPropertyChanged(nameof(FinalSha256));
             OnPropertyChanged(nameof(ProjectStatus));
-            SetStatus("Completed", "Archive built and exported successfully.", 100);
+            SetStatus("Hoàn tất", "Đã Build và xuất tệp Mod thành công.", 100);
             return;
         }
 
@@ -237,24 +237,24 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
             || buildResult?.Cancelled == true
             || exportResult?.Cancelled == true)
         {
-            SetStatus("Cancelled", "Build and export was cancelled. No partial final archive was published.",
+            SetStatus("Đã hủy", "Đã hủy Build và xuất file. Không có tệp chưa hoàn chỉnh nào được xuất.",
                 _progressPercentage);
             return;
         }
 
         if (destinationValidation is { Succeeded: false })
         {
-            SetStatus("Validation failed", ToDestinationMessage(destinationValidation.FailureReason), 0);
+            SetStatus("Kiểm tra không đạt", ToDestinationMessage(destinationValidation.FailureReason), 0);
             return;
         }
 
-        SetStatus("Failed", ToFailureMessage(buildResult, exportResult), _progressPercentage);
+        SetStatus("Không thành công", ToFailureMessage(buildResult, exportResult), _progressPercentage);
     }
 
     public bool Cancel() => _activeTaskId.IsValid && _taskManager.TryCancel(_activeTaskId);
 
     public void ReportFolderSelectionUnavailable() =>
-        SetStatus("Folder unavailable", "The folder picker could not be opened. Try again.", _progressPercentage);
+            SetStatus("Không mở được thư mục", "Không thể mở trình chọn thư mục. Vui lòng thử lại.", _progressPercentage);
 
     private void UpdateBuildProgress(ProjectBuildProgress progress) =>
         SetStatus(ToBuildLabel(progress.Phase), ToBuildMessage(progress.Phase), BuildCompletedUnits(progress.Phase));
@@ -344,66 +344,74 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
 
     private static string ToBuildLabel(ProjectBuildPhase phase) => phase switch
     {
-        ProjectBuildPhase.Validating => "Validating",
-        ProjectBuildPhase.Packing => "Building",
-        ProjectBuildPhase.Verifying => "Verifying build",
-        ProjectBuildPhase.Completed => "Build complete",
-        _ => "Preparing build"
+        ProjectBuildPhase.Validating => "Đang kiểm tra",
+        ProjectBuildPhase.Packing => "Đang Build",
+        ProjectBuildPhase.Verifying => "Đang xác minh bản Build",
+        ProjectBuildPhase.Completed => "Build hoàn tất",
+        _ => "Đang chuẩn bị Build"
     };
 
     private static string ToBuildMessage(ProjectBuildPhase phase) => phase switch
     {
-        ProjectBuildPhase.Validating => "Checking project state and archive inputs.",
-        ProjectBuildPhase.Packing => "Packing the validated project archive.",
-        ProjectBuildPhase.Verifying => "Verifying the final build artifact.",
-        ProjectBuildPhase.Completed => "Build verified. Preparing the export transaction.",
-        _ => "Saving the project and preparing an isolated build workspace."
+        ProjectBuildPhase.Validating => "Đang kiểm tra trạng thái dự án và dữ liệu tệp nguồn.",
+        ProjectBuildPhase.Packing => "Đang đóng gói tệp Mod đã kiểm tra.",
+        ProjectBuildPhase.Verifying => "Đang xác minh file Build cuối.",
+        ProjectBuildPhase.Completed => "Đã xác minh bản Build. Đang chuẩn bị xuất file.",
+        _ => "Đang lưu dự án và chuẩn bị vùng Build riêng."
     };
 
     private static string ToExportLabel(ArchiveExportPhase phase) => phase switch
     {
-        ArchiveExportPhase.Copying => "Exporting",
-        ArchiveExportPhase.VerifyingCandidate => "Verifying export",
-        ArchiveExportPhase.Promoting => "Publishing archive",
-        ArchiveExportPhase.Completed => "Export complete",
-        _ => "Preparing export"
+        ArchiveExportPhase.Copying => "Đang xuất file",
+        ArchiveExportPhase.VerifyingCandidate => "Đang xác minh file xuất",
+        ArchiveExportPhase.Promoting => "Đang hoàn tất tệp Mod",
+        ArchiveExportPhase.Completed => "Xuất file hoàn tất",
+        _ => "Đang chuẩn bị xuất file"
     };
 
     private static string ToExportMessage(ArchiveExportPhase phase) => phase switch
     {
-        ArchiveExportPhase.VerifyingSource => "Verifying the exact build artifact before export.",
-        ArchiveExportPhase.Copying => "Writing a temporary archive in the selected destination.",
-        ArchiveExportPhase.VerifyingCandidate => "Checking exported bytes and SHA-256.",
-        ArchiveExportPhase.Promoting => "Atomically publishing the final archive.",
-        ArchiveExportPhase.Completed => "The final archive is ready.",
-        _ => "Preparing the selected export destination."
+        ArchiveExportPhase.VerifyingSource => "Đang xác minh file Build trước khi xuất.",
+        ArchiveExportPhase.Copying => "Đang ghi tệp tạm vào thư mục đã chọn.",
+        ArchiveExportPhase.VerifyingCandidate => "Đang kiểm tra dữ liệu và SHA-256 của file xuất.",
+        ArchiveExportPhase.Promoting => "Đang hoàn tất tệp Mod một cách an toàn.",
+        ArchiveExportPhase.Completed => "Tệp Mod đã sẵn sàng.",
+        _ => "Đang chuẩn bị thư mục xuất đã chọn."
     };
 
     private static string ToDestinationMessage(ArchiveExportDestinationFailureReason reason) => reason switch
     {
-        ArchiveExportDestinationFailureReason.DirectoryNotFound => "Choose an existing export folder.",
-        ArchiveExportDestinationFailureReason.DirectoryAccessDenied => "The selected folder cannot be accessed.",
-        ArchiveExportDestinationFailureReason.DirectoryUnavailable => "The selected folder is unavailable.",
-        ArchiveExportDestinationFailureReason.ReparsePointNotAllowed => "The selected folder is not allowed by path safety policy.",
-        ArchiveExportDestinationFailureReason.InvalidFileName => "Enter one valid archive filename without a folder path.",
-        ArchiveExportDestinationFailureReason.InvalidArchiveExtension => "The filename extension must match the project archive type.",
-        ArchiveExportDestinationFailureReason.DestinationCollision => "That archive already exists. Enable explicit replacement or choose another name.",
-        _ => "Choose a valid absolute export folder and archive filename."
+        ArchiveExportDestinationFailureReason.DirectoryNotFound => "Hãy chọn một thư mục xuất đang tồn tại.",
+        ArchiveExportDestinationFailureReason.DirectoryAccessDenied => "Không thể truy cập thư mục đã chọn.",
+        ArchiveExportDestinationFailureReason.DirectoryUnavailable => "Thư mục đã chọn không khả dụng.",
+        ArchiveExportDestinationFailureReason.ReparsePointNotAllowed => "Chính sách an toàn đường dẫn không cho phép dùng thư mục này.",
+        ArchiveExportDestinationFailureReason.InvalidFileName => "Hãy nhập tên file hợp lệ, không kèm đường dẫn thư mục.",
+        ArchiveExportDestinationFailureReason.InvalidArchiveExtension => "Phần mở rộng của file phải khớp loại tệp nguồn trong dự án.",
+        ArchiveExportDestinationFailureReason.DestinationCollision => "Tệp này đã tồn tại. Hãy bật thay thế hoặc chọn tên khác.",
+        _ => "Hãy chọn thư mục xuất tuyệt đối và tên file hợp lệ."
     };
 
     private static string ToFailureMessage(ProjectBuildResult? build, ArchiveExportResult? export) =>
         build is not null && !build.Succeeded
-            ? "The project could not be validated or built. Review the application log and correct the project before retrying."
+            ? "Không thể kiểm tra hoặc Build dự án. Hãy xem nhật ký ứng dụng, sửa dự án rồi thử lại."
             : export?.FailureReason == ArchiveExportFailureReason.DestinationInvalid
-                ? "The export destination changed or became unavailable. Review it and try again."
-                : "The archive could not be exported safely. The previous destination was preserved where recovery was possible.";
+                ? "Thư mục xuất đã thay đổi hoặc không còn khả dụng. Hãy kiểm tra rồi thử lại."
+                : "Không thể xuất tệp Mod an toàn. Dữ liệu cũ tại thư mục đích vẫn được giữ nguyên khi có thể.";
 
     private static string ToEnqueueMessage(BackgroundTaskEnqueueFailureReason reason) => reason switch
     {
-        BackgroundTaskEnqueueFailureReason.QueueFull => "The task queue is full. Try again after another task finishes.",
-        BackgroundTaskEnqueueFailureReason.ShuttingDown => "The application is shutting down and cannot start this operation.",
-        BackgroundTaskEnqueueFailureReason.Cancelled => "Build and export was cancelled before it started.",
-        _ => "Build and export could not be queued."
+        BackgroundTaskEnqueueFailureReason.QueueFull => "Hàng đợi đang đầy. Hãy thử lại khi một tác vụ khác hoàn tất.",
+        BackgroundTaskEnqueueFailureReason.ShuttingDown => "Ứng dụng đang đóng nên không thể bắt đầu tác vụ này.",
+        BackgroundTaskEnqueueFailureReason.Cancelled => "Đã hủy Build và xuất file trước khi bắt đầu.",
+        _ => "Không thể đưa tác vụ Build và xuất file vào hàng đợi."
+    };
+
+    private static string ToBuildStatusLabel(ProjectBuildStatus status) => status switch
+    {
+        ProjectBuildStatus.Succeeded => "Thành công",
+        ProjectBuildStatus.Failed => "Không thành công",
+        ProjectBuildStatus.Dirty => "Có thay đổi chưa Build",
+        _ => "Chưa Build"
     };
 
     private sealed class CallbackProgress<T>(Action<T> callback) : IProgress<T>

@@ -15,6 +15,11 @@
                 <ResourceDictionary Source="DesignSystem/Components.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <converters:InvertedBooleanConverter x:Key="InvertedBooleanConverter" />
+            <converters:VietnameseEnumLabelConverter x:Key="VietnameseEnumLabelConverter" />
+            <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{ThemeResource AmsAccentColor}" />
+            <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="{ThemeResource AmsAccentHoverColor}" />
+            <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="{ThemeResource AmsAccentPressedColor}" />
+            <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="{ThemeResource AmsAccentColor}" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

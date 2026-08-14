@@ -1468,3 +1468,30 @@ Nguồn sự thật thực thi và checklist nằm tại [CRASH_RECOVERY_EVIDENC
 PLAN 100 không thêm runtime service và không đổi production pipeline. Executable evidence nằm trong IntegrationTests, dùng lại đúng `IDdsMetadataReader`, `ThumbnailCache`, image resize/adjustment service, DirectXTex Match Original, Background Task Manager và full archive file pipeline. Test archive/DDS chỉ đọc fixture pristine hoặc working copy cô lập; điểm cuối vẫn là standalone `.ab`.
 
 Phép đo phân biệt first pass với repeated pass, cache `Generated`/`Memory`/`Disk`, single-flight đồng thời và bounded batch orchestration. Không gọi first pass là cold vì OS page cache không được kiểm soát. UI responsiveness chỉ có bằng chứng ở service/dispatch contract; GUI frame/input latency và startup end-to-end chưa được instrument. Số đo, môi trường, giới hạn working-set/allocation và non-goals nằm tại [PERFORMANCE_TEST_REPORT.md](PERFORMANCE_TEST_REPORT.md).
+
+## Visual Product Acceptance và portable ZIP từ PLAN 101
+
+Kênh V1 chính là WinUI 3 **unpackaged + Windows App SDK self-contained + .NET self-contained**, target `win-x64`.
+Publish tạo một thư mục nhiều file và ZIP nguyên thư mục đó; không dùng Native AOT, không yêu cầu package registration,
+installer hoặc .NET SDK/runtime cài riêng. MSIX PLAN 95 vẫn tồn tại như kiến trúc lịch sử/kênh tương lai nhưng không phải
+primary V1 distribution. Unpackaged app không có package identity; automatic updater thuộc PLAN 102.
+
+```text
+dotnet publish (Release, win-x64, self-contained)
+  → staging/AuditionAI-ModStudio/
+  → allowlist + deny-pattern artifact scan
+  → exact inventory/hash report
+  → AuditionAI-Mod-Studio-<version>-win-x64.zip
+  → extract vào unrelated path có spaces/Unicode
+  → launch exact AuditionModStudio.App.exe
+```
+
+Binary directory là read-only về mặt kiến trúc. `IAppPaths`, Credential Manager, DPAPI và user-selected project/export
+locations tiếp tục sở hữu mutable state; app không ghi token/log/workspace cạnh executable. Portable release không bundle
+`acv.exe`, `texconv.exe`, `.ab/.acv`, keydat, private DDS/template hoặc source/test/PDB/private key. Helper thiếu phải làm
+operation tương ứng unavailable/fail closed nhưng không ngăn local shell khởi động offline.
+
+Shell chỉ hiển thị route V1 có surface thật: Home, Project Workspace (gồm Texture Grid và Build & Export), Image Editor
+(gồm Crop/Resize và Before/After), AI Studio, Account và Settings. Route placeholder lịch sử bị loại khỏi navigation.
+Startup maximize bằng `OverlappedPresenter` trong work area monitor hiện tại; không đổi resolution/exclusive fullscreen.
+Layout tiếp tục dùng adaptive triggers/scrolling, semantic Dark/Light/HighContrast resources và minimum target 1366×768.

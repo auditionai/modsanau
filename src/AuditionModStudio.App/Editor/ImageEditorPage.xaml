@@ -8,451 +8,439 @@
     Background="Transparent"
     mc:Ignorable="d">
 
-    <ScrollViewer>
-        <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="{StaticResource AmsSpace16}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+    <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-            <StackPanel Spacing="{StaticResource AmsSpace8}">
-                <TextBlock
-                    x:Name="EditorHeading"
-                    AutomationProperties.HeadingLevel="Level1"
-                    Style="{StaticResource AmsSectionTitleStyle}"
-                    Text="Crop / Resize Canvas" />
-                <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.TextureName, Mode=OneWay}" />
-                <TextBlock
-                    AutomationProperties.LiveSetting="Polite"
-                    Style="{StaticResource AmsBodyTextStyle}"
-                    Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" />
-                <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
+        <!-- Daylight contextual command header. -->
+        <Border Padding="20,14" Style="{StaticResource AmsCardStyle}">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                    <TextBlock
+                        x:Name="EditorHeading"
+                        x:Uid="EditorHeading"
+                        AutomationProperties.HeadingLevel="Level1"
+                        Style="{StaticResource AmsPageTitleStyle}"
+                        Text="Trình chỉnh sửa ảnh" />
+                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.TextureName, Mode=OneWay}" />
+                </StackPanel>
+                <Border Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource AmsStatusBadgeStyle}">
+                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.TargetDimensions, Mode=OneWay}" />
+                </Border>
+                <StackPanel Grid.Column="3" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                    <Border Style="{StaticResource AmsStatusBadgeStyle}"><StackPanel Orientation="Horizontal" Spacing="6"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" FontSize="12" Glyph="&#xE71E;" /><TextBlock x:Name="ZoomBadgeText" FontFamily="Cascadia Mono" FontSize="12" Text="100%" /></StackPanel></Border>
+                    <Button AutomationProperties.Name="Thu phóng một trên một" Click="OnOneToOneClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsGhostButtonStyle}">1:1</Button>
                     <ProgressRing
-                        AutomationProperties.Name="Selected texture loading"
+                        AutomationProperties.Name="Đang tải Texture đã chọn"
                         IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
                     <Button
-                        AutomationProperties.Name="Cancel selected texture loading"
+                        AutomationProperties.Name="Hủy tải Texture đã chọn"
                         Click="OnCancelClicked"
                         IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}"
                         Style="{StaticResource AmsSecondaryButtonStyle}">
-                        Cancel loading
+                        Hủy tải
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Đặt lại khung chỉnh sửa"
+                        Click="OnResetClicked"
+                        IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
+                        Style="{StaticResource AmsGhostButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE72C;" />
+                            <TextBlock Text="Đặt lại" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        AutomationProperties.HelpText="Kiểm tra, mã hóa và thay thế an toàn chỉ Texture đang chọn trong dự án."
+                        AutomationProperties.Name="Áp dụng Texture đã chọn"
+                        Click="OnApplyClicked"
+                        IsEnabled="{x:Bind ViewModel.CanApply, Mode=OneWay}"
+                        Style="{StaticResource AmsPrimaryButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE8FB;" />
+                            <TextBlock Text="Áp dụng Texture" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Hủy áp dụng Texture"
+                        Click="OnCancelApplyClicked"
+                        IsEnabled="{x:Bind ViewModel.CanCancelApply, Mode=OneWay}"
+                        Style="{StaticResource AmsSecondaryButtonStyle}">
+                        Hủy
                     </Button>
                 </StackPanel>
-            </StackPanel>
-
-            <Grid
-                x:Name="EditorLayout"
-                Grid.Row="1"
-                ColumnSpacing="{StaticResource AmsSpace16}"
-                RowSpacing="{StaticResource AmsSpace16}">
-                <VisualStateManager.VisualStateGroups>
-                    <VisualStateGroup>
-                        <VisualState x:Name="StackedEditorState">
-                            <VisualState.StateTriggers>
-                                <AdaptiveTrigger MinWindowWidth="0" />
-                            </VisualState.StateTriggers>
-                            <VisualState.Setters>
-                                <Setter Target="EditorControlsColumn.Width" Value="0" />
-                                <Setter Target="EditorControls.(Grid.Column)" Value="0" />
-                                <Setter Target="EditorControls.(Grid.Row)" Value="1" />
-                            </VisualState.Setters>
-                        </VisualState>
-                        <VisualState x:Name="WideEditorState">
-                            <VisualState.StateTriggers>
-                                <AdaptiveTrigger MinWindowWidth="1000" />
-                            </VisualState.StateTriggers>
-                        </VisualState>
-                    </VisualStateGroup>
-                </VisualStateManager.VisualStateGroups>
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition x:Name="EditorControlsColumn" Width="360" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <Border Style="{StaticResource AmsGamingPanelStyle}">
-                    <Grid RowSpacing="{StaticResource AmsSpace12}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="520" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid ColumnSpacing="{StaticResource AmsSpace12}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Interactive target frame" />
-                            <Border Grid.Column="1" Style="{StaticResource AmsStatusBadgeStyle}">
-                                <TextBlock
-                                    AutomationProperties.Name="Exact DDS target dimensions"
-                                    Text="{x:Bind ViewModel.TargetDimensions, Mode=OneWay}" />
-                            </Border>
-                        </Grid>
-                        <Canvas
-                            x:Name="EditorCanvas"
-                            Grid.Row="1"
-                            AutomationProperties.HelpText="Drag to pan. Use the mouse wheel or zoom slider to zoom."
-                            AutomationProperties.Name="Interactive crop and resize canvas"
-                            Background="{ThemeResource AmsCardBrush}"
-                            PointerMoved="OnCanvasPointerMoved"
-                            PointerPressed="OnCanvasPointerPressed"
-                            PointerReleased="OnCanvasPointerReleased"
-                            PointerWheelChanged="OnCanvasPointerWheelChanged"
-                            SizeChanged="OnCanvasSizeChanged">
-                            <Image
-                                x:Name="EditorImage"
-                                AutomationProperties.Name="Selected texture preview"
-                                Stretch="Fill" />
-                            <Border
-                                x:Name="TargetFrame"
-                                AutomationProperties.Name="Exact DDS target frame"
-                                BorderBrush="{ThemeResource AmsFocusBrush}"
-                                BorderThickness="2"
-                                IsHitTestVisible="False" />
-                            <Border
-                                x:Name="CropFrame"
-                                AutomationProperties.Name="Crop selection frame"
-                                BorderBrush="{ThemeResource AmsWarningBrush}"
-                                BorderThickness="2"
-                                IsHitTestVisible="False" />
-                        </Canvas>
-                        <TextBlock
-                            Grid.Row="2"
-                            Style="{StaticResource AmsBodyTextStyle}"
-                            Text="Target frame · cyan outline   Crop area · amber outline   Drag canvas · pan" />
-                    </Grid>
-                </Border>
-
-                <Border
-                    x:Name="EditorControls"
-                    Grid.Column="1"
-                    Style="{StaticResource AmsCardStyle}">
-                    <StackPanel Spacing="{StaticResource AmsSpace12}">
-                        <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Resize controls" />
-                        <ComboBox
-                            AutomationProperties.Name="Resize mode"
-                            DisplayMemberPath="Label"
-                            Header="Mode"
-                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
-                            ItemsSource="{x:Bind ViewModel.Modes}"
-                            SelectedItem="{x:Bind ViewModel.SelectedMode, Mode=TwoWay}" />
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.ModeDescription, Mode=OneWay}" />
-                        <TextBlock Text="Zoom" />
-                        <Slider
-                            x:Name="ZoomSlider"
-                            AutomationProperties.Name="Canvas zoom"
-                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
-                            Maximum="8"
-                            Minimum="0.1"
-                            StepFrequency="0.1"
-                            Value="1"
-                            ValueChanged="OnZoomChanged" />
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.PanSummary, Mode=OneWay}" />
-                        <Grid ColumnSpacing="{StaticResource AmsSpace8}" RowSpacing="{StaticResource AmsSpace8}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Button
-                                Grid.Column="1"
-                                AutomationProperties.Name="Pan canvas up"
-                                Click="OnPanClicked"
-                                HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
-                                Style="{StaticResource AmsSecondaryButtonStyle}"
-                                Tag="up">↑</Button>
-                            <Button
-                                Grid.Row="1"
-                                AutomationProperties.Name="Pan canvas left"
-                                Click="OnPanClicked"
-                                HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
-                                Style="{StaticResource AmsSecondaryButtonStyle}"
-                                Tag="left">←</Button>
-                            <Button
-                                Grid.Row="1"
-                                Grid.Column="1"
-                                AutomationProperties.Name="Pan canvas down"
-                                Click="OnPanClicked"
-                                HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
-                                Style="{StaticResource AmsSecondaryButtonStyle}"
-                                Tag="down">↓</Button>
-                            <Button
-                                Grid.Row="1"
-                                Grid.Column="2"
-                                AutomationProperties.Name="Pan canvas right"
-                                Click="OnPanClicked"
-                                HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
-                                Style="{StaticResource AmsSecondaryButtonStyle}"
-                                Tag="right">→</Button>
-                        </Grid>
-                        <Button
-                            AutomationProperties.Name="Reset canvas transform"
-                            Click="OnResetClicked"
-                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
-                            Style="{StaticResource AmsSecondaryButtonStyle}">
-                            Reset zoom / pan / crop
-                        </Button>
-                        <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Crop percentages" />
-                        <Grid ColumnSpacing="{StaticResource AmsSpace8}" RowSpacing="{StaticResource AmsSpace8}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <NumberBox x:Name="CropX" Header="Left %" Maximum="99" Minimum="0" Value="0" />
-                            <NumberBox x:Name="CropY" Grid.Column="1" Header="Top %" Maximum="99" Minimum="0" Value="0" />
-                            <NumberBox x:Name="CropWidth" Grid.Row="1" Header="Width %" Maximum="100" Minimum="0.01" Value="100" />
-                            <NumberBox x:Name="CropHeight" Grid.Row="1" Grid.Column="1" Header="Height %" Maximum="100" Minimum="0.01" Value="100" />
-                        </Grid>
-                        <Button
-                            AutomationProperties.Name="Update crop frame"
-                            Click="OnUpdateCropClicked"
-                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
-                            Style="{StaticResource AmsPrimaryButtonStyle}">
-                            Update crop frame
-                        </Button>
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.CropSummary, Mode=OneWay}" />
-                        <TextBlock
-                            AutomationProperties.LiveSetting="Polite"
-                            Style="{StaticResource AmsBodyTextStyle}"
-                            Text="{x:Bind ViewModel.ApplyStatus, Mode=OneWay}" />
-                        <ProgressBar
-                            AutomationProperties.Name="Texture Apply progress"
-                            Maximum="100"
-                            Minimum="0"
-                            Value="{x:Bind ViewModel.ApplyProgress, Mode=OneWay}" />
-                        <Grid ColumnSpacing="{StaticResource AmsSpace8}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Button
-                                AutomationProperties.HelpText="Validates, encodes and atomically replaces only the selected texture in the project working copy."
-                                AutomationProperties.Name="Apply selected texture"
-                                Click="OnApplyClicked"
-                                HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.CanApply, Mode=OneWay}"
-                                Style="{StaticResource AmsPrimaryButtonStyle}">
-                                Apply texture
-                            </Button>
-                            <Button
-                                Grid.Column="1"
-                                AutomationProperties.Name="Cancel texture Apply"
-                                Click="OnCancelApplyClicked"
-                                HorizontalAlignment="Stretch"
-                                IsEnabled="{x:Bind ViewModel.CanCancelApply, Mode=OneWay}"
-                                Style="{StaticResource AmsSecondaryButtonStyle}">
-                                Cancel Apply
-                            </Button>
-                        </Grid>
-                    </StackPanel>
-                </Border>
             </Grid>
+        </Border>
 
-            <Border Grid.Row="2" Style="{StaticResource AmsGamingPanelStyle}">
-                <Grid RowSpacing="{StaticResource AmsSpace16}">
+        <!-- Main Editor Layout: Dominant Canvas (Left) + Right Contextual Inspector -->
+        <Grid
+            x:Name="EditorLayout"
+            Grid.Row="1"
+            ColumnSpacing="16"
+            RowSpacing="16">
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup>
+                    <VisualState x:Name="StackedEditorState">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="0" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="EditorControlsColumn.Width" Value="0" />
+                            <Setter Target="EditorControls.(Grid.Column)" Value="0" />
+                            <Setter Target="EditorControls.(Grid.Row)" Value="1" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="WideEditorState">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="1000" />
+                        </VisualState.StateTriggers>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*" />
+                <ColumnDefinition x:Name="EditorControlsColumn" Width="360" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- DOMINANT CANVAS VIEWPORT -->
+            <Border Style="{StaticResource AmsEditorSurfaceStyle}">
+                <Grid RowSpacing="8">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Grid ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace12}">
+                    <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Spacing="{StaticResource AmsSpace4}">
-                            <TextBlock
-                                AutomationProperties.HeadingLevel="Level2"
-                                Style="{StaticResource AmsSectionTitleStyle}"
-                                Text="Before / After Compare" />
-                            <TextBlock
-                                Style="{StaticResource AmsBodyTextStyle}"
-                                Text="Read-only session baseline versus the current live non-destructive preview." />
-                            <TextBlock
-                                AutomationProperties.LiveSetting="Polite"
-                                Style="{StaticResource AmsBodyTextStyle}"
-                                Text="{x:Bind ViewModel.AfterPreviewStatus, Mode=OneWay}" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Khung xem chỉnh sửa" />
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource AmsCaptionTextStyle}" Text="Khung xem trung tính tối ưu cho việc kiểm tra hình ảnh" />
                         </StackPanel>
-                        <ProgressRing
-                            Grid.Column="1"
-                            AutomationProperties.Name="Generating live After preview"
-                            IsActive="{x:Bind ViewModel.IsAfterPreviewLoading, Mode=OneWay}" />
+                        <Border Grid.Column="1" Style="{StaticResource AmsStatusBadgeStyle}">
+                            <TextBlock
+                                AutomationProperties.Name="Kích thước đích DDS chính xác"
+                                Style="{StaticResource AmsCaptionTextStyle}"
+                                Text="{x:Bind ViewModel.TargetDimensions, Mode=OneWay}" />
+                        </Border>
                     </Grid>
 
-                    <Grid Grid.Row="1" ColumnSpacing="{StaticResource AmsSpace12}" RowSpacing="{StaticResource AmsSpace12}">
+                    <Canvas
+                        x:Name="EditorCanvas"
+                        Grid.Row="1"
+                        MinHeight="480"
+                        AutomationProperties.HelpText="Kéo để di chuyển. Dùng con lăn chuột hoặc thanh Thu phóng để thay đổi tỷ lệ."
+                        AutomationProperties.Name="Khung cắt và đổi kích thước tương tác"
+                        Background="{ThemeResource AmsCanvasBrush}"
+                        PointerMoved="OnCanvasPointerMoved"
+                        PointerPressed="OnCanvasPointerPressed"
+                        PointerReleased="OnCanvasPointerReleased"
+                        PointerWheelChanged="OnCanvasPointerWheelChanged"
+                        SizeChanged="OnCanvasSizeChanged">
+                        <Image
+                            x:Name="EditorImage"
+                            AutomationProperties.Name="Xem trước Texture đã chọn"
+                            Stretch="Fill" />
+                        <Border
+                            x:Name="TargetFrame"
+                            AutomationProperties.Name="Khung đích DDS chính xác"
+                            BorderBrush="{ThemeResource AmsFocusBrush}"
+                            BorderThickness="2"
+                            IsHitTestVisible="False" />
+                        <Border
+                            x:Name="CropFrame"
+                            AutomationProperties.Name="Vùng cắt đã chọn"
+                            BorderBrush="{ThemeResource AmsWarningBrush}"
+                            BorderThickness="2"
+                            IsHitTestVisible="False" />
+                    </Canvas>
+
+                    <Grid Grid.Row="2" ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <ComboBox
-                            AutomationProperties.Name="Compare mode"
-                            DisplayMemberPath="Label"
-                            Header="Compare mode"
-                            IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
-                            ItemsSource="{x:Bind ViewModel.CompareModes}"
-                            SelectedItem="{x:Bind ViewModel.SelectedCompareMode, Mode=TwoWay}" />
-                        <CheckBox
-                            x:Name="CheckerboardToggle"
+                        <TextBlock
+                            Style="{StaticResource AmsCaptionTextStyle}"
+                            Text="Khung đích · viền xanh Cyan  |  Vùng cắt · viền vàng  |  Kéo chuột · di chuyển khung" />
+                        <TextBlock
                             Grid.Column="1"
-                            AutomationProperties.Name="Show alpha checkerboard"
-                            Click="OnCheckerboardClicked"
-                            Content="Alpha checkerboard"
-                            IsChecked="True"
-                            IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
-                            VerticalAlignment="Bottom" />
-                        <StackPanel Grid.Column="2" Grid.ColumnSpan="2" Spacing="{StaticResource AmsSpace4}">
-                            <TextBlock Text="Compare zoom" />
+                            AutomationProperties.LiveSetting="Polite"
+                            Style="{StaticResource AmsCaptionTextStyle}"
+                            Text="{x:Bind ViewModel.ApplyStatus, Mode=OneWay}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT CONTEXTUAL INSPECTOR (Co gọn, sạch sẽ) -->
+            <ScrollViewer
+                x:Name="EditorControls"
+                Grid.Column="1"
+                HorizontalContentAlignment="Stretch"
+                VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16">
+                    <!-- Section 1: Crop & Resize Options -->
+                    <Border Style="{StaticResource AmsCardStyle}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Cắt &amp; đổi kích thước" />
+                            <ComboBox
+                                AutomationProperties.Name="Chế độ đổi kích thước"
+                                DisplayMemberPath="Label"
+                                Header="Chế độ"
+                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
+                                ItemsSource="{x:Bind ViewModel.Modes}"
+                                SelectedItem="{x:Bind ViewModel.SelectedMode, Mode=TwoWay}" />
+                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.ModeDescription, Mode=OneWay}" />
+
+                            <TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="Thu phóng" />
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider
+                                    x:Name="ZoomSlider"
+                                    AutomationProperties.Name="Thu phóng khung chỉnh sửa"
+                                    IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
+                                    Maximum="8"
+                                    ValueChanged="OnZoomChanged" />
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.PanSummary, Mode=OneWay}" />
+                            <Grid ColumnSpacing="6" RowSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Button
+                                    Grid.Column="1"
+                                    AutomationProperties.Name="Di chuyển khung lên trên"
+                                    Click="OnPanClicked"
+                                    HorizontalAlignment="Stretch"
+                                    IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
+                                    Style="{StaticResource AmsIconButtonStyle}"
+                                    Tag="up">↑</Button>
+                                <Button
+                                    Grid.Row="1"
+                                    AutomationProperties.Name="Di chuyển khung sang trái"
+                                    Click="OnPanClicked"
+                                    HorizontalAlignment="Stretch"
+                                    IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
+                                    Style="{StaticResource AmsIconButtonStyle}"
+                                    Tag="left">←</Button>
+                                <Button
+                                    Grid.Row="1"
+                                    Grid.Column="1"
+                                    AutomationProperties.Name="Di chuyển khung xuống dưới"
+                                    Click="OnPanClicked"
+                                    HorizontalAlignment="Stretch"
+                                    IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
+                                    Style="{StaticResource AmsIconButtonStyle}"
+                                    Tag="down">↓</Button>
+                                <Button
+                                    Grid.Row="1"
+                                    Grid.Column="2"
+                                    AutomationProperties.Name="Di chuyển khung sang phải"
+                                    Click="OnPanClicked"
+                                    HorizontalAlignment="Stretch"
+                                    IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
+                                    Style="{StaticResource AmsIconButtonStyle}"
+                                    Tag="right">→</Button>
+                            </Grid>
+
+                            <TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="Vùng cắt (%)" />
+                            <Grid ColumnSpacing="8" RowSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <NumberBox x:Name="CropX" Header="Trái %" Maximum="99" Minimum="0" Value="0" />
+                                <NumberBox x:Name="CropY" Grid.Column="1" Header="Trên %" Maximum="99" Minimum="0" Value="0" />
+                                <NumberBox x:Name="CropWidth" Grid.Row="1" Header="Chiếu rộng %" Maximum="100" Value="100" />
+                                <NumberBox x:Name="CropHeight" Grid.Row="1" Grid.Column="1" Header="Chiều cao %" Maximum="100" Value="100" />
+                            </Grid>
+                            <Button
+                                AutomationProperties.Name="Cập nhật vùng cắt"
+                                Click="OnUpdateCropClicked"
+                                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
+                                Style="{StaticResource AmsSecondaryButtonStyle}">
+                                Cập nhật vùng cắt
+                            </Button>
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.CropSummary, Mode=OneWay}" />
+                            <ProgressBar
+                                AutomationProperties.Name="Tiến trình áp dụng Texture"
+                                Maximum="100"
+                                Minimum="0"
+                                Value="{x:Bind ViewModel.ApplyProgress, Mode=OneWay}" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Khu vực kiểm tra so sánh trước và sau. -->
+                    <Expander Header="So sánh trước / sau" IsExpanded="False">
+                        <StackPanel Padding="0,12,0,0" Spacing="12">
+                            <TextBlock
+                                AutomationProperties.LiveSetting="Polite"
+                                Style="{StaticResource AmsCaptionTextStyle}"
+                                Text="{x:Bind ViewModel.AfterPreviewStatus, Mode=OneWay}" />
+                            <ProgressRing
+                                AutomationProperties.Name="Đang tạo bản xem trước Sau"
+                                IsActive="{x:Bind ViewModel.IsAfterPreviewLoading, Mode=OneWay}" />
+                            <ComboBox
+                                AutomationProperties.Name="Chế độ so sánh"
+                                DisplayMemberPath="Label"
+                                Header="Chế độ"
+                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                ItemsSource="{x:Bind ViewModel.CompareModes}"
+                                SelectedItem="{x:Bind ViewModel.SelectedCompareMode, Mode=TwoWay}" />
+                            <CheckBox
+                                x:Name="CheckerboardToggle"
+                                AutomationProperties.Name="Hiển thị nền caro Alpha"
+                                Click="OnCheckerboardClicked"
+                                Content="Nền caro Alpha"
+                                IsChecked="True"
+                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Thu phóng so sánh" />
                             <Slider
                                 x:Name="CompareZoomSlider"
-                                AutomationProperties.Name="Shared Before and After compare zoom"
+                                AutomationProperties.Name="Thu phóng chung cho ảnh Trước và Sau"
                                 IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
                                 Maximum="8"
-                                Minimum="0.1"
-                                StepFrequency="0.1"
-                                Value="1"
                                 ValueChanged="OnCompareZoomChanged" />
-                        </StackPanel>
-                        <StackPanel Grid.Row="1" Grid.ColumnSpan="4" Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
-                            <TextBlock VerticalAlignment="Center" Text="Shared camera" />
-                            <Button AutomationProperties.Name="Pan comparison left" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="left">←</Button>
-                            <Button AutomationProperties.Name="Pan comparison up" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="up">↑</Button>
-                            <Button AutomationProperties.Name="Pan comparison down" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="down">↓</Button>
-                            <Button AutomationProperties.Name="Pan comparison right" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="right">→</Button>
-                            <Button AutomationProperties.Name="Reset comparison camera" Click="OnCompareCameraResetClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsSecondaryButtonStyle}">Reset camera</Button>
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.ComparePanSummary, Mode=OneWay}" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Grid>
 
-                    <Grid Grid.Row="2">
-                        <Grid
-                            x:Name="SideBySideCompare"
-                            ColumnSpacing="{StaticResource AmsSpace12}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
-                                <Grid x:Name="BeforeSideViewport" Height="340" SizeChanged="OnCompareSurfaceSizeChanged">
-                                    <Grid x:Name="BeforeSideCheckerboard" IsHitTestVisible="False" />
-                                    <Canvas x:Name="BeforeSideCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
-                                        <Image x:Name="BeforeSideImage" AutomationProperties.Name="Before session baseline" Stretch="Fill" />
-                                    </Canvas>
-                                    <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Text="Before" /></Border>
-                                </Grid>
-                            </Border>
-                            <Border Grid.Column="1" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
-                                <Grid x:Name="AfterSideViewport" Height="340" SizeChanged="OnCompareSurfaceSizeChanged">
-                                    <Grid x:Name="AfterSideCheckerboard" IsHitTestVisible="False" />
-                                    <Canvas x:Name="AfterSideCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
-                                        <Image x:Name="AfterSideImage" AutomationProperties.Name="After live preview" Stretch="Fill" />
-                                    </Canvas>
-                                    <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Text="After" /></Border>
-                                </Grid>
-                            </Border>
-                        </Grid>
+                            <Grid x:Name="SideBySideCompare" Height="220">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
+                                    <Grid x:Name="BeforeSideViewport" SizeChanged="OnCompareSurfaceSizeChanged">
+                                        <Grid x:Name="BeforeSideCheckerboard" IsHitTestVisible="False" />
+                                        <Canvas x:Name="BeforeSideCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
+                                            <Image x:Name="BeforeSideImage" AutomationProperties.Name="Ảnh Trước của phiên" Stretch="Fill" />
+                                        </Canvas>
+                                        <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Trước" /></Border>
+                                    </Grid>
+                                </Border>
+                                <Border Grid.Column="1" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
+                                    <Grid x:Name="AfterSideViewport" SizeChanged="OnCompareSurfaceSizeChanged">
+                                        <Grid x:Name="AfterSideCheckerboard" IsHitTestVisible="False" />
+                                        <Canvas x:Name="AfterSideCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
+                                            <Image x:Name="AfterSideImage" AutomationProperties.Name="Bản xem trước Sau" Stretch="Fill" />
+                                        </Canvas>
+                                        <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Sau" /></Border>
+                                    </Grid>
+                                </Border>
+                            </Grid>
 
-                        <StackPanel x:Name="SliderCompare" Spacing="{StaticResource AmsSpace8}" Visibility="Collapsed">
-                            <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
-                                <Grid x:Name="SliderViewport" Height="380" SizeChanged="OnCompareSurfaceSizeChanged">
-                                    <Grid x:Name="SliderCheckerboard" IsHitTestVisible="False" />
-                                    <Canvas x:Name="BeforeSliderLayer" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
-                                        <Image x:Name="BeforeSliderImage" AutomationProperties.Name="Before session baseline under comparison slider" Stretch="Fill" />
-                                    </Canvas>
-                                    <Canvas x:Name="AfterSliderLayer" IsHitTestVisible="False">
-                                        <Image x:Name="AfterSliderImage" AutomationProperties.Name="After live preview clipped by comparison slider" Stretch="Fill" />
-                                    </Canvas>
-                                    <Canvas IsHitTestVisible="False">
-                                        <Border x:Name="SliderDivider" Background="{ThemeResource AmsFocusBrush}" Width="3" />
-                                        <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Text="Before" /></Border>
-                                        <Border HorizontalAlignment="Right" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Text="After" /></Border>
-                                    </Canvas>
-                                </Grid>
-                            </Border>
-                            <Slider
-                                x:Name="CompareDividerSlider"
-                                AutomationProperties.HelpText="Use Left and Right Arrow keys to move the Before and After divider."
-                                AutomationProperties.Name="Before and After comparison divider"
-                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
-                                LargeChange="0.1"
-                                Maximum="1"
-                                Minimum="0"
-                                SmallChange="0.01"
-                                StepFrequency="0.01"
-                                Value="0.5"
-                                ValueChanged="OnCompareDividerChanged" />
+                            <StackPanel x:Name="SliderCompare" Spacing="8" Visibility="Collapsed">
+                                <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
+                                    <Grid x:Name="SliderViewport" Height="220" SizeChanged="OnCompareSurfaceSizeChanged">
+                                        <Grid x:Name="SliderCheckerboard" IsHitTestVisible="False" />
+                                        <Canvas x:Name="BeforeSliderLayer" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
+                                            <Image x:Name="BeforeSliderImage" AutomationProperties.Name="Ảnh Trước dưới thanh chia so sánh" Stretch="Fill" />
+                                        </Canvas>
+                                        <Canvas x:Name="AfterSliderLayer" IsHitTestVisible="False">
+                                            <Image x:Name="AfterSliderImage" AutomationProperties.Name="Ảnh Sau được cắt theo thanh chia so sánh" Stretch="Fill" />
+                                        </Canvas>
+                                        <Canvas IsHitTestVisible="False">
+                                            <Border x:Name="SliderDivider" Background="{ThemeResource AmsFocusBrush}" Width="3" />
+                                            <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Trước" /></Border>
+                                            <Border HorizontalAlignment="Right" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Sau" /></Border>
+                                        </Canvas>
+                                    </Grid>
+                                </Border>
+                                <Slider
+                                    x:Name="CompareDividerSlider"
+                                    AutomationProperties.HelpText="Dùng phím mũi tên trái và phải để di chuyển thanh chia Trước và Sau."
+                                    AutomationProperties.Name="Thanh chia so sánh Trước và Sau"
+                                    IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                    Maximum="1"
+                                    Minimum="0"
+                                    ValueChanged="OnCompareDividerChanged" />
+                            </StackPanel>
+
+                            <StackPanel x:Name="ToggleCompare" Spacing="8" Visibility="Collapsed">
+                                <ToggleSwitch
+                                    x:Name="BeforeAfterToggle"
+                                    AutomationProperties.Name="Hiển thị ảnh Trước hoặc Sau"
+                                    Header="Ảnh đang hiển thị"
+                                    IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
+                                    IsOn="True"
+                                    OffContent="Trước"
+                                    OnContent="Sau"
+                                    Toggled="OnBeforeAfterToggled" />
+                                <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
+                                    <Grid x:Name="ToggleViewport" Height="220" SizeChanged="OnCompareSurfaceSizeChanged">
+                                        <Grid x:Name="ToggleCheckerboard" IsHitTestVisible="False" />
+                                        <Canvas x:Name="ToggleCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
+                                            <Image x:Name="ToggleImage" AutomationProperties.Name="Ảnh so sánh Trước hoặc Sau hiện tại" Stretch="Fill" />
+                                        </Canvas>
+                                        <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock x:Name="ToggleStateLabel" Style="{StaticResource AmsCaptionTextStyle}" Text="Sau" /></Border>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Button AutomationProperties.Name="Di chuyển vùng so sánh sang trái" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsIconButtonStyle}" Tag="left">←</Button>
+                                <Button AutomationProperties.Name="Di chuyển vùng so sánh lên trên" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsIconButtonStyle}" Tag="up">↑</Button>
+                                <Button AutomationProperties.Name="Di chuyển vùng so sánh xuống dưới" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsIconButtonStyle}" Tag="down">↓</Button>
+                                <Button AutomationProperties.Name="Di chuyển vùng so sánh sang phải" Click="OnComparePanClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsIconButtonStyle}" Tag="right">→</Button>
+                                <Button AutomationProperties.Name="Đặt lại khung xem so sánh" Click="OnCompareCameraResetClicked" IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}" Style="{StaticResource AmsGhostButtonStyle}">Đặt lại</Button>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ComparePanSummary, Mode=OneWay}" />
                         </StackPanel>
-
-                        <StackPanel x:Name="ToggleCompare" Spacing="{StaticResource AmsSpace8}" Visibility="Collapsed">
-                            <ToggleSwitch
-                                x:Name="BeforeAfterToggle"
-                                AutomationProperties.Name="Show Before or After comparison image"
-                                Header="Visible comparison image"
-                                IsEnabled="{x:Bind ViewModel.HasImage, Mode=OneWay}"
-                                IsOn="True"
-                                OffContent="Before"
-                                OnContent="After"
-                                Toggled="OnBeforeAfterToggled" />
-                            <Border BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource AmsRadiusSmall}">
-                                <Grid x:Name="ToggleViewport" Height="380" SizeChanged="OnCompareSurfaceSizeChanged">
-                                    <Grid x:Name="ToggleCheckerboard" IsHitTestVisible="False" />
-                                    <Canvas x:Name="ToggleCanvas" Background="Transparent" PointerMoved="OnComparePointerMoved" PointerPressed="OnComparePointerPressed" PointerReleased="OnComparePointerReleased" PointerWheelChanged="OnComparePointerWheelChanged">
-                                        <Image x:Name="ToggleImage" AutomationProperties.Name="Current Before or After comparison image" Stretch="Fill" />
-                                    </Canvas>
-                                    <Border HorizontalAlignment="Left" Style="{StaticResource AmsStatusBadgeStyle}" VerticalAlignment="Top"><TextBlock x:Name="ToggleStateLabel" Text="After" /></Border>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <Border Grid.Row="3" Style="{StaticResource AmsStatusBadgeStyle}">
-                <Grid ColumnSpacing="{StaticResource AmsSpace16}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Target" />
-                        <TextBlock Text="{x:Bind ViewModel.TargetDimensions, Mode=OneWay}" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Mode" />
-                        <TextBlock Text="{x:Bind ViewModel.SelectedMode.Label, Mode=OneWay}" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="State" />
-                        <TextBlock Text="Preview only · no files changed" />
-                    </StackPanel>
-                </Grid>
-            </Border>
+                    </Expander>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
-    </ScrollViewer>
+
+        <!-- Bottom Status Bar -->
+        <Border Grid.Row="2" Style="{StaticResource AmsStatusBadgeStyle}">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Kích thước đích:" />
+                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.TargetDimensions, Mode=OneWay}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Chế độ:" />
+                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.SelectedMode.Label, Mode=OneWay}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Trạng thái:" />
+                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Chỉ xem trước · chưa thay đổi tệp" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
 </Page>

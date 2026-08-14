@@ -12,8 +12,7 @@ public sealed class Plan41AppShellContractTests
 
         var labels = new[]
         {
-            "Home", "Projects", "AI Studio", "Image Editor",
-            "Mod Library", "Batch", "Cloud", "Account", "Settings"
+            "Trang chủ", "Dự án", "AI Studio", "Trình chỉnh sửa ảnh", "Tài khoản", "Cài đặt"
         };
 
         foreach (var label in labels)
@@ -25,6 +24,8 @@ public sealed class Plan41AppShellContractTests
         Assert.Contains("CreditsStatus", source, StringComparison.Ordinal);
         Assert.Contains("NotificationStatus", source, StringComparison.Ordinal);
         Assert.Contains("ConnectionStatus", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Mod Library", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("will be available in a later plan", source, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("acv.exe", source, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("System.IO", source, StringComparison.Ordinal);
     }
@@ -37,14 +38,16 @@ public sealed class Plan41AppShellContractTests
         var document = XDocument.Load(path);
         var text = File.ReadAllText(path);
 
-        Assert.Equal("NavigationView", document.Root!.Elements().Single().Name.LocalName);
-        Assert.Contains("PaneDisplayMode=\"Auto\"", text, StringComparison.Ordinal);
-        Assert.Contains("CompactModeThresholdWidth=\"640\"", text, StringComparison.Ordinal);
-        Assert.Contains("ExpandedModeThresholdWidth=\"1000\"", text, StringComparison.Ordinal);
-        Assert.Contains("AdaptiveTrigger MinWindowWidth=\"900\"", text, StringComparison.Ordinal);
-        Assert.Contains("AmsShellHeaderStyle", text, StringComparison.Ordinal);
+        Assert.Single(document.Root!.Elements(), element => element.Name.LocalName == "NavigationView");
+        Assert.Contains("PaneDisplayMode=\"Top\"", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OpenPaneLength", text, StringComparison.Ordinal);
+        Assert.Contains("HorizontalContentAlignment=\"Stretch\"", text, StringComparison.Ordinal);
+        Assert.Contains("VerticalContentAlignment=\"Stretch\"", text, StringComparison.Ordinal);
+        Assert.Contains("NavigationView.PaneHeader", text, StringComparison.Ordinal);
         Assert.Contains("AmsGamingPanelStyle", text, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.HeadingLevel=\"Level1\"", text, StringComparison.Ordinal);
+        Assert.Contains("Text=\"KHÔNG GIAN SÁNG TẠO\"", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequestedTheme=\"Light\"", text, StringComparison.Ordinal);
+        Assert.Contains("Studio Night", File.ReadAllText(Path.Combine(root, "src", "AuditionModStudio.App", "Settings", "SettingsPage.xaml")), StringComparison.Ordinal);
         Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", text);
     }
 

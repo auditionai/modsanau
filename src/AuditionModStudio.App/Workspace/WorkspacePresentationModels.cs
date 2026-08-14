@@ -43,6 +43,17 @@ public sealed record WorkspaceTextureItem(
         : $"{DisplayName} ({FileName})";
 
     public int MaximumDimension => Math.Max(Width, Height);
+
+    public string StateLabel => State switch
+    {
+        TextureState.Original => "Bản gốc",
+        TextureState.Modified => "Đã chỉnh sửa",
+        TextureState.AiGenerated => "Do AI tạo",
+        TextureState.Pending => "Đang chờ",
+        TextureState.Invalid => "Không hợp lệ",
+        TextureState.Missing => "Bị thiếu",
+        _ => "Chưa xác định"
+    };
 }
 
 public sealed record WorkspaceFolderItem(
@@ -50,6 +61,6 @@ public sealed record WorkspaceFolderItem(
     ImmutableArray<WorkspaceTextureItem> Textures)
 {
     public string DisplayLabel => string.IsNullOrEmpty(DirectoryRelativePath)
-        ? "Archive root"
+            ? "Tệp nguồn gốc"
         : DirectoryRelativePath;
 }

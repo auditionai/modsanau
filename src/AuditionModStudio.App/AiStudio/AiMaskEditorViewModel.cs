@@ -24,7 +24,7 @@ public sealed class AiMaskEditorViewModel : INotifyPropertyChanged
     private ViewportVector _pan;
     private bool _showMask = true;
     private bool _isComposing;
-    private string _statusMessage = "Create an AI preview, then initialize a source-aligned mask.";
+    private string _statusMessage = "Hãy tạo bản xem trước AI rồi khởi tạo Mask theo ảnh nguồn.";
     private CancellationTokenSource? _compositionCancellation;
 
     public AiMaskEditorViewModel(
@@ -67,28 +67,28 @@ public sealed class AiMaskEditorViewModel : INotifyPropertyChanged
     public bool CanUndo => _history?.State.CanUndo == true;
     public bool CanRedo => _history?.State.CanRedo == true;
     public string MemoryStatus => _history is null
-        ? "History: 0 MiB"
-        : $"History: {_history.State.EstimatedMemoryBytes / (1024d * 1024):0.0} MiB";
+        ? "Lịch sử: 0 MiB"
+        : $"Lịch sử: {_history.State.EstimatedMemoryBytes / (1024d * 1024):0.0} MiB";
 
     public bool InitializeFromPreview()
     {
         var preview = _studio.PreviewImage;
         if (preview is null)
         {
-            StatusMessage = "No AI preview is available. Mask state was not changed.";
+            StatusMessage = "Chưa có bản xem trước AI. Mask không bị thay đổi.";
             return false;
         }
         var created = _maskService.Create(preview);
         if (!created.Succeeded || created.Mask is null)
         {
-            StatusMessage = "The preview dimensions exceed mask limits.";
+            StatusMessage = "Kích thước bản xem trước vượt giới hạn của Mask.";
             return false;
         }
         var history = _historyService.CreateSession(ToHistoryState(created.Mask),
             new EditHistoryOptions(64, 256L * 1024 * 1024));
         if (!history.Succeeded || history.Session is null)
         {
-            StatusMessage = "Mask history could not be initialized within the memory limit.";
+            StatusMessage = "Không thể khởi tạo lịch sử Mask trong giới hạn bộ nhớ.";
             return false;
         }
         _source = preview;
@@ -97,7 +97,7 @@ public sealed class AiMaskEditorViewModel : INotifyPropertyChanged
         _pan = default;
         _zoom = 1;
         NotifyMaskChanged();
-        StatusMessage = $"Mask initialized at {_mask.Width} × {_mask.Height} source pixels.";
+        StatusMessage = $"Đã khởi tạo Mask theo ảnh nguồn {_mask.Width} × {_mask.Height} pixel.";
         StartOverlayComposition();
         return true;
     }
@@ -107,23 +107,23 @@ public sealed class AiMaskEditorViewModel : INotifyPropertyChanged
         if (_mask is null) return false;
         var result = _maskService.ApplyStroke(_mask,
             new(points, new(Mode, BrushSize, Hardness, Opacity)));
-        return Commit(result, EditOperationKind.Alpha, "Mask stroke added.");
+        return Commit(result, EditOperationKind.Alpha, "Đã thêm nét vẽ Mask.");
     }
 
     public bool StampCenter() => _source is not null
         && ApplySourceStroke([new(_source.Width / 2d, _source.Height / 2d)]);
 
     public bool Clear() => _mask is not null
-        && Commit(_maskService.Clear(_mask), EditOperationKind.Alpha, "Mask cleared.");
+        && Commit(_maskService.Clear(_mask), EditOperationKind.Alpha, "Đã xóa Mask.");
 
     public bool Invert() => _mask is not null
-        && Commit(_maskService.Invert(_mask), EditOperationKind.Alpha, "Mask inverted.");
+        && Commit(_maskService.Invert(_mask), EditOperationKind.Alpha, "Đã đảo Mask.");
 
     public bool Undo()
     {
         if (_history?.Undo() is not { Succeeded: true } result) return false;
         Restore(result.State.Current.Image);
-        StatusMessage = "Mask undo completed.";
+        StatusMessage = "Đã hoàn tác Mask.";
         return true;
     }
 
@@ -131,7 +131,7 @@ public sealed class AiMaskEditorViewModel : INotifyPropertyChanged
     {
         if (_history?.Redo() is not { Succeeded: true } result) return false;
         Restore(result.State.Current.Image);
-        StatusMessage = "Mask redo completed.";
+        StatusMessage = "Đã làm lại Mask.";
         return true;
     }
 
@@ -173,13 +173,13 @@ public sealed class AiMaskEditorViewModel : INotifyPropertyChanged
     {
         if (_mask is null || _projectSession.Workspace is null)
         {
-            StatusMessage = "Open a project and initialize a mask before saving.";
+            StatusMessage = "Hãy mở dự án và khởi tạo Mask trước khi lưu.";
             return;
         }
         var result = await _assetStore.SaveAsync(_projectSession.Workspace, _mask, cancellationToken);
         StatusMessage = result.Succeeded
-            ? "Mask asset saved atomically in the project workspace."
-            : "Mask asset could not be saved; the previous asset remains unchanged.";
+            ? "Đã lưu Mask an toàn trong không gian dự án."
+            : "Không thể lưu Mask; dữ liệu trước đó vẫn được giữ nguyên.";
         if (result.Succeeded) _history?.MarkSavedCheckpoint();
     }
 
@@ -191,7 +191,7 @@ public sealed class AiMaskEditorViewModel : INotifyPropertyChanged
         var pushed = _history.Push(ToHistoryState(result.Mask), new(kind));
         if (!pushed.Succeeded)
         {
-            StatusMessage = "Mask history limit reached; the edit was not committed.";
+            StatusMessage = "Lịch sử Mask đã đạt giới hạn; thay đổi này chưa được lưu.";
             return false;
         }
         _mask = result.Mask;
@@ -229,7 +229,7 @@ public sealed class AiMaskEditorViewModel : INotifyPropertyChanged
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
         {
-            StatusMessage = "Mask preview composition cancelled.";
+            StatusMessage = "Đã hủy tạo bản xem trước Mask.";
         }
         finally
         {

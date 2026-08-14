@@ -74,7 +74,7 @@ public sealed class AiMaskEditorViewModelTests
 
         Assert.False(mask.InitializeFromPreview());
         Assert.Null(mask.Mask);
-        Assert.Contains("No AI preview", mask.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Chưa có bản xem trước AI", mask.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed class AiMaskEditorViewModelTests
         await mask.SaveAsync();
 
         Assert.Equal(1, assetStore.SaveCount);
-        Assert.Contains("atomically", mask.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("an toàn", mask.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     private static (AiStudioViewModel Studio, AiMaskEditorViewModel Mask) Create(

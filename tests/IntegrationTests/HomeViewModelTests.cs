@@ -33,7 +33,7 @@ public sealed class HomeViewModelTests
         Assert.Null(viewModel.SelectedMod);
         Assert.Empty(viewModel.CompatibleMods);
         Assert.False(viewModel.CanCreate);
-        Assert.Contains("No compatible Mod Types", viewModel.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("chưa có loại Mod tương thích", viewModel.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class HomeViewModelTests
 
         Assert.False(viewModel.HasCompatibleMods);
         Assert.False(viewModel.CanCreate);
-        Assert.Contains("No compatible Mod Types", viewModel.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("chưa có loại Mod tương thích", viewModel.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed class HomeViewModelTests
             new ProjectCreationRequest(new GameId("audition"), new ModId("login_screen"), "Dự án Login"),
             projectService.Request);
         Assert.False(viewModel.IsCreating);
-        Assert.Contains("could not be verified", viewModel.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Chưa thể xác minh", viewModel.StatusMessage, StringComparison.Ordinal);
     }
 
     [Theory]

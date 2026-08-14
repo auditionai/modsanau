@@ -38,6 +38,7 @@ using AuditionModStudio.App.Editor;
 using AuditionModStudio.App.Workspace;
 using AuditionModStudio.App.AiStudio;
 using AuditionModStudio.App.Account;
+using AuditionModStudio.App.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -68,6 +69,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         {
             ApplicationName = typeof(App).Assembly.GetName().Name,
             Args = [],
+            ContentRootPath = AppContext.BaseDirectory,
         });
 
         _logSession.ConfigureServices(builder.Services);
@@ -298,6 +300,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddTransient<AiStudioPage>();
         builder.Services.AddSingleton<AccountViewModel>();
         builder.Services.AddTransient<AccountPage>();
+        builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddSingleton<AppShellViewModel>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddSingleton<MainWindow>();

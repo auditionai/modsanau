@@ -17,7 +17,7 @@ public sealed class ImageEditorViewModelTests
         await viewModel.ActivateAsync();
 
         Assert.False(viewModel.HasImage);
-        Assert.Contains("Select a project texture", viewModel.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Hãy chọn Texture", viewModel.StatusMessage, StringComparison.Ordinal);
         Assert.Equal(0, selection.LoadCount);
     }
 

@@ -18,16 +18,16 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
 {
     private CancellationTokenSource? _activationCancellation;
     private ImmutableArray<AccountTransactionItem> _transactions = [];
-    private string _statusMessage = "Open Account to load your server profile and credit history.";
-    private string _displayName = "Not provided";
-    private string _email = "Not available";
-    private string _userId = "Not available";
+    private string _statusMessage = "Mở Tài khoản để tải hồ sơ và lịch sử Credits.";
+    private string _displayName = "Chưa cung cấp";
+    private string _email = "Chưa có dữ liệu";
+    private string _userId = "Chưa có dữ liệu";
     private string _availableCredits = "—";
     private string _reservedCredits = "—";
     private string _creditsGranted = "—";
     private string _creditsUsed = "—";
     private string _transactionCount = "—";
-    private string _observedAt = "Not loaded";
+    private string _observedAt = "Chưa tải";
     private bool _isLoading;
     private bool _hasSnapshot;
     private bool _hasError;
@@ -65,31 +65,31 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
         ClearAuthoritativeData();
         IsLoading = true;
         HasError = false;
-        StatusMessage = "Loading server account data…";
+        StatusMessage = "Đang tải dữ liệu tài khoản…";
         try
         {
             var result = await service.RefreshAsync(token);
             if (_activationCancellation is null || _activationCancellation.Token != token) return;
             if (token.IsCancellationRequested || result.Status == AccountOverviewStatus.Cancelled)
             {
-                StatusMessage = "Account refresh cancelled.";
+                StatusMessage = "Đã hủy làm mới tài khoản.";
                 return;
             }
             if (!result.Succeeded || result.Snapshot is null)
             {
                 HasError = true;
                 StatusMessage = result.Status == AccountOverviewStatus.AuthenticationRequired
-                    ? "Sign in to view your account and server credit history."
+                ? "Đăng nhập để xem tài khoản và lịch sử Credits."
                     : result.Status == AccountOverviewStatus.InvalidResponse
-                        ? "The account response failed validation. No balance was accepted."
-                        : "Account services are unavailable. Local project tools remain available.";
+                    ? "Dữ liệu tài khoản không hợp lệ nên số dư chưa được cập nhật."
+                    : "Không thể kết nối dịch vụ tài khoản lúc này. Bạn vẫn có thể chỉnh sửa và xuất dự án bình thường.";
                 return;
             }
             Apply(result.Snapshot);
             HasSnapshot = true;
             StatusMessage = result.Snapshot.Transactions.IsEmpty
-                ? "Account loaded. No credit transactions were returned."
-                : $"Account loaded with {result.Snapshot.Transactions.Length:N0} recent transactions.";
+            ? "Đã tải tài khoản. Chưa có giao dịch Credits."
+            : $"Đã tải {result.Snapshot.Transactions.Length:N0} giao dịch gần đây.";
         }
         finally
         {
@@ -107,8 +107,8 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
 
     private void Apply(AccountOverviewSnapshot snapshot)
     {
-        DisplayName = snapshot.Profile.DisplayName ?? "Not provided";
-        Email = snapshot.Profile.Email ?? "Not available";
+        DisplayName = snapshot.Profile.DisplayName ?? "Chưa cung cấp";
+        Email = snapshot.Profile.Email ?? "Chưa có dữ liệu";
         UserId = snapshot.Profile.UserId.ToString("D");
         AvailableCredits = snapshot.Wallet.AvailableCredits.ToString("N0", CultureInfo.CurrentCulture);
         ReservedCredits = snapshot.Wallet.ReservedCredits.ToString("N0", CultureInfo.CurrentCulture);
@@ -124,8 +124,8 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
         var sign = transaction.Kind is CreditTransactionKind.Grant or CreditTransactionKind.Refund ? "+" : "−";
         return new(transaction.TransactionId, transaction.Kind.ToString(),
             $"{sign}{transaction.Amount:N0}",
-            $"Available {transaction.AvailableDelta:+#;-#;0}; reserved {transaction.ReservedDelta:+#;-#;0}",
-            $"Available {transaction.AvailableAfter:N0}; reserved {transaction.ReservedAfter:N0}",
+                $"Khả dụng {transaction.AvailableDelta:+#;-#;0}; tạm giữ {transaction.ReservedDelta:+#;-#;0}",
+                $"Khả dụng {transaction.AvailableAfter:N0}; tạm giữ {transaction.ReservedAfter:N0}",
             transaction.CreatedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture));
     }
 
@@ -133,10 +133,10 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
     {
         HasSnapshot = false;
         Transactions = [];
-        DisplayName = "Not provided";
-        Email = UserId = "Not available";
+        DisplayName = "Chưa cung cấp";
+        Email = UserId = "Chưa có dữ liệu";
         AvailableCredits = ReservedCredits = CreditsGranted = CreditsUsed = TransactionCount = "—";
-        ObservedAt = "Not loaded";
+        ObservedAt = "Chưa tải";
     }
 
     private void NotifyStates()

@@ -9,15 +9,12 @@ public sealed class AppShellViewModel : INotifyPropertyChanged
 {
     private static readonly ImmutableArray<ShellNavigationItem> RouteCatalog =
     [
-        new(AppRoute.Home, "Home", "\uE80F", "Home", "Choose a game and mod to begin a project."),
-        new(AppRoute.Projects, "Projects", "\uE8B7", "Projects", "Open and manage Audition mod projects."),
-        new(AppRoute.AiStudio, "AI Studio", "\uE945", "AI Studio", "Create trusted AI previews and review server job history."),
-        new(AppRoute.ImageEditor, "Image Editor", "\uE91B", "Image Editor", "Crop and resize a selected project texture against its exact DDS target."),
-        new(AppRoute.ModLibrary, "Mod Library", "\uE8F1", "Mod Library", "Browse supported mod definitions and templates."),
-        new(AppRoute.Batch, "Batch", "\uE8FD", "Batch", "Batch workflows will be available in a later plan."),
-        new(AppRoute.Cloud, "Cloud", "\uE753", "Cloud", "Cloud services are not connected in this build."),
-        new(AppRoute.Account, "Account", "\uE77B", "Account", "View your server profile, wallet, usage and credit history."),
-        new(AppRoute.Settings, "Settings", "\uE713", "Settings", "Application settings will be available in a later plan.")
+        new(AppRoute.Home, "Trang chủ", "\uE80F", "Trang chủ", "Chọn game và loại Mod để bắt đầu dự án."),
+        new(AppRoute.Projects, "Dự án", "\uE8B7", "Dự án", "Mở và quản lý các dự án Mod Audition."),
+        new(AppRoute.AiStudio, "AI Studio", "\uE945", "AI Studio", "Tạo hình ảnh bằng AI và xem lại lịch sử tạo."),
+        new(AppRoute.ImageEditor, "Trình chỉnh sửa ảnh", "\uE91B", "Trình chỉnh sửa ảnh", "Cắt và đổi kích thước Texture theo đúng thông số DDS."),
+        new(AppRoute.Account, "Tài khoản", "\uE77B", "Tài khoản", "Xem hồ sơ, số dư Credits và hoạt động gần đây."),
+        new(AppRoute.Settings, "Cài đặt", "\uE713", "Cài đặt", "Tùy chỉnh giao diện và xem thông tin ứng dụng.")
     ];
 
     private ShellNavigationItem _currentItem = RouteCatalog[0];
@@ -40,16 +37,16 @@ public sealed class AppShellViewModel : INotifyPropertyChanged
     public string CurrentDescription => _currentItem.Description;
 
     public string AccountStatus => _account?.HasSnapshot == true
-        ? _account.DisplayName != "Not provided" ? _account.DisplayName : _account.Email
-        : "Signed out";
+        ? _account.DisplayName != "Chưa cung cấp" ? _account.DisplayName : _account.Email
+        : "Chưa đăng nhập";
 
     public string CreditsStatus => _account?.HasSnapshot == true
-        ? $"{_account.AvailableCredits} credits" : "Credits unavailable";
+        ? $"{_account.AvailableCredits} Credits" : "Chưa có dữ liệu Credits";
 
-    public string NotificationStatus => "No notifications";
+    public string NotificationStatus => "Không có thông báo";
 
-    public string ConnectionStatus => _account?.IsLoading == true ? "Connecting"
-        : _account?.HasSnapshot == true ? "Online" : "Offline";
+    public string ConnectionStatus => _account?.IsLoading == true ? "Đang kết nối"
+        : _account?.HasSnapshot == true ? "Trực tuyến" : "Ngoại tuyến";
 
     public bool Navigate(AppRoute route)
     {

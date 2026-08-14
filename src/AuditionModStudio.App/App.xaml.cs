@@ -1,5 +1,6 @@
 using AuditionModStudio.App.Bootstrap;
 using AuditionModStudio.Infrastructure.Processes;
+using AuditionModStudio.Core.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Windowing;
@@ -22,7 +23,6 @@ public partial class App : Application
 
     public App()
     {
-        WindowsProcessLaunchHardening.ApplyProcessDllPolicy();
         InitializeComponent();
         UnhandledException += OnXamlUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
@@ -36,20 +36,45 @@ public partial class App : Application
             _bootstrapper = new ApplicationBootstrapper();
             await _bootstrapper.StartAsync();
             _logger = _bootstrapper.Services.GetRequiredService<ILogger<App>>();
-
             var mainWindow = _bootstrapper.Services.GetRequiredService<MainWindow>();
+            WindowsProcessLaunchHardening.ApplyProcessDllPolicy();
             mainWindow.AppWindow.Closing += OnMainWindowClosing;
             _window = mainWindow;
             _window.Activate();
-
             _logger.LogInformation("Main window activated");
         }
         catch (Exception exception)
         {
+            WriteEarlyStartupDiagnostic(exception);
             LogCritical(exception, "Application launch failed");
             WindowsErrorDialog.ShowFatalStartupError();
             await ShutdownAsync();
             Exit();
+        }
+    }
+
+    private static void WriteEarlyStartupDiagnostic(Exception exception)
+    {
+        try
+        {
+            var root = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AuditionModStudio",
+                "Logs");
+            Directory.CreateDirectory(root);
+            var redactor = new SensitiveDataRedactor();
+            var diagnostic = redactor.Redact(
+                $"Type={exception.GetType().FullName}; HResult=0x{exception.HResult:X8}; " +
+                $"InnerType={exception.InnerException?.GetType().FullName ?? "NONE"}; " +
+                $"InnerMessage={exception.InnerException?.Message ?? "NONE"}{Environment.NewLine}" +
+                exception);
+            File.AppendAllText(
+                Path.Combine(root, "early-startup.log"),
+                $"[{DateTimeOffset.UtcNow:O}] {diagnostic}{Environment.NewLine}");
+        }
+        catch (Exception diagnosticException)
+        {
+            System.Diagnostics.Debug.WriteLine(diagnosticException);
         }
     }
 

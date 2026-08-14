@@ -50,12 +50,15 @@ public sealed partial class DesignSystemResourceTests
                 element => (string)element.Attribute(Xaml + "Key")!,
                 element => ResourceKeys(element));
 
-        Assert.Equal(["Default", "HighContrast", "Light"],
+        Assert.Equal(["Dark", "Default", "HighContrast", "Light"],
             dictionaries.Keys.OrderBy(key => key, StringComparer.Ordinal));
         Assert.Equal(dictionaries["Default"].Order(), dictionaries["Light"].Order());
+        Assert.Equal(dictionaries["Default"].Order(), dictionaries["Dark"].Order());
         Assert.Equal(dictionaries["Default"].Order(), dictionaries["HighContrast"].Order());
         Assert.Contains("AmsFocusColor", dictionaries["Default"]);
         Assert.Contains("AmsTextPrimaryColor", dictionaries["Default"]);
+        Assert.DoesNotContain(document.Descendants(Presentation + "Color"), element =>
+            element.Value.Contains("{StaticResource", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -91,7 +94,7 @@ public sealed partial class DesignSystemResourceTests
     }
 
     [Fact]
-    public void Button_template_has_clear_hover_press_disabled_and_keyboard_focus_states()
+    public void Flat_button_template_has_clear_hover_press_disabled_and_keyboard_focus_states()
     {
         var document = LoadDesignSystem("Components.xaml");
         var stateNames = document.Descendants(Presentation + "VisualState")
@@ -105,7 +108,11 @@ public sealed partial class DesignSystemResourceTests
         Assert.Contains("Pressed", stateNames);
         Assert.Contains("Disabled", stateNames);
         Assert.Contains(document.Descendants(Presentation + "DoubleAnimation"), animation =>
+            (string?)animation.Attribute("Storyboard.TargetProperty") == "Opacity");
+        Assert.DoesNotContain(document.Descendants(Presentation + "DoubleAnimation"), animation =>
             (string?)animation.Attribute("Storyboard.TargetProperty") == "TranslateY");
+        Assert.Contains("AmsFlatButtonTemplate", document.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("AmsDepthButtonTemplate", document.ToString(), StringComparison.Ordinal);
         Assert.Contains(primaryStyle.Descendants(Presentation + "Setter"), setter =>
             (string?)setter.Attribute("Property") == "UseSystemFocusVisuals"
             && (string?)setter.Attribute("Value") == "True");

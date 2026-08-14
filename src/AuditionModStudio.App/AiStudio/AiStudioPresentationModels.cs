@@ -9,36 +9,66 @@ public sealed record AiStudioOption(string Value, string Label);
 
 public sealed record AiStudioAspectOption(string Value, string Label, int Width, int Height);
 
+public sealed record AiStudioJobPresentation(
+    Guid JobId,
+    string Operation,
+    string State,
+    long ReservedCredits,
+    long? FinalCredits,
+    DateTimeOffset CreatedAt,
+    bool CanCancel)
+{
+    public static AiStudioJobPresentation From(AiStudioJobSummary job) => new(
+        job.JobId,
+        AiStudioOptions.GetOperationLabel(job.Operation),
+        job.State switch
+        {
+            AiStudioJobState.Queued => "Đang chờ",
+            AiStudioJobState.Processing => "Đang xử lý",
+            AiStudioJobState.Completed => "Hoàn tất",
+            AiStudioJobState.Failed => "Không thành công",
+            AiStudioJobState.Cancelled => "Đã hủy",
+            _ => "Chưa xác định"
+        },
+        job.ReservedCredits,
+        job.FinalCredits,
+        job.CreatedAt,
+        job.CanCancel);
+}
+
 public static class AiStudioOptions
 {
     public static IReadOnlyList<AiStudioOperationOption> Operations { get; } =
     [
-        new(AiStudioOperation.Generate, "Generate", "Create a new image from a prompt.", false),
-        new(AiStudioOperation.Edit, "Edit reference", "Transform the selected project texture.", true),
-        new(AiStudioOperation.Inpaint, "Inpaint", "Regenerate the source-aligned masked region.", true),
-        new(AiStudioOperation.Outpaint, "Outpaint", "Extend the selected project texture.", true),
-        new(AiStudioOperation.RemoveObject, "Remove", "Remove content inside the source-aligned mask.", true),
-        new(AiStudioOperation.ReplaceObject, "Replace", "Replace the source-aligned masked content.", true),
-        new(AiStudioOperation.Upscale, "Upscale", "Increase detail while preserving the selected texture.", true),
+        new(AiStudioOperation.Generate, "Tạo ảnh", "Tạo hình ảnh mới từ nội dung mô tả.", false),
+        new(AiStudioOperation.Edit, "Chỉnh sửa ảnh nguồn", "Biến đổi Texture đang chọn.", true),
+        new(AiStudioOperation.Inpaint, "Inpaint", "Tạo lại vùng Mask theo ảnh nguồn.", true),
+        new(AiStudioOperation.Outpaint, "Outpaint", "Mở rộng Texture đang chọn.", true),
+        new(AiStudioOperation.RemoveObject, "Xóa đối tượng", "Xóa nội dung bên trong vùng Mask.", true),
+        new(AiStudioOperation.ReplaceObject, "Thay đối tượng", "Thay nội dung bên trong vùng Mask.", true),
+        new(AiStudioOperation.Upscale, "Upscale", "Tăng chi tiết và giữ nguyên Texture đã chọn.", true),
     ];
 
     public static IReadOnlyList<AiStudioOption> Models { get; } =
     [
-        new("server-default", "Server default"),
-        new("balanced", "Balanced"),
-        new("detail", "Detail"),
+        new("server-default", "Mặc định"),
+        new("balanced", "Cân bằng"),
+        new("detail", "Chi tiết"),
     ];
 
     public static IReadOnlyList<AiStudioOption> Qualities { get; } =
     [
-        new("standard", "Standard"),
-        new("high", "High"),
+        new("standard", "Tiêu chuẩn"),
+        new("high", "Cao"),
     ];
 
     public static IReadOnlyList<AiStudioAspectOption> Aspects { get; } =
     [
-        new("square", "Square · 1:1", 512, 512),
-        new("landscape", "Landscape · 3:2", 768, 512),
-        new("portrait", "Portrait · 2:3", 512, 768),
+        new("square", "Vuông · 1:1", 512, 512),
+        new("landscape", "Ngang · 3:2", 768, 512),
+        new("portrait", "Dọc · 2:3", 512, 768),
     ];
+
+    public static string GetOperationLabel(AiStudioOperation operation) =>
+        Operations.FirstOrDefault(item => item.Operation == operation)?.Label ?? "Tác vụ AI";
 }

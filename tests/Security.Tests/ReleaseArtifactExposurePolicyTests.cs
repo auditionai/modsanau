@@ -22,8 +22,12 @@ public sealed class ReleaseArtifactExposurePolicyTests : IDisposable
 
     [Theory]
     [InlineData("source.cs", "source")]
+    [InlineData("view.xaml", "source")]
     [InlineData("signing.pfx", "private_key_material")]
     [InlineData("acv.exe", "proprietary_fixture")]
+    [InlineData("texconv.exe", "proprietary_fixture")]
+    [InlineData("working.acv", "proprietary_fixture")]
+    [InlineData("session.log", "runtime_user_data")]
     [InlineData("AuditionModStudio.obfuscation-map.xml", "private_mapping")]
     public async Task Public_layout_rejects_sensitive_development_or_proprietary_artifacts(
         string fileName, string category)
@@ -36,6 +40,19 @@ public sealed class ReleaseArtifactExposurePolicyTests : IDisposable
         Assert.NotEqual(0, result.ExitCode);
         Assert.Contains(category, result.Output, StringComparison.Ordinal);
         Assert.DoesNotContain(_root, result.Output, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Portable_layout_accepts_exact_product_entry_point()
+    {
+        Directory.CreateDirectory(_root);
+        await File.WriteAllTextAsync(Path.Combine(_root, "AuditionAI.ModStudio.exe"), "release");
+        await File.WriteAllTextAsync(Path.Combine(_root, "AuditionModStudio.App.dll"), "managed");
+
+        var result = await RunAsync("-EntryPoint AuditionAI.ModStudio.exe");
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.Contains("\"PolicyStatus\":\"PASS\"", result.Output, StringComparison.Ordinal);
     }
 
     private void CreateLayout()

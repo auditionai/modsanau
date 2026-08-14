@@ -28,10 +28,10 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private string _negativePrompt = string.Empty;
     private string _outputWidth = "1024";
     private string _outputHeight = "1024";
-    private string _statusMessage = "AI Studio is ready. Server availability is checked when this page opens.";
-    private string _quoteText = "Price unavailable";
-    private string _historyMessage = "Loading server job history…";
-    private IReadOnlyList<AiStudioJobSummary> _history = [];
+    private string _statusMessage = "AI Studio đã sẵn sàng. Kết nối dịch vụ sẽ được kiểm tra khi mở trang.";
+    private string _quoteText = "Chưa có thông tin chi phí";
+    private string _historyMessage = "Đang tải lịch sử tạo…";
+    private IReadOnlyList<AiStudioJobPresentation> _history = [];
     private IReadOnlyList<PromptPreset> _presets = [];
     private PromptPreset? _selectedPreset;
     private InternalImage? _previewImage;
@@ -76,12 +76,12 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             if (!Set(ref _selectedPreset, value) || value is null) return;
             if (!value.ApplicableOperations.Contains(SelectedOperation.Operation))
             {
-                StatusMessage = "This preset is not compatible with the selected operation.";
+                StatusMessage = "Mẫu gợi ý này không phù hợp với tác vụ đã chọn.";
                 return;
             }
             Prompt = value.Prompt.Value;
             NegativePrompt = value.NegativePrompt?.Value ?? string.Empty;
-            StatusMessage = "Preset text loaded. Review it before submitting; no AI job or credits were used.";
+            StatusMessage = "Đã tải mẫu gợi ý. Hãy xem lại trước khi gửi; chưa dùng tác vụ AI hoặc Credits.";
         }
     }
 
@@ -142,28 +142,28 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
 
     public string OperationDescription => SelectedOperation.Description;
     public string PromptValidationMessage => Prompt.Length > AiPrompt.MaximumLength
-        ? $"Prompt exceeds {AiPrompt.MaximumLength:N0} characters."
+            ? $"Nội dung mô tả vượt quá {AiPrompt.MaximumLength:N0} ký tự."
         : string.IsNullOrWhiteSpace(Prompt) && SelectedOperation.Operation is not
             (AiStudioOperation.Upscale or AiStudioOperation.RemoveObject)
-            ? "Enter a prompt for this operation."
+                ? "Hãy nhập nội dung mô tả cho tác vụ này."
             : string.Empty;
     public string NegativePromptValidationMessage => NegativePrompt.Length > AiPrompt.MaximumLength
-        ? $"Negative prompt exceeds {AiPrompt.MaximumLength:N0} characters."
+            ? $"Nội dung cần tránh vượt quá {AiPrompt.MaximumLength:N0} ký tự."
         : string.Empty;
     public string OutputValidationMessage => SelectedOperation.Operation is not
         (AiStudioOperation.Outpaint or AiStudioOperation.Upscale) ? string.Empty
         : TryCreateExplicitTargetSize() is null
-            ? "Enter bounded output dimensions that expand the selected source."
+            ? "Hãy nhập kích thước đầu ra hợp lệ và lớn hơn ảnh nguồn đã chọn."
             : string.Empty;
     public string ReferenceMessage => SelectedOperation.RequiresReference
         ? _selection.SelectedTexture is null
-            ? "Select a project texture in Projects before submitting."
-            : $"Reference: {_selection.SelectedTexture.DisplayLabel}"
-        : "No reference image is required.";
+            ? "Hãy chọn một Texture trong Dự án trước khi gửi."
+            : $"Ảnh tham chiếu: {_selection.SelectedTexture.DisplayLabel}"
+            : "Tác vụ này không cần ảnh tham chiếu.";
     public string StatusMessage { get => _statusMessage; private set => Set(ref _statusMessage, value); }
     public string QuoteText { get => _quoteText; private set => Set(ref _quoteText, value); }
     public string HistoryMessage { get => _historyMessage; private set => Set(ref _historyMessage, value); }
-    public IReadOnlyList<AiStudioJobSummary> History { get => _history; private set => Set(ref _history, value); }
+    public IReadOnlyList<AiStudioJobPresentation> History { get => _history; private set => Set(ref _history, value); }
     public InternalImage? PreviewImage { get => _previewImage; private set => Set(ref _previewImage, value); }
     public bool HasPreview => PreviewImage is not null;
     public bool CanApprovePreview => HasPreview && !IsBusy && _selection.SelectedTexture is not null
@@ -214,7 +214,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         var cloud = await cloudTask;
         var merged = PromptPresetMerge.Merge(local.Succeeded ? local.Presets : [], cloud.Succeeded ? cloud.Presets : []);
         Presets = merged.Presets;
-        if (!local.Succeeded) StatusMessage = "Local prompt presets are corrupt and were isolated.";
+        if (!local.Succeeded) StatusMessage = "Các mẫu gợi ý trên máy không hợp lệ và đã được cách ly.";
     }
 
     public void Deactivate()
@@ -228,19 +228,21 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     {
         var result = await _studioService.GetQuoteAsync(SelectedOperation.Operation, cancellationToken);
         QuoteText = result.Succeeded && result.Quote is { CreditCost: > 0 } quote
-            ? $"Estimated {quote.CreditCost:N0} credits · {quote.PricingVersion}"
-            : "Price unavailable · server offline";
+            ? $"Ước tính {quote.CreditCost:N0} Credits · {quote.PricingVersion}"
+            : "Chưa có chi phí · dịch vụ đang ngoại tuyến";
     }
 
     public async Task RefreshHistoryAsync(CancellationToken cancellationToken = default)
     {
         var result = await _studioService.GetHistoryAsync(cancellationToken);
-        History = result.Succeeded ? result.Jobs.Take(100).ToArray() : [];
+        History = result.Succeeded
+            ? result.Jobs.Take(100).Select(AiStudioJobPresentation.From).ToArray()
+            : [];
         HistoryMessage = !result.Succeeded
-            ? "History unavailable while the trusted server is offline."
+            ? "Chưa thể tải lịch sử khi dịch vụ đang ngoại tuyến."
             : History.Count == 0
-                ? "No AI jobs yet. Submitted jobs will appear here."
-                : $"{History.Count:N0} recent server jobs";
+                ? "Chưa có tác vụ AI. Các tác vụ đã gửi sẽ xuất hiện tại đây."
+                : $"{History.Count:N0} tác vụ gần đây";
     }
 
     public Task SubmitAsync(CancellationToken cancellationToken = default) =>
@@ -250,7 +252,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     {
         if (!CanSubmit)
         {
-            StatusMessage = "Review the highlighted input requirements before submitting.";
+            StatusMessage = "Hãy kiểm tra các yêu cầu đầu vào được đánh dấu trước khi gửi.";
             return;
         }
 
@@ -260,7 +262,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             reference = await _selection.LoadSelectedImageAsync(cancellationToken);
             if (reference is null)
             {
-                StatusMessage = "The selected reference image could not be loaded.";
+                StatusMessage = "Không thể tải ảnh tham chiếu đã chọn.";
                 return;
             }
         }
@@ -269,7 +271,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                 or AiStudioOperation.ReplaceObject
             && (mask is null || reference is null || mask.Width != reference.Width || mask.Height != reference.Height))
         {
-            StatusMessage = "Initialize a source-aligned mask for this operation before submitting.";
+            StatusMessage = "Hãy khởi tạo Mask theo ảnh nguồn trước khi gửi tác vụ này.";
             return;
         }
 
@@ -282,23 +284,23 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         var preferences = new AiRequestPreferences(negative, SelectedModel.Value, SelectedQuality.Value);
         if (!preferences.IsValid)
         {
-            StatusMessage = "Model or quality preference is invalid.";
+            StatusMessage = "Mô hình hoặc mức chất lượng không hợp lệ.";
             return;
         }
 
         AiImageResult? aiResult = null;
         IsBusy = true;
         ProgressPercentage = 0;
-        StatusMessage = "Submitting to the trusted AI backend…";
+        StatusMessage = "Đang gửi yêu cầu đến dịch vụ AI…";
         var progress = new Progress<AiOperationProgress>(value =>
         {
             ProgressPercentage = Math.Clamp(value.Percentage, 0, 100);
             StatusMessage = value.Phase switch
             {
-                AiOperationPhase.Validating => "Validating request…",
-                AiOperationPhase.Submitting => "Submitting request…",
-                AiOperationPhase.Processing => "AI job is processing…",
-                AiOperationPhase.Receiving => "Receiving preview…",
+                AiOperationPhase.Validating => "Đang kiểm tra yêu cầu…",
+                AiOperationPhase.Submitting => "Đang gửi yêu cầu…",
+                AiOperationPhase.Processing => "AI đang xử lý…",
+                AiOperationPhase.Receiving => "Đang nhận bản xem trước…",
                 _ => StatusMessage,
             };
         });
@@ -335,7 +337,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         if (!enqueue.Succeeded)
         {
             IsBusy = false;
-            StatusMessage = "AI task could not be queued. Try again.";
+            StatusMessage = "Không thể đưa tác vụ AI vào hàng đợi. Vui lòng thử lại.";
             return;
         }
 
@@ -349,7 +351,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         catch (OperationCanceledException)
         {
             _taskManager.TryCancel(enqueue.TaskId);
-            StatusMessage = "AI request cancelled. No project content was changed.";
+            StatusMessage = "Đã hủy yêu cầu AI. Nội dung dự án không bị thay đổi.";
             return;
         }
         finally
@@ -360,20 +362,20 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         }
         if (completion?.State == BackgroundTaskState.Cancelled || aiResult?.Cancelled == true)
         {
-            StatusMessage = "AI request cancelled. No project content was changed.";
+            StatusMessage = "Đã hủy yêu cầu AI. Nội dung dự án không bị thay đổi.";
         }
         else if (aiResult?.Succeeded == true && aiResult.Image is not null)
         {
             PreviewImage = aiResult.Image;
             OnPropertyChanged(nameof(HasPreview));
             ProgressPercentage = 100;
-            StatusMessage = "Preview ready. Review it here; the project has not been changed.";
+            StatusMessage = "Bản xem trước đã sẵn sàng. Dự án chưa bị thay đổi.";
         }
         else
         {
             StatusMessage = aiResult?.FailureReason == AiServiceFailureReason.Unavailable
-                ? "Trusted AI backend is offline. Local editing remains available."
-                : "AI request failed safely. No project content was changed.";
+                ? "Dịch vụ AI đang ngoại tuyến. Bạn vẫn có thể chỉnh sửa trên máy."
+                : "Không thể xử lý yêu cầu AI. Nội dung dự án không bị thay đổi.";
         }
         await RefreshHistoryAsync(cancellationToken);
     }
@@ -388,12 +390,12 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         try { path = new(selected.RelativePath); }
         catch (ArgumentException)
         {
-            StatusMessage = "The selected texture path is invalid.";
+            StatusMessage = "Đường dẫn Texture đã chọn không hợp lệ.";
             return false;
         }
         TextureApplyResult? result = null;
         IsBusy = true;
-        StatusMessage = "Applying the approved AI preview through Match Original and DDS validation…";
+        StatusMessage = "Đang kiểm tra DDS và áp dụng kết quả AI đã chọn…";
         try
         {
             var enqueue = await _taskManager.EnqueueAsync(new(BackgroundTaskKind.Convert,
@@ -416,18 +418,18 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                 || !ReferenceEquals(_projectSession.Workspace, workspace))
             {
                 StatusMessage = result?.Cancelled == true
-                    ? "AI preview Apply was cancelled and rolled back."
-                    : "AI preview Apply failed validation and was rolled back.";
+                ? "Đã hủy áp dụng kết quả AI và khôi phục thay đổi."
+                : "Kết quả AI không đạt kiểm tra nên thay đổi đã được khôi phục.";
                 return false;
             }
             await _projectSession.ActivateAsync(result.Project, workspace);
             await _selection.RefreshAfterApplyAsync(path, cancellationToken);
-            StatusMessage = "Approved AI preview applied atomically; project history and DDS validation are updated.";
+            StatusMessage = "Đã áp dụng kết quả AI an toàn; lịch sử dự án và kiểm tra DDS đã được cập nhật.";
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            StatusMessage = "AI preview Apply was cancelled.";
+            StatusMessage = "Đã hủy áp dụng kết quả AI.";
             return false;
         }
         finally
@@ -441,7 +443,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public bool CancelCurrent()
     {
         var cancelled = _activeTaskId.IsValid && _taskManager.TryCancel(_activeTaskId);
-        if (cancelled) StatusMessage = "Cancelling AI request…";
+        if (cancelled) StatusMessage = "Đang hủy yêu cầu AI…";
         return cancelled;
     }
 
@@ -450,8 +452,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         if (jobId == Guid.Empty) return;
         var result = await _studioService.CancelJobAsync(jobId, cancellationToken);
         StatusMessage = result.Succeeded
-            ? "Cancellation requested on the trusted server."
-            : "The server job could not be cancelled.";
+            ? "Đã gửi yêu cầu hủy đến dịch vụ AI."
+            : "Không thể hủy tác vụ trên dịch vụ AI.";
         await RefreshHistoryAsync(cancellationToken);
     }
 

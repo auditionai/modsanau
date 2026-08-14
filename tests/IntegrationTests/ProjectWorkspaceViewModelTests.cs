@@ -23,7 +23,7 @@ public sealed class ProjectWorkspaceViewModelTests
         await viewModel.LoadAsync();
 
         Assert.Empty(viewModel.Folders);
-        Assert.Contains("No active project", viewModel.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("Chưa mở dự án", viewModel.StatusMessage, StringComparison.Ordinal);
         Assert.Equal(0, scan.CallCount);
     }
 
@@ -42,8 +42,8 @@ public sealed class ProjectWorkspaceViewModelTests
         Assert.Equal("Login texture", viewModel.SelectedDisplayName);
         Assert.Equal("6000 × 1801", viewModel.SelectedTargetSize);
         Assert.Equal("BC3", viewModel.SelectedFormat);
-        Assert.Equal("Original", viewModel.SelectedState);
-        Assert.Equal("Valid", viewModel.SelectedValidation);
+        Assert.Equal("Bản gốc", viewModel.SelectedState);
+        Assert.Equal("Hợp lệ", viewModel.SelectedValidation);
     }
 
     [Fact]

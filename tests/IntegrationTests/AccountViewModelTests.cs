@@ -45,7 +45,7 @@ public sealed class AccountViewModelTests
         service.Result = new(AccountOverviewStatus.Cancelled, "ACCOUNT_CANCELLED", null);
         await viewModel.ActivateAsync();
         Assert.False(viewModel.HasError);
-        Assert.Contains("cancelled", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Đã hủy", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public sealed class AccountViewModelTests
         await account.ActivateAsync();
 
         Assert.Equal("Person", shell.AccountStatus);
-        Assert.Equal("80 credits", shell.CreditsStatus);
-        Assert.Equal("Online", shell.ConnectionStatus);
+        Assert.Equal("80 Credits", shell.CreditsStatus);
+        Assert.Equal("Trực tuyến", shell.ConnectionStatus);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class AccountViewModelTests
 
         Assert.True(viewModel.HasSnapshot);
         Assert.Equal("80", viewModel.AvailableCredits);
-        Assert.Contains("loaded", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Đã tải", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     private static AccountOverviewResult Success(params AccountCreditTransaction[] transactions) => new(

@@ -9,15 +9,15 @@ public sealed class Plan44TextureGridContractTests
         var path = Path.Combine(root, "src", "AuditionModStudio.App", "Workspace", "ProjectWorkspacePage.xaml");
         var text = File.ReadAllText(path);
 
-        Assert.Contains("Texture Grid", text, StringComparison.Ordinal);
+        Assert.Contains("Thư viện Texture", text, StringComparison.Ordinal);
         Assert.Contains("ThumbnailImage", text, StringComparison.Ordinal);
         Assert.Contains("DisplayName", text, StringComparison.Ordinal);
         Assert.Contains("FileName", text, StringComparison.Ordinal);
         Assert.Contains("TargetSize", text, StringComparison.Ordinal);
-        Assert.Contains("Texture status filter", text, StringComparison.Ordinal);
-        Assert.Contains("Texture category filter", text, StringComparison.Ordinal);
-        Assert.Contains("Texture size filter", text, StringComparison.Ordinal);
-        Assert.Contains("Texture alpha filter", text, StringComparison.Ordinal);
+        Assert.Contains("Lọc theo trạng thái Texture", text, StringComparison.Ordinal);
+        Assert.Contains("Lọc theo danh mục Texture", text, StringComparison.Ordinal);
+        Assert.Contains("Lọc theo kích thước Texture", text, StringComparison.Ordinal);
+        Assert.Contains("Lọc theo Alpha của Texture", text, StringComparison.Ordinal);
         Assert.Contains("ContainerContentChanging=\"OnTextureContainerContentChanging\"", text, StringComparison.Ordinal);
         Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", text);
     }

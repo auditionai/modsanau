@@ -9,17 +9,17 @@ public sealed class Plan46BeforeAfterCompareContractTests
         var path = Path.Combine(root, "src", "AuditionModStudio.App", "Editor", "ImageEditorPage.xaml");
         var text = File.ReadAllText(path);
 
-        Assert.Contains("Before / After Compare", text, StringComparison.Ordinal);
+        Assert.Contains("So sánh trước / sau", text, StringComparison.Ordinal);
         Assert.Contains("SideBySideCompare", text, StringComparison.Ordinal);
         Assert.Contains("SliderCompare", text, StringComparison.Ordinal);
         Assert.Contains("ToggleCompare", text, StringComparison.Ordinal);
-        Assert.Contains("Alpha checkerboard", text, StringComparison.Ordinal);
-        Assert.Contains("Before session baseline", text, StringComparison.Ordinal);
-        Assert.Contains("After live preview", text, StringComparison.Ordinal);
-        Assert.Contains("Before and After comparison divider", text, StringComparison.Ordinal);
-        Assert.Contains("Use Left and Right Arrow keys", text, StringComparison.Ordinal);
-        Assert.Contains("Shared Before and After compare zoom", text, StringComparison.Ordinal);
-        Assert.Contains("Read-only session baseline", text, StringComparison.Ordinal);
+        Assert.Contains("Nền caro Alpha", text, StringComparison.Ordinal);
+        Assert.Contains("Ảnh Trước của phiên", text, StringComparison.Ordinal);
+        Assert.Contains("Bản xem trước Sau", text, StringComparison.Ordinal);
+        Assert.Contains("Thanh chia so sánh Trước và Sau", text, StringComparison.Ordinal);
+        Assert.Contains("Dùng phím mũi tên trái và phải", text, StringComparison.Ordinal);
+        Assert.Contains("Thu phóng chung cho ảnh Trước và Sau", text, StringComparison.Ordinal);
+        Assert.Contains("Chỉ xem trước · chưa thay đổi tệp", text, StringComparison.Ordinal);
         Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", text);
     }
 

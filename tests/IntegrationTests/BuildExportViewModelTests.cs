@@ -20,7 +20,7 @@ public sealed class BuildExportViewModelTests
         context.ViewModel.RefreshProject();
 
         Assert.Equal("015.ab", context.ViewModel.OutputFileName);
-        Assert.Contains("NotBuilt", context.ViewModel.ProjectStatus, StringComparison.Ordinal);
+        Assert.Contains("Chưa Build", context.ViewModel.ProjectStatus, StringComparison.Ordinal);
         Assert.False(context.ViewModel.CanStart);
 
         context.ViewModel.OutputDirectory = context.OutputDirectory;
@@ -57,7 +57,7 @@ public sealed class BuildExportViewModelTests
 
         Assert.Equal(0, context.BuildService.CallCount);
         Assert.Equal(0, context.ExportService.CallCount);
-        Assert.Contains("already exists", context.ViewModel.StatusMessage, StringComparison.Ordinal);
+        Assert.Contains("đã tồn tại", context.ViewModel.StatusMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public sealed class BuildExportViewModelTests
         await running;
 
         Assert.Equal(manager.TaskId, manager.CancelledTaskId);
-        Assert.Contains("cancelled", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Đã hủy", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
         Assert.False(viewModel.IsBusy);
     }
 
@@ -97,11 +97,11 @@ public sealed class BuildExportViewModelTests
         var codeBehind = File.ReadAllText(Path.Combine(
             root, "src", "AuditionModStudio.App", "Workspace", "ProjectWorkspacePage.xaml.cs"));
 
-        Assert.Contains("Build &amp; Export", xaml, StringComparison.Ordinal);
-        Assert.Contains("Choose export folder", xaml, StringComparison.Ordinal);
-        Assert.Contains("Archive filename", xaml, StringComparison.Ordinal);
-        Assert.Contains("Replace an existing archive", xaml, StringComparison.Ordinal);
-        Assert.Contains("Build and export progress", xaml, StringComparison.Ordinal);
+        Assert.Contains("Build &amp; Xuất file", xaml, StringComparison.Ordinal);
+        Assert.Contains("Chọn thư mục xuất", xaml, StringComparison.Ordinal);
+        Assert.Contains("Tên tệp Mod", xaml, StringComparison.Ordinal);
+        Assert.Contains("Thay tệp đang có", xaml, StringComparison.Ordinal);
+        Assert.Contains("Tiến trình Build và xuất file", xaml, StringComparison.Ordinal);
         Assert.Contains("FinalSha256", xaml, StringComparison.Ordinal);
         Assert.Contains("MinHeight=\"44\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Launch Game", xaml, StringComparison.OrdinalIgnoreCase);

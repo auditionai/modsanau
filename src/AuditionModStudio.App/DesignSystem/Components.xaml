@@ -7,59 +7,70 @@
         <Setter Property="Background" Value="{ThemeResource AmsPanelBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource AmsCardBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusLarge}" />
+        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusMedium}" />
         <Setter Property="Padding" Value="{StaticResource AmsPanelPadding}" />
     </Style>
 
+    <Style x:Key="AmsLowPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource AmsSurfaceLowBrush}" />
+        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusMedium}" />
+        <Setter Property="Padding" Value="{StaticResource AmsPanelPadding}" />
+    </Style>
+
+    <Style x:Key="AmsEditorSurfaceStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource AmsCanvasBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AmsStrongBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusMedium}" />
+        <Setter Property="Padding" Value="{StaticResource AmsSpace12}" />
+    </Style>
+
     <Style x:Key="AmsCardStyle" TargetType="Border">
-        <Setter Property="Background" Value="{ThemeResource AmsCardBrush}" />
+        <Setter Property="Background" Value="{ThemeResource AmsPanelBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource AmsCardBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusMedium}" />
         <Setter Property="Padding" Value="{StaticResource AmsCardPadding}" />
-        <Setter Property="Shadow">
-            <Setter.Value>
-                <ThemeShadow />
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <Style
         x:Key="AmsAccentCardStyle"
         BasedOn="{StaticResource AmsCardStyle}"
         TargetType="Border">
-        <Setter Property="Background" Value="{ThemeResource AmsAccentGradientBrush}" />
+        <Setter Property="Background" Value="{ThemeResource AmsHeroBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AmsStrongBorderBrush}" />
     </Style>
 
-    <ControlTemplate x:Key="AmsDepthButtonTemplate" TargetType="Button">
-        <Grid>
-            <Border
-                Margin="0,3,0,0"
-                Background="{TemplateBinding BorderBrush}"
-                CornerRadius="{TemplateBinding CornerRadius}" />
-            <Border
-                x:Name="Surface"
-                Background="{TemplateBinding Background}"
-                CornerRadius="{TemplateBinding CornerRadius}"
-                RenderTransformOrigin="0.5,0.5">
-                <Border.RenderTransform>
-                    <CompositeTransform x:Name="SurfaceTransform" />
-                </Border.RenderTransform>
-                <Grid>
-                    <Border
-                        x:Name="HoverOverlay"
-                        Background="{ThemeResource AmsButtonHoverOverlayBrush}"
-                        CornerRadius="{TemplateBinding CornerRadius}"
-                        Opacity="0" />
-                    <ContentPresenter
-                        x:Name="ContentPresenter"
-                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                        Content="{TemplateBinding Content}"
-                        ContentTemplate="{TemplateBinding ContentTemplate}"
-                        ContentTransitions="{TemplateBinding ContentTransitions}" />
-                </Grid>
-            </Border>
+    <Style x:Key="AmsEmptyStateStyle" TargetType="Border">
+        <Setter Property="Background" Value="{ThemeResource AmsSurfaceLowBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AmsCardBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusMedium}" />
+        <Setter Property="Padding" Value="32" />
+    </Style>
+
+    <ControlTemplate x:Key="AmsFlatButtonTemplate" TargetType="Button">
+        <Border
+            x:Name="Surface"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            CornerRadius="{TemplateBinding CornerRadius}">
+            <Grid>
+                <Border
+                    x:Name="HoverOverlay"
+                    Background="{ThemeResource AmsButtonHoverOverlayBrush}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Opacity="0" />
+                <ContentPresenter
+                    x:Name="ContentPresenter"
+                    Margin="{TemplateBinding Padding}"
+                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                    Content="{TemplateBinding Content}"
+                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                    ContentTransitions="{TemplateBinding ContentTransitions}" />
+            </Grid>
             <VisualStateManager.VisualStateGroups>
                 <VisualStateGroup x:Name="CommonStates">
                     <VisualState x:Name="Normal" />
@@ -68,31 +79,16 @@
                             <DoubleAnimation
                                 Storyboard.TargetName="HoverOverlay"
                                 Storyboard.TargetProperty="Opacity"
-                                To="0.18"
-                                Duration="{StaticResource AmsMotionFast}" />
-                            <DoubleAnimation
-                                Storyboard.TargetName="SurfaceTransform"
-                                Storyboard.TargetProperty="TranslateY"
-                                To="-1"
+                                To="0.12"
                                 Duration="{StaticResource AmsMotionFast}" />
                         </Storyboard>
                     </VisualState>
                     <VisualState x:Name="Pressed">
                         <Storyboard>
                             <DoubleAnimation
-                                Storyboard.TargetName="SurfaceTransform"
-                                Storyboard.TargetProperty="TranslateY"
-                                To="2"
-                                Duration="{StaticResource AmsMotionPress}" />
-                            <DoubleAnimation
-                                Storyboard.TargetName="SurfaceTransform"
-                                Storyboard.TargetProperty="ScaleX"
-                                To="0.985"
-                                Duration="{StaticResource AmsMotionPress}" />
-                            <DoubleAnimation
-                                Storyboard.TargetName="SurfaceTransform"
-                                Storyboard.TargetProperty="ScaleY"
-                                To="0.985"
+                                Storyboard.TargetName="Surface"
+                                Storyboard.TargetProperty="Opacity"
+                                To="0.82"
                                 Duration="{StaticResource AmsMotionPress}" />
                         </Storyboard>
                     </VisualState>
@@ -103,23 +99,26 @@
                     </VisualState>
                 </VisualStateGroup>
             </VisualStateManager.VisualStateGroups>
-        </Grid>
+        </Border>
     </ControlTemplate>
 
     <Style x:Key="AmsPrimaryButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource AmsButtonPrimaryBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource AmsButtonPrimaryDepthBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Foreground" Value="{ThemeResource AmsButtonContentBrush}" />
         <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusSmall}" />
         <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource AmsTypeBody}" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="MinHeight" Value="42" />
+        <Setter Property="MinHeight" Value="44" />
         <Setter Property="Padding" Value="{StaticResource AmsButtonPadding}" />
         <Setter Property="UseSystemFocusVisuals" Value="True" />
         <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource AmsFocusBrush}" />
         <Setter Property="FocusVisualPrimaryThickness" Value="{StaticResource AmsFocusThickness}" />
-        <Setter Property="Template" Value="{StaticResource AmsDepthButtonTemplate}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template" Value="{StaticResource AmsFlatButtonTemplate}" />
     </Style>
 
     <Style
@@ -131,10 +130,60 @@
         <Setter Property="Foreground" Value="{ThemeResource AmsTextPrimaryBrush}" />
     </Style>
 
+    <Style
+        x:Key="AmsGhostButtonStyle"
+        BasedOn="{StaticResource AmsPrimaryButtonStyle}"
+        TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{ThemeResource AmsCardBorderBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource AmsTextSecondaryBrush}" />
+    </Style>
+
+    <Style
+        x:Key="AmsToolbarButtonStyle"
+        BasedOn="{StaticResource AmsSecondaryButtonStyle}"
+        TargetType="Button">
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="Padding" Value="{StaticResource AmsCompactButtonPadding}" />
+        <Setter Property="FontSize" Value="{StaticResource AmsTypeLabel}" />
+    </Style>
+
+    <Style
+        x:Key="AmsIconButtonStyle"
+        BasedOn="{StaticResource AmsToolbarButtonStyle}"
+        TargetType="Button">
+        <Setter Property="MinWidth" Value="44" />
+        <Setter Property="Padding" Value="8" />
+    </Style>
+
+    <Style
+        x:Key="AmsDangerButtonStyle"
+        BasedOn="{StaticResource AmsGhostButtonStyle}"
+        TargetType="Button">
+        <Setter Property="Foreground" Value="{ThemeResource AmsErrorBrush}" />
+    </Style>
+
+    <Style x:Key="AmsDisplayTitleStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource AmsTextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource AmsTypeDisplay}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LineHeight" Value="46" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="AmsPageTitleStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource AmsTextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource AmsTypePageTitle}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
     <Style x:Key="AmsSectionTitleStyle" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{ThemeResource AmsTextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
-        <Setter Property="FontSize" Value="{StaticResource AmsTypeTitle}" />
+        <Setter Property="FontSize" Value="{StaticResource AmsTypePanelTitle}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
@@ -144,13 +193,36 @@
         <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
         <Setter Property="FontSize" Value="{StaticResource AmsTypeBody}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="21" />
+    </Style>
+
+    <Style x:Key="AmsBodyPrimaryTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource AmsTextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource AmsTypeBody}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="LineHeight" Value="21" />
+    </Style>
+
+    <Style x:Key="AmsLabelTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource AmsTextSecondaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource AmsTypeLabel}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="AmsCaptionTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{ThemeResource AmsTextMutedBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource AmsTypeCaption}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
     <Style x:Key="AmsStatusBadgeStyle" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource AmsCardBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource AmsCardBorderBrush}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusPill}" />
+        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusSmall}" />
         <Setter Property="Padding" Value="{StaticResource AmsStatusBadgePadding}" />
     </Style>
 
@@ -159,5 +231,23 @@
         <Setter Property="BorderBrush" Value="{ThemeResource AmsCardBorderBrush}" />
         <Setter Property="BorderThickness" Value="0,0,0,1" />
         <Setter Property="Padding" Value="{StaticResource AmsShellHeaderPadding}" />
+    </Style>
+
+    <Style x:Key="AmsNavigationItemStyle" TargetType="NavigationViewItem">
+        <Setter Property="MinHeight" Value="48" />
+        <Setter Property="Margin" Value="4,3" />
+        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusSmall}" />
+        <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource AmsTypeBody}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource AmsFocusBrush}" />
+    </Style>
+
+    <Style x:Key="AmsInputStyle" TargetType="TextBox">
+        <Setter Property="MinHeight" Value="44" />
+        <Setter Property="CornerRadius" Value="{StaticResource AmsRadiusSmall}" />
+        <Setter Property="FontFamily" Value="{StaticResource AmsFontFamily}" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource AmsFocusBrush}" />
     </Style>
 </ResourceDictionary>

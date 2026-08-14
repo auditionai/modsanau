@@ -19,7 +19,7 @@ public sealed class Plan93AccountUiContractTests
         Assert.Contains("AmsGamingPanelStyle", text, StringComparison.Ordinal);
         Assert.Contains("AmsAccentCardStyle", text, StringComparison.Ordinal);
         Assert.Contains("MinHeight=\"44\"", text, StringComparison.Ordinal);
-        Assert.Contains("No credit transactions", text, StringComparison.Ordinal);
+        Assert.Contains("Chưa có giao dịch Credits", text, StringComparison.Ordinal);
         Assert.DoesNotContain("TextBox", text, StringComparison.Ordinal);
         Assert.DoesNotContain("PasswordBox", text, StringComparison.Ordinal);
         Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", text);

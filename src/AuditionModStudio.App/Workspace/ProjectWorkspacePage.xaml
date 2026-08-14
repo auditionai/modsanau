@@ -8,471 +8,484 @@
     Background="Transparent"
     mc:Ignorable="d">
 
-    <ScrollViewer>
-        <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="{StaticResource AmsSpace16}">
+    <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Daylight workspace command header. -->
+        <Border Padding="20,14" Style="{StaticResource AmsCardStyle}">
+            <Grid ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                    <TextBlock
+                        x:Name="WorkspaceHeading"
+                        AutomationProperties.HeadingLevel="Level1"
+                        Style="{StaticResource AmsPageTitleStyle}"
+                        Text="{x:Bind ViewModel.ProjectName, Mode=OneWay}" />
+                    <TextBlock
+                        AutomationProperties.LiveSetting="Polite"
+                        Style="{StaticResource AmsCaptionTextStyle}"
+                        Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                    <Border Style="{StaticResource AmsStatusBadgeStyle}"><StackPanel Orientation="Horizontal" Spacing="5"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Texture" /><TextBlock FontFamily="Cascadia Mono" FontWeight="SemiBold" Text="{x:Bind ViewModel.TextureCountDisplay, Mode=OneWay}" /></StackPanel></Border>
+                    <Border Style="{StaticResource AmsStatusBadgeStyle}"><StackPanel Orientation="Horizontal" Spacing="5"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Đã sửa" /><TextBlock FontFamily="Cascadia Mono" FontWeight="SemiBold" Text="{x:Bind ViewModel.ModifiedCountDisplay, Mode=OneWay}" /></StackPanel></Border>
+                    <Border Style="{StaticResource AmsStatusBadgeStyle}"><StackPanel Orientation="Horizontal" Spacing="5"><FontIcon Foreground="{ThemeResource AmsWarningBrush}" FontSize="11" Glyph="&#xE7BA;" /><TextBlock FontFamily="Cascadia Mono" FontWeight="SemiBold" Text="{x:Bind ViewModel.WarningCountDisplay, Mode=OneWay}" /></StackPanel></Border>
+                    <ProgressBar
+                        Width="120"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="Tiến trình tải không gian dự án"
+                        Maximum="100"
+                        Value="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" />
+                    <Button
+                        AutomationProperties.Name="Hủy tải không gian dự án"
+                        Click="OnCancelLoadingClicked"
+                        IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}"
+                        Style="{StaticResource AmsSecondaryButtonStyle}">
+                        Hủy tải
+                    </Button>
+                    <Border Style="{StaticResource AmsStatusBadgeStyle}">
+                        <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.WorkflowSummary, Mode=OneWay}" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Project workflow is a light accent rail, separate from the workspace panes. -->
+        <Border Grid.Row="1" Padding="14,10" Style="{StaticResource AmsAccentCardStyle}">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Border Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Tệp nguồn" /></Border>
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource AmsTextMutedBrush}" Text="→" />
+                        <Border Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Đã giải nén" /></Border>
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource AmsTextMutedBrush}" Text="→" />
+                        <Border Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Đã quét" /></Border>
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource AmsTextMutedBrush}" Text="→" />
+                        <Border Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Đang chỉnh sửa" /></Border>
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource AmsTextMutedBrush}" Text="→" />
+                        <Border Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Đã áp dụng" /></Border>
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource AmsTextMutedBrush}" Text="→" />
+                        <Border Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Đã kiểm tra" /></Border>
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource AmsTextMutedBrush}" Text="→" />
+                        <Border Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Đã Build" /></Border>
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource AmsTextMutedBrush}" Text="→" />
+                        <Border Style="{StaticResource AmsStatusBadgeStyle}"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Đã xuất" /></Border>
+                    </StackPanel>
+                </ScrollViewer>
+                <TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ProjectIdentitySummary, Mode=OneWay}" />
+            </Grid>
+        </Border>
+
+        <!-- 3-Column Cohesive Studio Workspace -->
+        <Grid
+            x:Name="WorkspaceColumns"
+            Grid.Row="2"
+            ColumnSpacing="16"
+            RowSpacing="16">
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup>
+                    <VisualState x:Name="StackedWorkspaceState">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="0" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="SecondColumn.Width" Value="0" />
+                            <Setter Target="ThirdColumn.Width" Value="0" />
+                            <Setter Target="PreviewPane.(Grid.Column)" Value="0" />
+                            <Setter Target="PreviewPane.(Grid.Row)" Value="1" />
+                            <Setter Target="MetadataPane.(Grid.Column)" Value="0" />
+                            <Setter Target="MetadataPane.(Grid.Row)" Value="2" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="ThreePaneWorkspaceState">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="1100" />
+                        </VisualState.StateTriggers>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="252" />
+                <ColumnDefinition x:Name="SecondColumn" Width="2.7*" />
+                <ColumnDefinition x:Name="ThirdColumn" Width="300" />
+            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <StackPanel Spacing="{StaticResource AmsSpace8}">
-                <TextBlock
-                    x:Name="WorkspaceHeading"
-                    AutomationProperties.HeadingLevel="Level1"
-                    Style="{StaticResource AmsSectionTitleStyle}"
-                    Text="{x:Bind ViewModel.ProjectName, Mode=OneWay}" />
-                <TextBlock
-                    AutomationProperties.LiveSetting="Polite"
-                    Style="{StaticResource AmsBodyTextStyle}"
-                    Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" />
-                <ProgressBar
-                    AutomationProperties.Name="Workspace loading progress"
-                    Maximum="100"
-                    Value="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" />
-                <Button
-                    AutomationProperties.Name="Cancel workspace loading"
-                    Click="OnCancelLoadingClicked"
-                    HorizontalAlignment="Left"
-                    IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}"
-                    Style="{StaticResource AmsSecondaryButtonStyle}">
-                    Cancel loading
-                </Button>
-            </StackPanel>
+            <!-- LEFT REGION: Folder Tree & Search -->
+            <Border x:Name="BrowserPane" Style="{StaticResource AmsCardStyle}">
+                <Grid RowSpacing="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Thư mục tài nguyên" />
+                    <TextBox
+                        Grid.Row="1"
+                        AutomationProperties.Name="Tìm kiếm Texture"
+                        MaxLength="256"
+                        PlaceholderText="Tìm tên hoặc đường dẫn..."
+                        Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    <ComboBox
+                        Grid.Row="2"
+                        AutomationProperties.Name="Bộ lọc ánh xạ Texture"
+                        HorizontalAlignment="Stretch"
+                        ItemsSource="{x:Bind ViewModel.MappingFilters}"
+                        SelectedItem="{x:Bind ViewModel.MappingFilter, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource VietnameseEnumLabelConverter}}" /></DataTemplate></ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TreeView
+                        x:Name="FolderTree"
+                        Grid.Row="3"
+                        AutomationProperties.Name="Thư mục Texture của dự án"
+                        SelectionChanged="OnTreeSelectionChanged">
+                        <TreeView.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{Binding DisplayLabel}" />
+                            </DataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </Grid>
+            </Border>
 
-            <Grid
-                x:Name="WorkspaceColumns"
-                Grid.Row="1"
-                ColumnSpacing="{StaticResource AmsSpace16}"
-                RowSpacing="{StaticResource AmsSpace16}">
-                <VisualStateManager.VisualStateGroups>
-                    <VisualStateGroup>
-                        <VisualState x:Name="StackedWorkspaceState">
-                            <VisualState.StateTriggers>
-                                <AdaptiveTrigger MinWindowWidth="0" />
-                            </VisualState.StateTriggers>
-                            <VisualState.Setters>
-                                <Setter Target="SecondColumn.Width" Value="0" />
-                                <Setter Target="ThirdColumn.Width" Value="0" />
-                                <Setter Target="PreviewPane.(Grid.Column)" Value="0" />
-                                <Setter Target="PreviewPane.(Grid.Row)" Value="1" />
-                                <Setter Target="MetadataPane.(Grid.Column)" Value="0" />
-                                <Setter Target="MetadataPane.(Grid.Row)" Value="2" />
-                            </VisualState.Setters>
-                        </VisualState>
-                        <VisualState x:Name="ThreePaneWorkspaceState">
-                            <VisualState.StateTriggers>
-                                <AdaptiveTrigger MinWindowWidth="1100" />
-                            </VisualState.StateTriggers>
-                        </VisualState>
-                    </VisualStateGroup>
-                </VisualStateManager.VisualStateGroups>
+            <!-- Vùng trung tâm: thư viện Texture và xem trước. -->
+            <Border
+                x:Name="PreviewPane"
+                Grid.Column="1"
+                Style="{StaticResource AmsEditorSurfaceStyle}">
+                <Grid RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.1*" />
-                    <ColumnDefinition x:Name="SecondColumn" Width="2*" />
-                    <ColumnDefinition x:Name="ThirdColumn" Width="1.1*" />
-                </Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="2">
+                            <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Xem trước / Chỉnh sửa" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Thư viện Texture" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.SelectedAssetSummary, Mode=OneWay}" />
+                        </StackPanel>
+                        <Border Grid.Column="1" Style="{StaticResource AmsStatusBadgeStyle}">
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="TẢI AN TOÀN" />
+                        </Border>
+                    </Grid>
+
+                    <!-- Filters bar -->
+                    <ScrollViewer
+                        Grid.Row="1"
+                        AutomationProperties.Name="Bộ lọc Texture"
+                        HorizontalScrollBarVisibility="Auto"
+                        HorizontalScrollMode="Enabled"
+                        VerticalScrollMode="Disabled">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox
+                                AutomationProperties.Name="Lọc theo trạng thái Texture"
+                                Header="Trạng thái"
+                                ItemsSource="{x:Bind ViewModel.StatusFilters}"
+                                SelectedItem="{x:Bind ViewModel.StatusFilter, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource VietnameseEnumLabelConverter}}" /></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <ComboBox
+                                AutomationProperties.Name="Lọc theo danh mục Texture"
+                                DisplayMemberPath="Label"
+                                Header="Danh mục"
+                                ItemsSource="{x:Bind ViewModel.CategoryFilters, Mode=OneWay}"
+                                SelectedItem="{x:Bind ViewModel.SelectedCategoryFilter, Mode=TwoWay}" />
+                            <ComboBox
+                                AutomationProperties.Name="Lọc theo kích thước Texture"
+                                Header="Kích thước đích"
+                                ItemsSource="{x:Bind ViewModel.SizeFilters}"
+                                SelectedItem="{x:Bind ViewModel.SizeFilter, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource VietnameseEnumLabelConverter}}" /></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <ComboBox
+                                AutomationProperties.Name="Lọc theo Alpha của Texture"
+                                Header="Alpha"
+                                ItemsSource="{x:Bind ViewModel.AlphaFilters}"
+                                SelectedItem="{x:Bind ViewModel.AlphaFilter, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource VietnameseEnumLabelConverter}}" /></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- Danh sách Texture -->
+                    <GridView
+                        x:Name="TextureGrid"
+                        Grid.Row="2"
+                        AutomationProperties.Name="Danh sách Texture đã lọc"
+                        ContainerContentChanging="OnTextureContainerContentChanging"
+                        IsItemClickEnabled="True"
+                        ItemClick="OnTextureGridItemClicked"
+                        ItemsSource="{x:Bind ViewModel.FilteredTextures, Mode=OneWay}"
+                        SelectionMode="Single">
+                        <GridView.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Width="180"
+                                    Height="210"
+                                    Margin="4"
+                                    AutomationProperties.Name="{Binding DisplayLabel}"
+                                    Style="{StaticResource AmsCardStyle}">
+                                    <Grid RowSpacing="4">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="120" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid Background="{ThemeResource AmsCanvasBrush}">
+                                            <FontIcon
+                                                x:Name="ThumbnailPlaceholder"
+                                                AutomationProperties.Name="Đang tải ảnh thu nhỏ"
+                                                FontSize="28"
+                                                Foreground="{ThemeResource AmsTextMutedBrush}"
+                                                Glyph="&#xE91B;" />
+                                            <Image
+                                                x:Name="ThumbnailImage"
+                                                AutomationProperties.Name="Ảnh thu nhỏ Texture"
+                                                Stretch="Uniform" />
+                                        </Grid>
+                                        <TextBlock
+                                            Grid.Row="1"
+                                            FontWeight="SemiBold"
+                                            Style="{StaticResource AmsBodyTextStyle}"
+                                            Text="{Binding DisplayName}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Grid.Row="2"
+                                            Style="{StaticResource AmsCaptionTextStyle}"
+                                            Text="{Binding TargetSize}" />
+                                        <TextBlock
+                                            Grid.Row="3"
+                                            AutomationProperties.Name="Trạng thái Texture"
+                                            Style="{StaticResource AmsCaptionTextStyle}"
+                                            Text="{Binding StateLabel}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
+                </Grid>
+            </Border>
+
+            <!-- RIGHT REGION: Contextual Texture Inspector -->
+            <Border
+                x:Name="MetadataPane"
+                Grid.Column="2"
+                Style="{StaticResource AmsCardStyle}">
+                <StackPanel Spacing="12">
+                    <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Thông tin Texture" />
+
+                    <!-- Selected Preview Box -->
+                    <Border Style="{StaticResource AmsEmptyStateStyle}">
+                        <StackPanel HorizontalAlignment="Center" Spacing="8">
+                            <FontIcon AutomationProperties.Name="Vùng xem trước Texture" FontSize="36" Glyph="&#xE91B;" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                Style="{StaticResource AmsSectionTitleStyle}"
+                                Text="{x:Bind ViewModel.SelectedDisplayName, Mode=OneWay}" />
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                Style="{StaticResource AmsCaptionTextStyle}"
+                                Text="{x:Bind ViewModel.PreviewMessage, Mode=OneWay}"
+                                TextAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="Đường dẫn tương đối" />
+                        <TextBlock Style="{StaticResource AmsCaptionTextStyle}" TextWrapping="Wrap" Text="{x:Bind ViewModel.SelectedRelativePath, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <Grid ColumnSpacing="12" RowSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <StackPanel Spacing="3"><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="Kích thước đích" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.SelectedTargetSize, Mode=OneWay}" /></StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="3"><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="Định dạng" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.SelectedFormat, Mode=OneWay}" /></StackPanel>
+                        <StackPanel Grid.Row="1" Spacing="3"><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="Trạng thái" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.SelectedState, Mode=OneWay}" /></StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="3"><TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="Kiểm tra" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.SelectedValidation, Mode=OneWay}" /></StackPanel>
+                    </Grid>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="Đề xuất chỉnh sửa" />
+                        <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.SelectedEditMode, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <!-- Quick Action Buttons -->
+                    <Button
+                        AutomationProperties.Name="Mở trình chỉnh sửa"
+                        IsEnabled="False"
+                        Style="{StaticResource AmsPrimaryButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE790;" />
+                            <TextBlock Text="Chỉnh sửa Texture" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Thay Texture"
+                        IsEnabled="False"
+                        Style="{StaticResource AmsSecondaryButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE8B9;" />
+                            <TextBlock Text="Thay Texture khác" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Khôi phục Texture"
+                        IsEnabled="False"
+                        Style="{StaticResource AmsDangerButtonStyle}">
+                        Khôi phục về bản gốc
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- BUILD & EXPORT PANEL (Bottom Visual Workflow) -->
+        <Border Grid.Row="3" Style="{StaticResource AmsCardStyle}">
+            <Grid RowSpacing="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Border x:Name="BrowserPane" Style="{StaticResource AmsCardStyle}">
-                    <StackPanel Spacing="{StaticResource AmsSpace12}">
-                        <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Folders" />
-                        <TextBox
-                            AutomationProperties.Name="Search textures"
-                            MaxLength="256"
-                            PlaceholderText="Search name, file, or path"
-                            Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        <ComboBox
-                            AutomationProperties.Name="Texture mapping filter"
-                            ItemsSource="{x:Bind ViewModel.MappingFilters}"
-                            SelectedItem="{x:Bind ViewModel.MappingFilter, Mode=TwoWay}" />
-                        <TreeView
-                            x:Name="FolderTree"
-                            AutomationProperties.Name="Project texture folders"
-                            SelectionChanged="OnTreeSelectionChanged">
-                            <TreeView.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding DisplayLabel}" />
-                                </DataTemplate>
-                            </TreeView.ItemTemplate>
-                        </TreeView>
-                    </StackPanel>
-                </Border>
-
-                <Border
-                    x:Name="PreviewPane"
-                    Grid.Column="1"
-                    Style="{StaticResource AmsGamingPanelStyle}">
-                    <StackPanel HorizontalAlignment="Stretch" Spacing="{StaticResource AmsSpace16}">
-                        <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Texture Grid" />
-                        <ScrollViewer
-                            AutomationProperties.Name="Texture filters"
-                            HorizontalScrollBarVisibility="Auto"
-                            HorizontalScrollMode="Enabled"
-                            VerticalScrollMode="Disabled">
-                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
-                                <ComboBox
-                                    AutomationProperties.Name="Texture status filter"
-                                    Header="Status"
-                                    ItemsSource="{x:Bind ViewModel.StatusFilters}"
-                                    SelectedItem="{x:Bind ViewModel.StatusFilter, Mode=TwoWay}" />
-                                <ComboBox
-                                    AutomationProperties.Name="Texture category filter"
-                                    DisplayMemberPath="Label"
-                                    Header="Category"
-                                    ItemsSource="{x:Bind ViewModel.CategoryFilters, Mode=OneWay}"
-                                    SelectedItem="{x:Bind ViewModel.SelectedCategoryFilter, Mode=TwoWay}" />
-                                <ComboBox
-                                    AutomationProperties.Name="Texture size filter"
-                                    Header="Size"
-                                    ItemsSource="{x:Bind ViewModel.SizeFilters}"
-                                    SelectedItem="{x:Bind ViewModel.SizeFilter, Mode=TwoWay}" />
-                                <ComboBox
-                                    AutomationProperties.Name="Texture alpha filter"
-                                    Header="Alpha"
-                                    ItemsSource="{x:Bind ViewModel.AlphaFilters}"
-                                    SelectedItem="{x:Bind ViewModel.AlphaFilter, Mode=TwoWay}" />
-                            </StackPanel>
-                        </ScrollViewer>
-                        <GridView
-                            x:Name="TextureGrid"
-                            AutomationProperties.Name="Filtered texture cards"
-                            ContainerContentChanging="OnTextureContainerContentChanging"
-                            Height="420"
-                            IsItemClickEnabled="True"
-                            ItemClick="OnTextureGridItemClicked"
-                            ItemsSource="{x:Bind ViewModel.FilteredTextures, Mode=OneWay}"
-                            SelectionMode="Single">
-                            <GridView.ItemTemplate>
-                                <DataTemplate>
-                                    <Border
-                                        Width="220"
-                                        Height="260"
-                                        AutomationProperties.Name="{Binding DisplayLabel}"
-                                        Style="{StaticResource AmsCardStyle}">
-                                        <Grid RowSpacing="{StaticResource AmsSpace8}">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="140" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-                                            <Grid Background="{ThemeResource AmsPanelBrush}">
-                                                <FontIcon
-                                                    x:Name="ThumbnailPlaceholder"
-                                                    AutomationProperties.Name="Thumbnail loading placeholder"
-                                                    FontSize="36"
-                                                    Glyph="&#xE91B;" />
-                                                <Image
-                                                    x:Name="ThumbnailImage"
-                                                    AutomationProperties.Name="Texture thumbnail"
-                                                    Stretch="Uniform" />
-                                            </Grid>
-                                            <TextBlock
-                                                Grid.Row="1"
-                                                FontWeight="SemiBold"
-                                                Text="{Binding DisplayName}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                Grid.Row="2"
-                                                Style="{StaticResource AmsBodyTextStyle}"
-                                                Text="{Binding FileName}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                Grid.Row="3"
-                                                Style="{StaticResource AmsBodyTextStyle}"
-                                                Text="{Binding TargetSize}" />
-                                            <TextBlock
-                                                Grid.Row="4"
-                                                AutomationProperties.Name="Texture status"
-                                                Text="{Binding State}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </GridView.ItemTemplate>
-                        </GridView>
-                        <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Preview / Editor" />
-                        <Border Style="{StaticResource AmsCardStyle}">
-                            <StackPanel
-                                HorizontalAlignment="Center"
-                                Spacing="{StaticResource AmsSpace12}">
-                                <FontIcon
-                                    AutomationProperties.Name="Texture preview placeholder"
-                                    FontSize="48"
-                                    Glyph="&#xE91B;" />
-                                <TextBlock
-                                    HorizontalAlignment="Center"
-                                    Style="{StaticResource AmsSectionTitleStyle}"
-                                    Text="{x:Bind ViewModel.SelectedDisplayName, Mode=OneWay}" />
-                                <TextBlock
-                                    MaxWidth="560"
-                                    HorizontalAlignment="Center"
-                                    TextAlignment="Center"
-                                    Style="{StaticResource AmsBodyTextStyle}"
-                                    Text="{x:Bind ViewModel.PreviewMessage, Mode=OneWay}" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </Border>
-
-                <Border
-                    x:Name="MetadataPane"
-                    Grid.Column="2"
-                    Style="{StaticResource AmsCardStyle}">
-                    <StackPanel Spacing="{StaticResource AmsSpace12}">
-                        <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Metadata / Edit options" />
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Relative path" />
-                        <TextBlock TextWrapping="Wrap" Text="{x:Bind ViewModel.SelectedRelativePath, Mode=OneWay}" />
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Recommended edit mode" />
-                        <TextBlock Text="{x:Bind ViewModel.SelectedEditMode, Mode=OneWay}" />
-                        <Button
-                            AutomationProperties.Name="Open image editor"
-                            IsEnabled="False"
-                            Style="{StaticResource AmsPrimaryButtonStyle}">
-                            Open image editor
-                        </Button>
-                        <Button
-                            AutomationProperties.Name="Replace texture"
-                            IsEnabled="False"
-                            Style="{StaticResource AmsSecondaryButtonStyle}">
-                            Replace texture
-                        </Button>
-                        <Button
-                            AutomationProperties.Name="Reset texture"
-                            IsEnabled="False"
-                            Style="{StaticResource AmsSecondaryButtonStyle}">
-                            Reset texture
-                        </Button>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <Border Grid.Row="2" Style="{StaticResource AmsStatusBadgeStyle}">
-                <Grid
-                    x:Name="StatusGrid"
-                    ColumnSpacing="{StaticResource AmsSpace16}"
-                    RowSpacing="{StaticResource AmsSpace8}">
-                    <VisualStateManager.VisualStateGroups>
-                        <VisualStateGroup>
-                            <VisualState x:Name="CompactStatusState">
-                                <VisualState.StateTriggers>
-                                    <AdaptiveTrigger MinWindowWidth="0" />
-                                </VisualState.StateTriggers>
-                                <VisualState.Setters>
-                                    <Setter Target="StatusThirdColumn.Width" Value="0" />
-                                    <Setter Target="StatusFourthColumn.Width" Value="0" />
-                                    <Setter Target="FormatStatus.(Grid.Column)" Value="0" />
-                                    <Setter Target="FormatStatus.(Grid.Row)" Value="1" />
-                                    <Setter Target="StateStatus.(Grid.Column)" Value="1" />
-                                    <Setter Target="ValidationStatus.(Grid.Column)" Value="1" />
-                                    <Setter Target="ValidationStatus.(Grid.Row)" Value="1" />
-                                </VisualState.Setters>
-                            </VisualState>
-                            <VisualState x:Name="WideStatusState">
-                                <VisualState.StateTriggers>
-                                    <AdaptiveTrigger MinWindowWidth="760" />
-                                </VisualState.StateTriggers>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateManager.VisualStateGroups>
+                <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition x:Name="StatusThirdColumn" Width="*" />
-                        <ColumnDefinition x:Name="StatusFourthColumn" Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <StackPanel x:Name="SizeStatus">
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Target size" />
-                        <TextBlock Text="{x:Bind ViewModel.SelectedTargetSize, Mode=OneWay}" />
+                    <StackPanel Spacing="2">
+                        <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Build &amp; Xuất tệp Mod" />
+                        <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Kiểm tra dự án, tạo bản nén Mod và xuất file an toàn." />
                     </StackPanel>
-                    <StackPanel x:Name="FormatStatus" Grid.Column="1">
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Format" />
-                        <TextBlock Text="{x:Bind ViewModel.SelectedFormat, Mode=OneWay}" />
-                    </StackPanel>
-                    <StackPanel x:Name="StateStatus" Grid.Column="2">
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="State" />
-                        <TextBlock Text="{x:Bind ViewModel.SelectedState, Mode=OneWay}" />
-                    </StackPanel>
-                    <StackPanel x:Name="ValidationStatus" Grid.Column="3">
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Validation" />
-                        <TextBlock Text="{x:Bind ViewModel.SelectedValidation, Mode=OneWay}" />
-                    </StackPanel>
+                    <Border Grid.Column="1" Style="{StaticResource AmsStatusBadgeStyle}">
+                        <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind BuildExportViewModel.ProjectStatus, Mode=OneWay}" />
+                    </Border>
                 </Grid>
-            </Border>
 
-            <Border Grid.Row="3" Style="{StaticResource AmsGamingPanelStyle}">
-                <Grid RowSpacing="{StaticResource AmsSpace16}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Spacing="{StaticResource AmsSpace8}">
-                        <TextBlock
-                            AutomationProperties.HeadingLevel="Level2"
-                            Style="{StaticResource AmsSectionTitleStyle}"
-                            Text="Build &amp; Export" />
-                        <TextBlock
-                            Style="{StaticResource AmsBodyTextStyle}"
-                            Text="Validate the active project, build its archive, then atomically export the verified file."
-                            TextWrapping="Wrap" />
-                        <TextBlock
-                            AutomationProperties.Name="Active project build status"
-                            Text="{x:Bind BuildExportViewModel.ProjectStatus, Mode=OneWay}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <Grid
-                        Grid.Row="1"
-                        ColumnSpacing="{StaticResource AmsSpace12}"
-                        RowSpacing="{StaticResource AmsSpace12}">
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup>
-                                <VisualState x:Name="StackedExportFormState">
-                                    <VisualState.StateTriggers>
-                                        <AdaptiveTrigger MinWindowWidth="0" />
-                                    </VisualState.StateTriggers>
-                                    <VisualState.Setters>
-                                        <Setter Target="ExportNameColumn.Width" Value="0" />
-                                        <Setter Target="ExportNameField.(Grid.Column)" Value="0" />
-                                        <Setter Target="ExportNameField.(Grid.Row)" Value="1" />
-                                    </VisualState.Setters>
-                                </VisualState>
-                                <VisualState x:Name="WideExportFormState">
-                                    <VisualState.StateTriggers>
-                                        <AdaptiveTrigger MinWindowWidth="760" />
-                                    </VisualState.StateTriggers>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
+                <!-- Export Form Controls -->
+                <Grid
+                    Grid.Row="1"
+                    ColumnSpacing="12"
+                    RowSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid ColumnSpacing="6">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*" />
-                            <ColumnDefinition x:Name="ExportNameColumn" Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-
-                        <Grid ColumnSpacing="{StaticResource AmsSpace8}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox
-                                AutomationProperties.HelpText="Absolute folder where the final archive will be saved"
-                                Header="Export folder"
-                                IsReadOnly="True"
-                                PlaceholderText="Choose an existing folder"
-                                Text="{x:Bind BuildExportViewModel.OutputDirectory, Mode=OneWay}" />
-                            <Button
-                                Grid.Column="1"
-                                MinHeight="44"
-                                VerticalAlignment="Bottom"
-                                AutomationProperties.Name="Choose export folder"
-                                Click="OnChooseExportFolderClicked"
-                                IsEnabled="{x:Bind BuildExportViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
-                                Style="{StaticResource AmsSecondaryButtonStyle}">
-                                Choose folder
-                            </Button>
-                        </Grid>
-
                         <TextBox
-                            x:Name="ExportNameField"
+                            AutomationProperties.HelpText="Thư mục sẽ lưu tệp Mod hoàn chỉnh"
+                            Header="Thư mục xuất"
+                            IsReadOnly="True"
+                            PlaceholderText="Chọn thư mục có sẵn"
+                            Text="{x:Bind BuildExportViewModel.OutputDirectory, Mode=OneWay}" />
+                        <Button
                             Grid.Column="1"
-                            AutomationProperties.HelpText="One archive filename with the same extension as the project archive"
-                            Header="Archive filename"
+                            VerticalAlignment="Bottom"
+                            AutomationProperties.Name="Chọn thư mục xuất"
+                            Click="OnChooseExportFolderClicked"
                             IsEnabled="{x:Bind BuildExportViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
-                            MaxLength="255"
-                            PlaceholderText="015.ab"
-                            Text="{x:Bind BuildExportViewModel.OutputFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            Style="{StaticResource AmsSecondaryButtonStyle}">
+                            Chọn thư mục
+                        </Button>
                     </Grid>
 
-                    <Grid
-                        Grid.Row="2"
-                        ColumnSpacing="{StaticResource AmsSpace12}"
-                        RowSpacing="{StaticResource AmsSpace8}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
+                    <TextBox
+                        x:Name="ExportNameField"
+                        Grid.Column="1"
+                        AutomationProperties.HelpText="Tên file phải có cùng phần mở rộng với tệp nguồn của dự án"
+                        Header="Tên tệp Mod"
+                        IsEnabled="{x:Bind BuildExportViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
+                        MaxLength="255"
+                        PlaceholderText="015.ab"
+                        Text="{x:Bind BuildExportViewModel.OutputFileName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="8">
                         <CheckBox
-                            Grid.ColumnSpan="3"
-                            AutomationProperties.HelpText="Explicitly permits atomic replacement if the destination archive already exists"
-                            Content="Replace an existing archive at this exact destination"
+                            AutomationProperties.HelpText="Cho phép thay thế an toàn khi tệp đích đã tồn tại"
                             IsEnabled="{x:Bind BuildExportViewModel.IsBusy, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}"
-                            IsChecked="{x:Bind BuildExportViewModel.ReplaceExisting, Mode=TwoWay}" />
+                            IsChecked="{x:Bind BuildExportViewModel.ReplaceExisting, Mode=TwoWay}">
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Thay tệp đang có" />
+                        </CheckBox>
                         <Button
-                            Grid.Row="1"
-                            MinHeight="44"
-                            AutomationProperties.Name="Validate build and export archive"
+                            AutomationProperties.Name="Kiểm tra, Build và xuất tệp Mod"
                             Click="OnBuildExportClicked"
                             IsEnabled="{x:Bind BuildExportViewModel.CanStart, Mode=OneWay}"
+                            MinHeight="44"
                             Style="{StaticResource AmsPrimaryButtonStyle}">
-                            Build &amp; Export
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="13" Glyph="&#xE896;" />
+                                <TextBlock Text="Build &amp; Xuất file" />
+                            </StackPanel>
                         </Button>
                         <Button
-                            Grid.Row="1"
-                            Grid.Column="1"
-                            MinHeight="44"
-                            AutomationProperties.Name="Cancel build and export"
+                            AutomationProperties.Name="Hủy Build và xuất file"
                             Click="OnCancelBuildExportClicked"
                             IsEnabled="{x:Bind BuildExportViewModel.CanCancel, Mode=OneWay}"
                             Style="{StaticResource AmsSecondaryButtonStyle}">
-                            Cancel
+                            Hủy
                         </Button>
-                        <StackPanel Grid.Row="1" Grid.Column="2" Spacing="{StaticResource AmsSpace8}">
-                            <TextBlock
-                                AutomationProperties.LiveSetting="Polite"
-                                FontWeight="SemiBold"
-                                Text="{x:Bind BuildExportViewModel.StageLabel, Mode=OneWay}" />
-                            <TextBlock
-                                AutomationProperties.LiveSetting="Polite"
-                                Style="{StaticResource AmsBodyTextStyle}"
-                                Text="{x:Bind BuildExportViewModel.StatusMessage, Mode=OneWay}"
-                                TextWrapping="Wrap" />
-                            <ProgressBar
-                                AutomationProperties.Name="Build and export progress"
-                                Maximum="100"
-                                Value="{x:Bind BuildExportViewModel.ProgressPercentage, Mode=OneWay}" />
-                        </StackPanel>
-                    </Grid>
-
-                    <Border Grid.Row="3" Style="{StaticResource AmsCardStyle}">
-                        <Grid ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace8}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Output" />
-                            <TextBlock Grid.Column="1" Text="{x:Bind BuildExportViewModel.FinalOutputPath, Mode=OneWay}" TextWrapping="Wrap" />
-                            <TextBlock Grid.Row="1" Style="{StaticResource AmsBodyTextStyle}" Text="Size" />
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind BuildExportViewModel.FinalSize, Mode=OneWay}" />
-                            <TextBlock Grid.Row="2" Style="{StaticResource AmsBodyTextStyle}" Text="SHA-256" />
-                            <TextBlock Grid.Row="2" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind BuildExportViewModel.FinalSha256, Mode=OneWay}" TextWrapping="Wrap" />
-                        </Grid>
-                    </Border>
+                    </StackPanel>
                 </Grid>
-            </Border>
-        </Grid>
-    </ScrollViewer>
+
+                <!-- Build Progress & Structured Steps -->
+                <Grid Grid.Row="2" ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="6">
+                        <TextBlock
+                            AutomationProperties.LiveSetting="Polite"
+                            Style="{StaticResource AmsCaptionTextStyle}"
+                            Text="{x:Bind BuildExportViewModel.StatusMessage, Mode=OneWay}" />
+                        <ProgressBar
+                            AutomationProperties.Name="Tiến trình Build và xuất file"
+                            Maximum="100"
+                            Value="{x:Bind BuildExportViewModel.ProgressPercentage, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <!-- Optional Diagnostic Details behind Expander (Amendment 3) -->
+                    <Expander Grid.Column="1" Header="Xem chi tiết">
+                        <StackPanel Padding="0,8,0,0" Spacing="4">
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="File đầu ra:" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind BuildExportViewModel.FinalOutputPath, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Dung lượng:" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind BuildExportViewModel.FinalSize, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Mã kiểm tra:" />
+                            <TextBlock FontFamily="Consolas" Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind BuildExportViewModel.FinalSha256, Mode=OneWay}" />
+                        </StackPanel>
+                    </Expander>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
 </Page>

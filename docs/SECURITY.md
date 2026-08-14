@@ -1079,3 +1079,18 @@ Chi tiết ma trận và non-guarantees tại [CRASH_RECOVERY_EVIDENCE.md](CRASH
 Harness chỉ đo service boundary hiện hữu và không thêm shell, raw command, executable discovery hoặc security bypass. `acv.exe`, `texconv.exe`, archive, keydat và DDS fixture phải khớp exact SHA-256; native tool chạy qua runner/service với absolute path, redirected I/O, isolated working directory, timeout hữu hạn và structured arguments. Fixture pristine được hash lại, global template không bị sửa và output tạm được dọn sau kiểm tra.
 
 Performance evidence không làm yếu path traversal, reparse, resource, transaction, signature hoặc entitlement policy. Log chỉ ghi số đo, kích thước, count, relative identity và hash công khai cho integrity evidence; không ghi raw asset, token, credential hay secret. Không có game discovery/install/patch/launch/process/registry authority. Các số đo là local **INFORMATIONAL**, không được dùng để overclaim production trust hoặc provenance; xem [PERFORMANCE_TEST_REPORT.md](PERFORMANCE_TEST_REPORT.md).
+
+## Portable ZIP boundary từ PLAN 101
+
+- ZIP V1 chỉ được tạo từ exact self-contained unpackaged publish root sau scan fail-closed. Scanner từ chối source, test,
+  PDB/map, log/workspace/user data, private key/certificate, token/secret, `015.ab`, `015.keydat`, `acv.exe`, `texconv.exe`,
+  private DDS và archive/template bất kỳ.
+- Entry ZIP phải là relative path chuẩn, không traversal/absolute/duplicate/collision. Inventory ghi version, architecture,
+  configuration, entry point, file count, byte size và SHA-256; không coi hash là code-signing authority.
+- Runtime giữ `asInvoker`, không `runas`, self-elevation hoặc UAC setup. Launch offline không cần Supabase, payment, AI,
+  update feed hoặc production signer; các capability cloud fail closed độc lập local shell/editor/project pipeline.
+- Publish folder không phải data root. Log/cache/settings/project/session vẫn nằm trong LocalApplicationData/Credential
+  Manager/DPAPI hoặc exact user-selected location; không ghi credential cạnh executable.
+- Không tự tải/bundle helper chưa có quyền redistribution. Thiếu helper chỉ vô hiệu operation cần helper bằng typed error;
+  app vẫn khởi động và giữ pristine/project data.
+- Portable artifact của PLAN 101 là Development/Internal QA, không phải production-signed public release.

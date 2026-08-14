@@ -9,14 +9,14 @@ public sealed class Plan45ImageEditorContractTests
         var path = Path.Combine(root, "src", "AuditionModStudio.App", "Editor", "ImageEditorPage.xaml");
         var text = File.ReadAllText(path);
 
-        Assert.Contains("Interactive target frame", text, StringComparison.Ordinal);
-        Assert.Contains("Exact DDS target dimensions", text, StringComparison.Ordinal);
-        Assert.Contains("Canvas zoom", text, StringComparison.Ordinal);
-        Assert.Contains("Update crop frame", text, StringComparison.Ordinal);
-        Assert.Contains("Resize mode", text, StringComparison.Ordinal);
-        Assert.Contains("Drag to pan", text, StringComparison.Ordinal);
-        Assert.Contains("Pan canvas left", text, StringComparison.Ordinal);
-        Assert.Contains("Apply selected texture", text, StringComparison.Ordinal);
+        Assert.Contains("Khung cắt và đổi kích thước tương tác", text, StringComparison.Ordinal);
+        Assert.Contains("Kích thước đích DDS chính xác", text, StringComparison.Ordinal);
+        Assert.Contains("Thu phóng khung chỉnh sửa", text, StringComparison.Ordinal);
+        Assert.Contains("Cập nhật vùng cắt", text, StringComparison.Ordinal);
+        Assert.Contains("Chế độ đổi kích thước", text, StringComparison.Ordinal);
+        Assert.Contains("Kéo để di chuyển", text, StringComparison.Ordinal);
+        Assert.Contains("Di chuyển khung sang trái", text, StringComparison.Ordinal);
+        Assert.Contains("Áp dụng Texture đã chọn", text, StringComparison.Ordinal);
         Assert.Contains("AdaptiveTrigger MinWindowWidth=\"1000\"", text, StringComparison.Ordinal);
         Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", text);
 

@@ -30,9 +30,9 @@ public static class ImageCompareModes
 {
     public static ImmutableArray<ImageCompareModeOption> Supported { get; } =
     [
-        new(ImageCompareMode.SideBySide, "Side-by-side"),
-        new(ImageCompareMode.Slider, "Slider"),
-        new(ImageCompareMode.Toggle, "Toggle")
+        new(ImageCompareMode.SideBySide, "Song song"),
+        new(ImageCompareMode.Slider, "Chia đôi"),
+        new(ImageCompareMode.Toggle, "Chuyển đổi")
     ];
 }
 
@@ -40,11 +40,11 @@ public static class ImageEditorModes
 {
     public static ImmutableArray<EditorResizeModeOption> Supported { get; } =
     [
-        new(ImageResizeMode.ManualCrop, "Crop"),
-        new(ImageResizeMode.Fit, "Fit"),
-        new(ImageResizeMode.Fill, "Fill"),
-        new(ImageResizeMode.Stretch, "Stretch"),
-        new(ImageResizeMode.CanvasResize, "Canvas"),
-        new(ImageResizeMode.TransparentPadding, "Padding")
+        new(ImageResizeMode.ManualCrop, "Cắt ảnh"),
+        new(ImageResizeMode.Fit, "Vừa khung"),
+        new(ImageResizeMode.Fill, "Lấp đầy"),
+        new(ImageResizeMode.Stretch, "Kéo giãn"),
+        new(ImageResizeMode.CanvasResize, "Đổi khung"),
+        new(ImageResizeMode.TransparentPadding, "Thêm khoảng trong suốt")
     ];
 }

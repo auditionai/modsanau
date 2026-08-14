@@ -6,9 +6,6 @@ public enum AppRoute
     Projects,
     AiStudio,
     ImageEditor,
-    ModLibrary,
-    Batch,
-    Cloud,
     Account,
     Settings
 }

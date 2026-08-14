@@ -24,13 +24,13 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     private ImageCompareModeOption _selectedCompareMode = ImageCompareModes.Supported[0];
     private ImageCompareToggleState _compareToggleState = ImageCompareToggleState.After;
     private string _loadedRelativePath = string.Empty;
-    private string _statusMessage = "Select a project texture before opening the Image Editor.";
-    private string _afterPreviewStatus = "Live preview is unavailable until a texture is loaded.";
+    private string _statusMessage = "Hãy chọn Texture trong dự án trước khi mở Trình chỉnh sửa ảnh.";
+    private string _afterPreviewStatus = "Bản xem trước chỉ khả dụng sau khi tải Texture.";
     private bool _isLoading;
     private bool _isAfterPreviewLoading;
     private bool _showCheckerboard = true;
     private bool _isApplying;
-    private string _applyStatus = "Apply validates and atomically replaces only the selected project texture.";
+    private string _applyStatus = "Áp dụng sẽ kiểm tra và chỉ thay Texture đang chọn một cách an toàn.";
     private double _applyProgress;
     private double _compareDivider = 0.5;
     private double _compareZoom = 1;
@@ -147,7 +147,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
     public bool CanEdit => HasImage && !_isApplying;
 
-    public string TextureName => _selection.SelectedTexture?.DisplayName ?? "No texture selected";
+    public string TextureName => _selection.SelectedTexture?.DisplayName ?? "Chưa chọn Texture";
 
     public int TargetWidth => _selection.SelectedTexture?.Width ?? 0;
 
@@ -175,19 +175,19 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             var crop = _transformService.ToPixelCrop(_transform);
             return crop.Succeeded && crop.Value is { } value
                 ? $"{value.X}, {value.Y} · {value.Width} × {value.Height} px"
-                : "Crop unavailable";
+            : "Chưa thể cắt ảnh";
         }
     }
 
     public string ModeDescription => _selectedMode.Mode switch
     {
-        ImageResizeMode.ManualCrop => "Crop the selected area into the exact target frame.",
-        ImageResizeMode.Fit => "Fit the whole image inside the target and preserve aspect ratio.",
-        ImageResizeMode.Fill => "Fill the target while preserving aspect ratio; overflow is cropped.",
-        ImageResizeMode.Stretch => "Stretch the image to the exact target dimensions.",
-        ImageResizeMode.CanvasResize => "Keep image scale and resize the surrounding canvas.",
-        ImageResizeMode.TransparentPadding => "Add transparent padding without scaling the image.",
-        _ => "Unsupported preview mode."
+        ImageResizeMode.ManualCrop => "Cắt vùng đã chọn theo đúng khung đích.",
+        ImageResizeMode.Fit => "Đưa toàn bộ ảnh vào khung đích và giữ nguyên tỷ lệ.",
+        ImageResizeMode.Fill => "Lấp đầy khung đích, giữ tỷ lệ và cắt phần dư.",
+        ImageResizeMode.Stretch => "Kéo giãn ảnh theo đúng kích thước đích.",
+        ImageResizeMode.CanvasResize => "Giữ tỷ lệ ảnh và đổi kích thước khung xung quanh.",
+        ImageResizeMode.TransparentPadding => "Thêm khoảng trong suốt mà không đổi tỷ lệ ảnh.",
+        _ => "Chế độ xem trước không được hỗ trợ."
     };
 
     public int TransformRevision => _transformRevision;
@@ -198,7 +198,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         var selected = _selection.SelectedTexture;
         if (selected is null)
         {
-            ResetEditor("Select a project texture before opening the Image Editor.");
+            ResetEditor("Hãy chọn Texture trong dự án trước khi mở Trình chỉnh sửa ảnh.");
             return;
         }
 
@@ -210,7 +210,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         }
 
         PrepareForSelectionLoad();
-        SetLoading(true, "Loading the selected texture through the verified preview pipeline.");
+        SetLoading(true, "Đang tải Texture đã chọn để xem trước.");
         var image = await _selection.LoadSelectedImageAsync(cancellationToken);
         if (activationVersion != Volatile.Read(ref _activationVersion))
         {
@@ -219,14 +219,14 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
         if (image is null || !ReferenceEquals(selected, _selection.SelectedTexture))
         {
-            ResetEditor("The selected texture could not be loaded. Return to Projects and try again.");
+            ResetEditor("Không thể tải Texture đã chọn. Hãy quay lại Dự án rồi thử lại.");
             return;
         }
 
         var create = _transformService.Create(image);
         if (!create.Succeeded || create.Value is null)
         {
-            ResetEditor("The editor transform could not be initialized for this texture.");
+            ResetEditor("Không thể khởi tạo công cụ chỉnh sửa cho Texture này.");
             return;
         }
 
@@ -235,7 +235,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         _compareZoom = 1;
         _comparePan = default;
         _loadedRelativePath = selected.RelativePath;
-        SetLoading(false, "Texture ready. Review the live preview, then Apply to the project working copy.");
+        SetLoading(false, "Texture đã sẵn sàng. Hãy xem trước rồi áp dụng vào dự án.");
         RaiseSelectionProperties();
         OnPropertyChanged(nameof(SourceImage));
         OnPropertyChanged(nameof(BeforeImage));
@@ -275,7 +275,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         }
         catch (ArgumentException)
         {
-            _applyStatus = "The selected texture path is invalid.";
+            _applyStatus = "Đường dẫn Texture đã chọn không hợp lệ.";
             OnPropertyChanged(nameof(ApplyStatus));
             return false;
         }
@@ -283,7 +283,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         TextureApplyResult? applyResult = null;
         _isApplying = true;
         _applyProgress = 0;
-        _applyStatus = "Preparing texture Apply.";
+        _applyStatus = "Đang chuẩn bị áp dụng Texture.";
         RaiseApplyProperties();
         try
         {
@@ -312,7 +312,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
                 }), cancellationToken);
             if (!enqueue.Succeeded)
             {
-                _applyStatus = "Texture Apply could not be queued.";
+                _applyStatus = "Không thể đưa tác vụ áp dụng Texture vào hàng đợi.";
                 OnPropertyChanged(nameof(ApplyStatus));
                 return false;
             }
@@ -327,27 +327,27 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
                 || !ReferenceEquals(_projectSession.Workspace, workspace))
             {
                 _applyStatus = snapshot?.State == BackgroundTaskState.Cancelled || applyResult?.Cancelled == true
-                    ? "Texture Apply was cancelled; the working texture was rolled back."
-                    : "Texture Apply failed; the working texture was rolled back.";
+                ? "Đã hủy áp dụng; Texture làm việc đã được khôi phục."
+                : "Không thể áp dụng; Texture làm việc đã được khôi phục.";
                 OnPropertyChanged(nameof(ApplyStatus));
                 return false;
             }
 
             await _projectSession.ActivateAsync(applyResult.Project, workspace);
             await _selection.RefreshAfterApplyAsync(texturePath, cancellationToken);
-            ResetEditor("Reloading the applied working-copy texture.");
+            ResetEditor("Đang tải lại Texture vừa áp dụng.");
             await ActivateAsync(cancellationToken);
             _applyProgress = 100;
             _applyStatus = applyResult.CleanupPending
-                ? "Texture applied and project saved. Temporary cleanup remains pending."
-                : "Texture applied atomically. History, Modified state, thumbnail and project are saved.";
+                ? "Đã áp dụng Texture và lưu dự án. Một số dữ liệu tạm vẫn đang được dọn dẹp."
+                : "Đã áp dụng Texture an toàn; lịch sử, trạng thái thay đổi và ảnh thu nhỏ đã được lưu.";
             OnPropertyChanged(nameof(ApplyProgress));
             OnPropertyChanged(nameof(ApplyStatus));
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _applyStatus = "Texture Apply was cancelled.";
+            _applyStatus = "Đã hủy áp dụng Texture.";
             OnPropertyChanged(nameof(ApplyStatus));
             return false;
         }
@@ -370,7 +370,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
         CancelApply();
 
-        ResetEditor("Editor preview unloaded. Select a texture and reopen the Image Editor to continue.");
+        ResetEditor("Đã đóng bản xem trước. Hãy chọn Texture và mở lại Trình chỉnh sửa ảnh để tiếp tục.");
     }
 
     public bool SetZoom(double zoom)
@@ -645,13 +645,13 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     {
         if (!result.Succeeded || result.Value is null)
         {
-            _statusMessage = "That transform is outside the supported image bounds.";
+            _statusMessage = "Thao tác này vượt quá giới hạn ảnh được hỗ trợ.";
             OnPropertyChanged(nameof(StatusMessage));
             return false;
         }
 
         _transform = result.Value;
-        _statusMessage = "Preview transform updated. No project files were changed.";
+        _statusMessage = "Đã cập nhật bản xem trước. File dự án chưa bị thay đổi.";
         OnPropertyChanged(nameof(StatusMessage));
         OnPropertyChanged(nameof(Zoom));
         OnPropertyChanged(nameof(PanSummary));
@@ -670,7 +670,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         _compareZoom = 1;
         _comparePan = default;
         _loadedRelativePath = string.Empty;
-        _afterPreviewStatus = "Live preview is unavailable until a texture is loaded.";
+        _afterPreviewStatus = "Bản xem trước chỉ khả dụng sau khi tải Texture.";
         SetLoading(false, message);
         RaiseSelectionProperties();
         OnPropertyChanged(nameof(SourceImage));
@@ -697,7 +697,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         _afterImage = null;
         _transform = null;
         _loadedRelativePath = string.Empty;
-        _afterPreviewStatus = "Waiting for the selected texture baseline.";
+        _afterPreviewStatus = "Đang chờ ảnh gốc của Texture đã chọn.";
         OnPropertyChanged(nameof(SourceImage));
         OnPropertyChanged(nameof(BeforeImage));
         OnPropertyChanged(nameof(AfterImage));
@@ -724,7 +724,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         var cancellation = new CancellationTokenSource();
         _afterPreviewCancellation = cancellation;
         _isAfterPreviewLoading = true;
-        _afterPreviewStatus = "Generating live After preview…";
+        _afterPreviewStatus = "Đang tạo bản xem trước sau chỉnh sửa…";
         OnPropertyChanged(nameof(IsAfterPreviewLoading));
         OnPropertyChanged(nameof(AfterPreviewStatus));
         OnPropertyChanged(nameof(CanApply));
@@ -745,8 +745,8 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             {
                 _afterImage = null;
                 _afterPreviewStatus = result.Cancelled
-                    ? "After preview generation was cancelled."
-                    : $"After preview is unavailable ({result.DiagnosticCode ?? "unknown error"}).";
+                ? "Đã hủy tạo bản xem trước sau chỉnh sửa."
+                : $"Không thể tạo bản xem trước sau chỉnh sửa ({result.DiagnosticCode ?? "lỗi chưa xác định"}).";
                 OnPropertyChanged(nameof(AfterImage));
                 OnPropertyChanged(nameof(AfterPreviewStatus));
                 AdvanceCompareRevision();
@@ -754,7 +754,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             }
 
             _afterImage = result.Image;
-            _afterPreviewStatus = "Live After preview ready. Compare remains read-only.";
+            _afterPreviewStatus = "Bản xem trước sau chỉnh sửa đã sẵn sàng. Chế độ so sánh chỉ để xem.";
             OnPropertyChanged(nameof(AfterImage));
             OnPropertyChanged(nameof(AfterPreviewStatus));
             OnPropertyChanged(nameof(CanApply));
@@ -764,7 +764,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         {
             if (version == Volatile.Read(ref _afterPreviewVersion))
             {
-                _afterPreviewStatus = "After preview generation was cancelled.";
+                _afterPreviewStatus = "Đã hủy tạo bản xem trước sau chỉnh sửa.";
                 OnPropertyChanged(nameof(AfterPreviewStatus));
             }
         }
@@ -773,7 +773,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             if (version == Volatile.Read(ref _afterPreviewVersion))
             {
                 _afterImage = null;
-                _afterPreviewStatus = $"After preview failed ({exception.GetType().Name}).";
+                _afterPreviewStatus = $"Không thể tạo bản xem trước sau chỉnh sửa ({exception.GetType().Name}).";
                 OnPropertyChanged(nameof(AfterImage));
                 OnPropertyChanged(nameof(AfterPreviewStatus));
                 AdvanceCompareRevision();
@@ -823,15 +823,15 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
             : Math.Clamp((double)progress.CompletedSteps / progress.TotalSteps * 100, 0, 100);
         _applyStatus = progress.Phase switch
         {
-            TextureApplyPhase.ValidatingTarget => "Validating the selected DDS target.",
-            TextureApplyPhase.Resizing => "Rendering the current crop and resize state.",
-            TextureApplyPhase.Encoding => "Encoding a temporary Match Original DDS.",
-            TextureApplyPhase.ValidatingOutput => "Validating the temporary DDS output.",
-            TextureApplyPhase.Replacing => "Atomically replacing the extracted working texture.",
-            TextureApplyPhase.UpdatingHistory => "Recording edit history and Modified state.",
-            TextureApplyPhase.RegeneratingThumbnail => "Regenerating the texture thumbnail.",
-            TextureApplyPhase.SavingProject => "Saving the project atomically.",
-            _ => "Applying texture."
+            TextureApplyPhase.ValidatingTarget => "Đang kiểm tra Texture DDS đích.",
+            TextureApplyPhase.Resizing => "Đang dựng trạng thái cắt và đổi kích thước hiện tại.",
+            TextureApplyPhase.Encoding => "Đang mã hóa file DDS tạm theo ảnh gốc.",
+            TextureApplyPhase.ValidatingOutput => "Đang kiểm tra file DDS tạm.",
+            TextureApplyPhase.Replacing => "Đang thay Texture làm việc một cách an toàn.",
+            TextureApplyPhase.UpdatingHistory => "Đang ghi lịch sử chỉnh sửa và trạng thái thay đổi.",
+            TextureApplyPhase.RegeneratingThumbnail => "Đang tạo lại ảnh thu nhỏ.",
+            TextureApplyPhase.SavingProject => "Đang lưu dự án an toàn.",
+            _ => "Đang áp dụng Texture."
         };
         OnPropertyChanged(nameof(ApplyProgress));
         OnPropertyChanged(nameof(ApplyStatus));

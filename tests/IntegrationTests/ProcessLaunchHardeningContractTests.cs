@@ -60,7 +60,7 @@ public sealed class ProcessLaunchHardeningContractTests
     }
 
     [Fact]
-    public void App_applies_system32_and_application_only_dll_policy_before_xaml_initialization()
+    public void App_applies_system32_and_application_dll_policy_after_winui_composition()
     {
         var root = FindRepositoryRoot();
         var policy = File.ReadAllText(Path.Combine(root, "src", "AuditionModStudio.Infrastructure", "Processes",
@@ -72,7 +72,7 @@ public sealed class ProcessLaunchHardeningContractTests
         Assert.Contains("SetDllDirectory(string.Empty)", policy, StringComparison.Ordinal);
         Assert.DoesNotContain("LoadLibrarySearchUser", policy, StringComparison.Ordinal);
         Assert.True(app.IndexOf("ApplyProcessDllPolicy", StringComparison.Ordinal)
-            < app.IndexOf("InitializeComponent", StringComparison.Ordinal));
+            > app.IndexOf("GetRequiredService<MainWindow>", StringComparison.Ordinal));
     }
 
     private static string FindRepositoryRoot()

@@ -61,7 +61,7 @@
       "auditionmodstudio.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "AuditionModStudio.Core": "[1.0.0, )",
+          "AuditionModStudio.Core": "[1.0.0-internal.102, )",
           "Microsoft.Extensions.DependencyInjection.Abstractions": "[10.0.10, )",
           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.10, )",
           "Microsoft.Extensions.Logging": "[10.0.10, )",
@@ -127,6 +127,7 @@
           "Serilog": "4.2.0"
         }
       }
-    }
+    },
+    "net10.0/win-x64": {}
   }
 }

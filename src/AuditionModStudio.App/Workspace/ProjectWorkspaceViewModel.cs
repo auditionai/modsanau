@@ -28,7 +28,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
     private TextureSizeFilter _sizeFilter;
     private TextureAlphaFilter _alphaFilter;
     private string? _categoryFilter;
-    private string _statusMessage = "No active project. Create or open a project first.";
+    private string _statusMessage = "Chưa mở dự án. Hãy tạo hoặc mở một dự án trước.";
     private Guid? _loadedProjectId;
     private BackgroundTaskId _activeTaskId;
     private BackgroundTaskId _activeImageTaskId;
@@ -64,13 +64,24 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         Enum.GetValues<TextureAlphaFilter>().ToImmutableArray();
 
     public ImmutableArray<WorkspaceCategoryFilterOption> CategoryFilters { get; private set; } =
-        [new(null, "All categories")];
+        [new(null, "Tất cả danh mục")];
 
     public ImmutableArray<WorkspaceFolderItem> Folders => _folders;
 
     public ImmutableArray<WorkspaceTextureItem> FilteredTextures => _filteredTextures;
 
-    public string ProjectName => _projectSession.Project?.Name ?? "Project Workspace";
+    public string ProjectName => _projectSession.Project?.Name ?? "Không gian dự án";
+
+    public string TextureCountDisplay => _projectSession.Project is null ? "—" : _allTextures.Length.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    public string ModifiedCountDisplay => _projectSession.Project is null
+        ? "—"
+        : _allTextures.Count(texture => texture.StateLabel == "Đã chỉnh sửa").ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    public string WarningCountDisplay => _projectSession.Project is null
+        ? "—"
+        : _allTextures.Count(texture => !string.Equals(texture.Validation, "Hợp lệ", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(texture.Validation, "Đạt", StringComparison.OrdinalIgnoreCase)).ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     public string SearchQuery
     {
@@ -163,6 +174,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
             OnPropertyChanged(nameof(SelectedValidation));
             OnPropertyChanged(nameof(SelectedEditMode));
             OnPropertyChanged(nameof(PreviewMessage));
+            OnPropertyChanged(nameof(SelectedAssetSummary));
         }
     }
 
@@ -174,7 +186,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
 
     public string StatusMessage => _statusMessage;
 
-    public string SelectedDisplayName => _selectedTexture?.DisplayName ?? "No texture selected";
+    public string SelectedDisplayName => _selectedTexture?.DisplayName ?? "Chưa chọn Texture";
 
     public string SelectedRelativePath => _selectedTexture?.RelativePath ?? "—";
 
@@ -182,15 +194,48 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
 
     public string SelectedFormat => _selectedTexture?.Format ?? "—";
 
-    public string SelectedState => _selectedTexture?.State.ToString() ?? "—";
+    public string SelectedState => _selectedTexture?.StateLabel ?? "—";
 
-    public string SelectedValidation => _selectedTexture?.Validation ?? "Not selected";
+    public string SelectedValidation => _selectedTexture?.Validation ?? "Chưa chọn";
 
-    public string SelectedEditMode => _selectedTexture?.RecommendedEditMode ?? "Not specified";
+    public string SelectedEditMode => _selectedTexture?.RecommendedEditMode ?? "Chưa xác định";
 
     public string PreviewMessage => _selectedTexture is null
-        ? "Select a texture from the folder tree to inspect its preview and edit metadata."
-        : "Preview pixels are loaded only when an approved editor action requests them.";
+            ? "Chọn một Texture trong cây thư mục để xem trước và kiểm tra thông tin."
+            : "Ảnh xem trước chỉ được tải khi bạn mở một tác vụ chỉnh sửa phù hợp.";
+
+    public string ProjectIdentitySummary => _projectSession.Project is { } project
+            ? $"Dự án đang mở: {project.Name} · {project.GameId.Value}/{project.ModId.Value}"
+            : "Chưa mở dự án. Hãy về Trang chủ để tạo dự án.";
+
+    public string WorkflowSummary
+    {
+        get
+        {
+            var project = _projectSession.Project;
+            if (project is null) return "Chưa có dự án";
+            if (_isLoading) return "Đang quét";
+            if (project.BuildState.Status == ProjectBuildStatus.Succeeded) return "Đã Build";
+            if (!project.EditedTextures.IsEmpty) return "Đã áp dụng";
+            return _loadedProjectId == project.ProjectId ? "Đã quét" : "Đã giải nén";
+        }
+    }
+
+    public string SelectedAssetSummary => _selectedTexture is null
+            ? "Texture đã chọn: chưa có"
+            : $"Texture đã chọn: {_selectedTexture.DisplayName} · {_selectedTexture.StateLabel}";
+
+    public string BuildReadinessSummary
+    {
+        get
+        {
+            if (_projectSession.Project is null) return "Build: cần mở một dự án trước";
+            if (_isLoading) return "Build: đang chờ quét hoàn tất";
+            if (_allTextures.Any(texture => texture.State == TextureState.Invalid))
+                return "Build: bị chặn do trạng thái Texture không hợp lệ";
+            return "Build: sẵn sàng kiểm tra";
+        }
+    }
 
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -198,7 +243,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         var workspace = _projectSession.Workspace;
         if (project is null || workspace is null)
         {
-            Reset("No active project. Create or open a project first.");
+            Reset("Chưa mở dự án. Hãy tạo hoặc mở một dự án trước.");
             return;
         }
 
@@ -209,7 +254,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
 
         SmartModScanResult? scanResult = null;
         IProgress<SmartModScanProgress> uiProgress = new Progress<SmartModScanProgress>(UpdateProgress);
-        SetLoading(true, "Project textures are being scanned.", 0);
+        SetLoading(true, "Đang quét Texture trong dự án.", 0);
 
         var enqueue = await _taskManager.EnqueueAsync(
             new BackgroundTaskRequest(
@@ -236,7 +281,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
 
         if (!enqueue.Succeeded)
         {
-            SetLoading(false, "The texture scan could not be queued.", 0);
+            SetLoading(false, "Không thể đưa tác vụ quét Texture vào hàng đợi.", 0);
             return;
         }
 
@@ -256,11 +301,11 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
 
         if (snapshot?.State == BackgroundTaskState.Cancelled || scanResult?.Cancelled == true)
         {
-            SetLoading(false, "Texture scan was cancelled.", _progressPercentage);
+            SetLoading(false, "Đã hủy quét Texture.", _progressPercentage);
             return;
         }
 
-        Reset("Project textures could not be loaded. Review the application log and try again.");
+        Reset("Không thể tải Texture của dự án. Hãy xem nhật ký ứng dụng rồi thử lại.");
     }
 
     public bool CancelLoading() =>
@@ -380,7 +425,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
             .OrderBy(item => item.RelativePath, StringComparer.Ordinal)
             .ToImmutableArray();
         CategoryFilters = [
-            new(null, "All categories"),
+            new(null, "Tất cả danh mục"),
             .. _allTextures
                 .Select(item => item.Category)
                 .Distinct(StringComparer.Ordinal)
@@ -390,7 +435,10 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         _categoryFilter = null;
         _selectedTexture = null;
         ApplyFilter();
-        SetLoading(false, $"Loaded {_allTextures.Length} texture metadata records.", 100);
+        SetLoading(false, $"Đã tải thông tin của {_allTextures.Length} Texture.", 100);
+        OnPropertyChanged(nameof(TextureCountDisplay));
+        OnPropertyChanged(nameof(ModifiedCountDisplay));
+        OnPropertyChanged(nameof(WarningCountDisplay));
         OnPropertyChanged(nameof(ProjectName));
         OnPropertyChanged(nameof(CategoryFilters));
         OnPropertyChanged(nameof(SelectedCategoryFilter));
@@ -414,13 +462,13 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
             texture.Metadata.Height,
             $"{texture.Metadata.Width} × {texture.Metadata.Height}",
             texture.Metadata.Format.ToString(),
-            texture.ManifestResolution.Slot?.Category.Value ?? "uncategorized",
+            texture.ManifestResolution.Slot?.Category.Value ?? "Chưa phân loại",
             texture.Metadata.HasAlphaChannel,
             state.Succeeded ? state.State : TextureState.Invalid,
-            state.Succeeded ? "Valid" : "State unavailable",
+            state.Succeeded ? "Hợp lệ" : "Chưa có trạng thái",
             !texture.ManifestResolution.UsedFallback,
             texture.ManifestResolution.Slot?.Editable == true,
-            texture.ManifestResolution.Slot?.RecommendedEditMode.Value ?? "Not specified");
+            texture.ManifestResolution.Slot?.RecommendedEditMode.Value ?? "Chưa xác định");
     }
 
     private void ApplyFilter()
@@ -509,7 +557,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         _filteredTextures = [];
         _sourceTextures = ImmutableDictionary<string, SmartTextureAsset>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
         _folders = [];
-        CategoryFilters = [new(null, "All categories")];
+        CategoryFilters = [new(null, "Tất cả danh mục")];
         _categoryFilter = null;
         _selectedTexture = null;
         SetLoading(false, message, 0);
@@ -529,11 +577,11 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
             : Math.Clamp((double)progress.CompletedTextures / progress.TotalTextures * 100, 0, 100);
         _statusMessage = progress.Phase switch
         {
-            SmartModScanPhase.ScanningAssets => "Scanning project assets.",
-            SmartModScanPhase.ReadingMetadata => "Reading DDS metadata.",
-            SmartModScanPhase.ResolvingManifest => "Resolving texture labels.",
-            SmartModScanPhase.Completed => "Finishing texture inventory.",
-            _ => "Loading project textures."
+            SmartModScanPhase.ScanningAssets => "Đang quét nội dung dự án.",
+            SmartModScanPhase.ReadingMetadata => "Đang đọc thông tin DDS.",
+            SmartModScanPhase.ResolvingManifest => "Đang xác định nhãn Texture.",
+            SmartModScanPhase.Completed => "Đang hoàn tất danh sách Texture.",
+            _ => "Đang tải Texture của dự án."
         };
         OnPropertyChanged(nameof(ProgressPercentage));
         OnPropertyChanged(nameof(StatusMessage));
@@ -548,6 +596,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         OnPropertyChanged(nameof(CanCancel));
         OnPropertyChanged(nameof(StatusMessage));
         OnPropertyChanged(nameof(ProgressPercentage));
+        RaiseWorkflowProperties();
     }
 
     private void RaiseSelectedProperties()
@@ -560,6 +609,15 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         OnPropertyChanged(nameof(SelectedValidation));
         OnPropertyChanged(nameof(SelectedEditMode));
         OnPropertyChanged(nameof(PreviewMessage));
+        OnPropertyChanged(nameof(SelectedAssetSummary));
+    }
+
+    private void RaiseWorkflowProperties()
+    {
+        OnPropertyChanged(nameof(ProjectIdentitySummary));
+        OnPropertyChanged(nameof(WorkflowSummary));
+        OnPropertyChanged(nameof(SelectedAssetSummary));
+        OnPropertyChanged(nameof(BuildReadinessSummary));
     }
 
     private static string ToStageCode(SmartModScanPhase phase) => phase switch

@@ -9,11 +9,11 @@ public sealed class Plan47ApplyTextureContractTests
         var path = Path.Combine(root, "src", "AuditionModStudio.App", "Editor", "ImageEditorPage.xaml");
         var text = File.ReadAllText(path);
 
-        Assert.Contains("Apply selected texture", text, StringComparison.Ordinal);
-        Assert.Contains("Apply texture", text, StringComparison.Ordinal);
-        Assert.Contains("Texture Apply progress", text, StringComparison.Ordinal);
-        Assert.Contains("Cancel texture Apply", text, StringComparison.Ordinal);
-        Assert.Contains("atomically replaces only the selected texture", text, StringComparison.Ordinal);
+        Assert.Contains("Áp dụng Texture đã chọn", text, StringComparison.Ordinal);
+        Assert.Contains("Áp dụng Texture", text, StringComparison.Ordinal);
+        Assert.Contains("Tiến trình áp dụng Texture", text, StringComparison.Ordinal);
+        Assert.Contains("Hủy áp dụng Texture", text, StringComparison.Ordinal);
+        Assert.Contains("ViewModel.ApplyStatus", text, StringComparison.Ordinal);
         Assert.DoesNotMatch("#[0-9A-Fa-f]{6,8}", text);
     }
 

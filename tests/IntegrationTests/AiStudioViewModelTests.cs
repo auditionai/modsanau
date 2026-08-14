@@ -30,7 +30,7 @@ public sealed class AiStudioViewModelTests
         Assert.Equal("neon logo", viewModel.Prompt);
         Assert.Equal("blur", viewModel.NegativePrompt);
         Assert.Null(ai.GenerateRequest);
-        Assert.Contains("no AI job or credits", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("chưa dùng tác vụ AI hoặc Credits", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed class AiStudioViewModelTests
             option.Operation == AiStudioOperation.Edit);
 
         Assert.False(viewModel.CanSubmit);
-        Assert.Contains("Select", viewModel.ReferenceMessage, StringComparison.Ordinal);
+        Assert.Contains("Hãy chọn", viewModel.ReferenceMessage, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class AiStudioViewModelTests
         Assert.Equal("balanced", ai.GenerateRequest!.Preferences!.Model);
         Assert.Equal("high", ai.GenerateRequest.Preferences.Quality);
         Assert.Equal("blur", ai.GenerateRequest.Preferences.NegativePrompt!.Value.Value);
-        Assert.Contains("project has not been changed", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Dự án chưa bị thay đổi", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -106,9 +106,9 @@ public sealed class AiStudioViewModelTests
         await viewModel.ActivateAsync();
         await viewModel.SubmitAsync();
 
-        Assert.Contains("offline", viewModel.QuoteText, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("offline", viewModel.HistoryMessage, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("offline", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ngoại tuyến", viewModel.QuoteText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ngoại tuyến", viewModel.HistoryMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ngoại tuyến", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
         Assert.Null(viewModel.PreviewImage);
     }
 
@@ -150,7 +150,7 @@ public sealed class AiStudioViewModelTests
         await submit;
 
         Assert.Null(viewModel.PreviewImage);
-        Assert.Contains("cancelled", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Đã hủy", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
         Assert.False(viewModel.IsBusy);
     }
 
@@ -178,7 +178,7 @@ public sealed class AiStudioViewModelTests
         Assert.Equal(needsMask, studio.ExecutionRequest.Mask is not null);
         Assert.Equal(needsPrompt, studio.ExecutionRequest.Prompt is not null);
         Assert.Same(output, viewModel.PreviewImage);
-        Assert.Contains("project has not been changed", viewModel.StatusMessage,
+        Assert.Contains("Dự án chưa bị thay đổi", viewModel.StatusMessage,
             StringComparison.OrdinalIgnoreCase);
     }
 
@@ -196,7 +196,7 @@ public sealed class AiStudioViewModelTests
 
         Assert.Null(studio.ExecutionRequest);
         Assert.Null(viewModel.PreviewImage);
-        Assert.Contains("source-aligned mask", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Mask theo ảnh nguồn", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
