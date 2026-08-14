@@ -12,9 +12,9 @@ Phạm vi: website public, cấu hình nhánh/deploy và xác nhận dịch vụ
 |---|---|---|
 | Repository `auditionai/modsanau` | **VERIFIED** | Remote `https://github.com/auditionai/modsanau.git`. |
 | Cây public chuyên dụng | **VERIFIED** | `public-release/` dùng deny-by-default allowlist; repository desktop không bị export. |
-| Public Git `develop` | **VERIFIED** | Local và remote cùng tại `2c28c50b2ca509faa8229dac73bd7ab134c273be`; 27 file allowlisted. |
-| Push redesign v0.2.0 | **VERIFIED** | Push `6d0fe33..2c28c50` thành công, chỉ tới `develop`. |
-| GitHub Actions | **PASS** | Run `31787776570` hoàn tất với kết luận `success`. |
+| Public Git `develop` | **VERIFIED** | Local và remote cùng tại `c11d66c594c76afdef0ca7b11552c6738bfab528`; 27 file allowlisted. |
+| Push redesign v0.3.0 | **VERIFIED** | Push `2c28c50..c11d66c` thành công, chỉ tới `develop`. |
+| GitHub Actions | **PASS** | Run `31795806122` hoàn tất với kết luận `success`. |
 | `main` production | **UNTOUCHED BY THIS OPERATION** | `origin/main` được phát hiện đã đổi bên ngoài sang `b3618f6fa07aa48148c2bdd58b837538e7253f8a`. Không checkout, merge, commit hoặc push `main`. |
 | Public ZIP / Release asset | **NOT CONFIGURED** | Không đưa artifact internal PLAN 102 vào public. |
 
@@ -23,7 +23,7 @@ Phạm vi: website public, cấu hình nhánh/deploy và xác nhận dịch vụ
 | Hạng mục | Trạng thái | Bằng chứng / quyết định |
 |---|---|---|
 | Build / publish | **CONFIGURED** | `npm run build` / `dist` trong `netlify.toml`. |
-| Branch deploy `develop` | **VERIFIED LIVE** | `https://develop--modsanau.netlify.app/` phản hồi HTTP 200 và trả đúng title landing v0.2.0. |
+| Branch deploy `develop` | **VERIFIED LIVE** | `https://develop--modsanau.netlify.app/` phản hồi HTTP 200 và trả đúng title landing v0.3.0: `Audition AI Mod Studio — Chỉnh sửa texture trên Windows`. |
 | Production hostname | **PUBLICLY REACHABLE** | `https://modsanau.netlify.app/` phản hồi HTTP 200 tại lần kiểm tra cuối. |
 | Production attribution | **EXTERNAL / NOT ATTRIBUTED TO THIS PUSH** | Lần thực hiện chỉ push `develop`; thay đổi `main` đã tồn tại từ bên ngoài trước push. |
 | Dashboard/site ownership | **NOT ACCESSIBLE** | Không có authenticated Netlify dashboard hoặc CLI session để xác minh quyền sở hữu/cài đặt nội bộ. |

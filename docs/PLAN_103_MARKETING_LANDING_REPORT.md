@@ -6,9 +6,9 @@ Quy trình: **PLAN → BUILD → TEST → BÁO CÁO → DỪNG**
 
 ## Kết quả
 
-PLAN 103 đã tạo và phát hành bản landing page **v0.2.0** trên nhánh `develop`. Giao diện được thiết kế lại toàn bộ theo hướng full-screen, dark-tech, nhiều lớp chuyển động và tương tác, không còn bố cục hẹp để trống hai bên.
+PLAN 103 đã tạo và phát hành bản landing page **v0.3.0** trên nhánh `develop`. Sau vòng phản hồi thứ hai, giao diện được thay mới toàn bộ theo hướng creative workstation nền sáng ấm, bố cục full-width dạng module và nội dung mô tả trực tiếp.
 
-Các nhóm hiệu ứng chính gồm nền aurora/grid/noise chuyển động, spotlight bám con trỏ, kinetic typography, neon frame quay, scanline, quỹ đạo 3D, thẻ nghiêng theo con trỏ, ánh sáng hover, nút magnetic/shimmer, marquee và reveal theo cuộn. `prefers-reduced-motion` vẫn được hỗ trợ để bảo đảm khả năng tiếp cận.
+Typography được hạ tỷ lệ, tăng line-height và khoảng cách dọc giữa tiêu đề, mô tả và nhóm chức năng. Hệ dark-tech/neon/marquee cũ bị loại bỏ; hệ mới dùng gradient mesh nhẹ, spotlight con trỏ, chiều sâu cửa sổ sản phẩm, hover lighting, card lift, đường dẫn động, progress theo cuộn và reveal ngắn. `prefers-reduced-motion` vẫn được hỗ trợ để bảo đảm khả năng tiếp cận.
 
 Ảnh sản phẩm WinUI thực tế dùng `object-fit: contain` trong khung 16:9, hiển thị nguyên ảnh và không bị crop/zoom. Website không có analytics, form, Supabase client hoặc public-download link.
 
@@ -36,11 +36,11 @@ Các nhóm hiệu ứng chính gồm nền aurora/grid/noise chuyển động, s
 
 | Hạng mục | Kết quả |
 |---|---|
-| Root source commit giao diện v2 | `53c100b65efc8688ab7c58b8e3e74ce22c409b36` |
+| Root source commit giao diện v3 | `218a9d6` |
 | Public Git repository | `https://github.com/auditionai/modsanau.git` |
 | Public branch | `develop` |
-| Public commit đã push | `2c28c50b2ca509faa8229dac73bd7ab134c273be` |
-| GitHub Actions | **PASS** — run `31787776570` |
+| Public commit đã push | `c11d66c594c76afdef0ca7b11552c6738bfab528` |
+| GitHub Actions | **PASS** — run `31795806122` |
 | Netlify branch deploy | **LIVE / HTTP 200** |
 | URL develop | `https://develop--modsanau.netlify.app/` |
 | Production hostname | `https://modsanau.netlify.app/` — HTTP 200 tại lần kiểm tra cuối |
@@ -52,6 +52,6 @@ Chi tiết tích hợp nằm tại [PLAN_103_EXTERNAL_INTEGRATION_SETTINGS.md](P
 
 ## Kết luận gate
 
-Landing page v0.2.0, GitHub `develop`, CI và Netlify branch deploy đều **PASS**. Không promote sang production, không mở public download và không bắt đầu PLAN 104.
+Landing page v0.3.0, GitHub `develop`, CI và Netlify branch deploy đều **PASS**. Không promote sang production, không mở public download và không bắt đầu PLAN 104.
 
 **DỪNG sau PLAN 103.**
