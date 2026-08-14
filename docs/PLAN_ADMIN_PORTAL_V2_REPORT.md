@@ -36,3 +36,11 @@ provision trên cloud. Không được báo portal đã tự kết nối dữ li
   owner credential chưa thể provision từ workspace này.
 - Public source inventory kiểm kê toàn bộ cây `web/` và các file build/deploy allowlist trong monorepo; dist
   tiếp tục được kiểm kê tuyệt đối sau build.
+
+## Kết quả push/deploy develop
+
+- Commit triển khai: `a6a21f1`; commit sửa inventory monorepo: `d9b7c76`.
+- GitHub Actions `Public site CI` run `31821468525`: PASS.
+- `https://develop--aumodstudio.netlify.app/admin/`: HTTP 200, Portal V2 đã live.
+- `/v1/admin/session` và `/health` trên cùng origin: HTTP 404. Netlify chưa có reverse proxy/Gateway, vì vậy
+  login và dữ liệu live chưa operational dù static UI đã deploy.
