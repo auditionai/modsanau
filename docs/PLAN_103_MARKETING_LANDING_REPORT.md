@@ -6,9 +6,11 @@ Quy trình: **PLAN → BUILD → TEST → BÁO CÁO → DỪNG**
 
 ## Kết quả
 
-PLAN 103 đã tạo và phát hành bản landing page **v0.3.0** trên nhánh `develop`. Sau vòng phản hồi thứ hai, giao diện được thay mới toàn bộ theo hướng creative workstation nền sáng ấm, bố cục full-width dạng module và nội dung mô tả trực tiếp.
+PLAN 103 đã tạo và phát hành bản landing page **v0.4.0** trên nhánh `develop`. Sau vòng phản hồi thứ ba, toàn bộ giao diện chuyển sang dark cosmic với starfield canvas, nebula, liquid-glass header, footer nhiều tầng và nội dung mô tả trực tiếp.
 
-Typography được hạ tỷ lệ, tăng line-height và khoảng cách dọc giữa tiêu đề, mô tả và nhóm chức năng. Hệ dark-tech/neon/marquee cũ bị loại bỏ; hệ mới dùng gradient mesh nhẹ, spotlight con trỏ, chiều sâu cửa sổ sản phẩm, hover lighting, card lift, đường dẫn động, progress theo cuộn và reveal ngắn. `prefers-reduced-motion` vẫn được hỗ trợ để bảo đảm khả năng tiếp cận.
+Typography giữ tỷ lệ vừa phải nhưng bổ sung spectral gradient, underline ánh sáng và chuyển màu cho từ khóa nổi bật. Hệ hiệu ứng gồm sao bay/twinkle, nebula drift, spotlight con trỏ, chiều sâu cửa sổ sản phẩm, hover lighting, card lift, orbit, caret, progress theo cuộn và reveal ngắn. `prefers-reduced-motion` vẫn được hỗ trợ để bảo đảm khả năng tiếp cận.
+
+Landing bổ sung AI Studio với bảy tác vụ Generate/Edit/Inpaint/Outpaint/Remove Object/Replace Object/Upscale, mô tả đúng luồng preview → user approval → DDS validation. Hai bảng pricing mới gồm thuê ứng dụng tuần/tháng/năm và nạp 100/500/1.000 Credits. Vì repository chưa có catalog thương mại được Product Owner phê duyệt, giá tiền được ghi rõ `Chưa công bố`, không tự bịa giá hoặc tạo checkout giả.
 
 Ảnh sản phẩm WinUI thực tế dùng `object-fit: contain` trong khung 16:9, hiển thị nguyên ảnh và không bị crop/zoom. Website không có analytics, form, Supabase client hoặc public-download link.
 
@@ -36,11 +38,11 @@ Typography được hạ tỷ lệ, tăng line-height và khoảng cách dọc g
 
 | Hạng mục | Kết quả |
 |---|---|
-| Root source commit giao diện v3 | `218a9d6` |
+| Root source commit giao diện v4 | `e3352975499aa987265304dc66b26e23c46d759e` |
 | Public Git repository | `https://github.com/auditionai/modsanau.git` |
 | Public branch | `develop` |
-| Public commit đã push | `c11d66c594c76afdef0ca7b11552c6738bfab528` |
-| GitHub Actions | **PASS** — run `31795806122` |
+| Public commit đã push | `f3b92f9287dd7fb156447d6d7897747edbc4e39d` |
+| GitHub Actions | **PASS** — run `31796682861` |
 | Netlify branch deploy | **LIVE / HTTP 200** |
 | URL develop | `https://develop--modsanau.netlify.app/` |
 | Production hostname | `https://modsanau.netlify.app/` — HTTP 200 tại lần kiểm tra cuối |
@@ -52,6 +54,6 @@ Chi tiết tích hợp nằm tại [PLAN_103_EXTERNAL_INTEGRATION_SETTINGS.md](P
 
 ## Kết luận gate
 
-Landing page v0.3.0, GitHub `develop`, CI và Netlify branch deploy đều **PASS**. Không promote sang production, không mở public download và không bắt đầu PLAN 104.
+Landing page v0.4.0, GitHub `develop`, CI và Netlify branch deploy đều **PASS**. Không promote sang production, không mở public download và không bắt đầu PLAN 104.
 
 **DỪNG sau PLAN 103.**
