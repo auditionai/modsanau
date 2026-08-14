@@ -1,0 +1,5 @@
+# Supabase Config for PLAN 106
+project_id = "plvuutsjwsawkkrmvigz"
+
+[functions.ai-proxy]
+verify_jwt = true
