@@ -15,7 +15,12 @@
     "web/assets/screenshots/home-dark.png",
     "web/assets/screenshots/home-light.png",
     "web/assets/screenshots/image-editor.png",
-    "web/assets/screenshots/update-available.png"
+    "web/assets/screenshots/update-available.png",
+    "web/admin/404.html",
+    "web/admin/index.html",
+    "web/admin/robots.txt",
+    "web/admin/script.js",
+    "web/admin/styles.css"
   ],
   "repositoryFiles": [
     ".github/workflows/public-site-ci.yml",
@@ -44,6 +49,11 @@
     "web/assets/screenshots/home-dark.png",
     "web/assets/screenshots/home-light.png",
     "web/assets/screenshots/image-editor.png",
-    "web/assets/screenshots/update-available.png"
+    "web/assets/screenshots/update-available.png",
+    "web/admin/404.html",
+    "web/admin/index.html",
+    "web/admin/robots.txt",
+    "web/admin/script.js",
+    "web/admin/styles.css"
   ]
 }
