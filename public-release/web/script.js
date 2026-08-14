@@ -252,6 +252,66 @@ if (gallery) {
   }
 }
 
+const appDialog = document.querySelector("[data-app-dialog]");
+if (appDialog instanceof HTMLDialogElement) {
+  const dialogTitle = appDialog.querySelector("[data-dialog-title]");
+  const dialogKicker = appDialog.querySelector("[data-dialog-kicker]");
+  const dialogDescription = appDialog.querySelector("[data-dialog-description]");
+  const dialogPoints = appDialog.querySelector("[data-dialog-points]");
+  const dialogImage = appDialog.querySelector("[data-dialog-image]");
+  const dialogCode = appDialog.querySelector("[data-dialog-code]");
+  const dialogState = appDialog.querySelector("[data-dialog-state]");
+  let dialogTrigger = null;
+
+  const windowContent = {
+    overview: { code: "WINDOW / 00", kicker: "WORKSPACE OVERVIEW", title: "Một pipeline thống nhất.", description: "Audition AI Mod Studio tổ chức toàn bộ công việc từ ảnh nguồn đến archive đầu ra trong một workspace riêng.", points: ["Chỉnh sửa trên working copy", "Kiểm tra lại metadata DDS", "Xuất file .ab hoặc .acv độc lập"], image: "/assets/screenshots/home-dark.png", alt: "Màn hình tổng quan Audition AI Mod Studio", state: "LOCAL / READY" },
+    tools: { code: "WINDOW / 01", kicker: "CORE TOOLSET", title: "Bốn module làm việc chính.", description: "Image Lab, DDS Matrix, Visual Diff và Archive Core được nối thành một quy trình rõ ràng.", points: ["Chỉnh ảnh và alpha", "Đối chiếu định dạng texture", "Kiểm tra trước khi build"], image: "/assets/screenshots/image-editor.png", alt: "Màn hình Image Editor của Audition AI Mod Studio", state: "4 MODULES / READY" },
+    ai: { code: "WINDOW / 02", kicker: "AI STUDIO", title: "AI hỗ trợ, người dùng quyết định.", description: "Kết quả Generate, Edit, Inpaint, Outpaint, Remove, Replace và Upscale luôn được preview trước khi áp dụng.", points: ["Xem kết quả trước khi lưu", "Chi phí Credits do server báo trước", "DDS được kiểm tra lại sau khi duyệt"], image: "/assets/screenshots/image-editor.png", alt: "Không gian chỉnh sửa hình ảnh có hỗ trợ AI", state: "PREVIEW / APPROVAL" },
+    interface: { code: "WINDOW / 03", kicker: "INTERFACE PREVIEW", title: "Giao diện Windows hiện tại.", description: "Ảnh chụp được hiển thị nguyên tỷ lệ để bạn xem rõ bố cục ứng dụng mà không bị crop hoặc zoom quá mức.", points: ["Giao diện sáng và tối", "Image Editor chuyên biệt", "Thông báo cập nhật rõ ràng"], image: "/assets/screenshots/home-dark.png", alt: "Màn hình giao diện tối của Audition AI Mod Studio", state: "1920 × 1080 / PREVIEW" },
+    pricing: { code: "WINDOW / 04", kicker: "PRICING STATUS", title: "Gói thuê và Credits.", description: "Cấu trúc gồm thời hạn tuần, tháng, năm và các gói nạp Credits. Giá chính thức hiện chưa được công bố.", points: ["Quyền ứng dụng tách khỏi Credits", "Server quyết định số dư và chi phí", "Website chưa tạo giao dịch"], image: "/assets/screenshots/home-dark.png", alt: "Màn hình Audition AI Mod Studio", state: "CATALOG / PENDING" },
+    scope: { code: "WINDOW / 05", kicker: "FILE-ONLY SCOPE", title: "Làm việc với file do bạn chọn.", description: "Ứng dụng không tìm game, không điều khiển tiến trình và không tự cài mod vào thư mục Audition.", points: ["Workspace riêng cho từng dự án", "Không sửa pristine template", "Đầu ra là archive độc lập"], image: "/assets/screenshots/home-light.png", alt: "Trang chủ Audition AI Mod Studio", state: "BOUNDARY / VERIFIED" },
+    legal: { code: "WINDOW / 06", kicker: "LEGAL INFORMATION", title: "Thông tin pháp lý.", description: "Website giới thiệu không thu thập dữ liệu dự án, không có biểu mẫu tài khoản và chưa cung cấp file tải xuống.", points: ["Quyền riêng tư được mô tả minh bạch", "Điều khoản áp dụng cho website thử nghiệm", "Không nhúng analytics hoặc tracker"], image: "/assets/screenshots/home-dark.png", alt: "Giao diện Audition AI Mod Studio", state: "PUBLIC SITE / STATIC" },
+    status: { code: "WINDOW / 07", kicker: "RELEASE TELEMETRY", title: "Bản public đang được chuẩn bị.", description: "Website đang hoạt động để giới thiệu sản phẩm. Bản portable chưa được mở tải xuống công khai.", points: ["Nền tảng Windows x64", "Hình thức portable", "Ngày phát hành chưa công bố"], image: "/assets/screenshots/update-available.png", alt: "Màn hình thông báo cập nhật Audition AI Mod Studio", state: "RELEASE / PENDING" },
+    "ai-approval": { code: "WINDOW / AI", kicker: "USER APPROVAL", title: "Kiểm tra trước khi áp dụng.", description: "AI chỉ tạo bản preview. Bạn cần xem kết quả, xác nhận thay đổi và chờ kiểm tra DDS trước khi ảnh thay thế được lưu.", points: ["So sánh ảnh nguồn và preview", "Xác nhận hoặc hủy kết quả", "Validate DDS sau khi duyệt"], image: "/assets/screenshots/image-editor.png", alt: "Màn hình kiểm tra hình ảnh trước khi áp dụng", state: "WAITING / USER" }
+  };
+
+  function openAppWindow(trigger) {
+    const key = trigger.getAttribute("data-window") ?? "overview";
+    const content = windowContent[key] ?? windowContent.overview;
+    dialogTrigger = trigger;
+    if (dialogTitle) dialogTitle.textContent = content.title;
+    if (dialogKicker) dialogKicker.textContent = content.kicker;
+    if (dialogDescription) dialogDescription.textContent = content.description;
+    if (dialogCode) dialogCode.textContent = content.code;
+    if (dialogState) dialogState.textContent = content.state;
+    if (dialogImage instanceof HTMLImageElement) {
+      dialogImage.src = content.image;
+      dialogImage.alt = content.alt;
+    }
+    if (dialogPoints) {
+      dialogPoints.replaceChildren(...content.points.map((point) => {
+        const item = document.createElement("li");
+        item.textContent = point;
+        return item;
+      }));
+    }
+    if (!appDialog.open) appDialog.showModal();
+  }
+
+  for (const trigger of document.querySelectorAll("button[data-window]")) {
+    trigger.addEventListener("click", () => openAppWindow(trigger));
+  }
+  for (const closeButton of appDialog.querySelectorAll("[data-dialog-close]")) {
+    closeButton.addEventListener("click", () => appDialog.close());
+  }
+  appDialog.addEventListener("click", (event) => {
+    if (event.target === appDialog) appDialog.close();
+  });
+  appDialog.addEventListener("close", () => {
+    if (dialogTrigger instanceof HTMLElement) dialogTrigger.focus();
+  });
+}
+
 const revealItems = [...document.querySelectorAll(".reveal")].filter((item) => !item.closest(".hero"));
 if ("IntersectionObserver" in window && !reducedMotion.matches) {
   const observer = new IntersectionObserver((entries) => {

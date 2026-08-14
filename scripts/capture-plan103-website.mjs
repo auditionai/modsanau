@@ -37,8 +37,12 @@ const server = createServer(async (request, response) => {
     if (relative === "index.html" && captureTarget) {
       const html = body.toString("utf8");
       const safeTarget = captureTarget.replace(/[^a-z0-9-]/gi, "");
-      const captureStyles = `<style>main>*{display:none!important}main>#${safeTarget}{display:block!important;margin-top:78px}.reveal,.tool-scene.is-active{opacity:1!important;transform:none!important;animation:none!important}</style>`;
-      body = Buffer.from(html.replace("</head>", `${captureStyles}</head>`));
+      const footerCapture = safeTarget === "footer" || safeTarget === "modal";
+      const captureStyles = footerCapture
+        ? `<style>main{display:none!important}.site-footer{margin-top:78px}.reveal{opacity:1!important;transform:none!important}</style>`
+        : `<style>main>*{display:none!important}main>#${safeTarget}{display:block!important;margin-top:78px}.reveal,.tool-scene.is-active{opacity:1!important;transform:none!important;animation:none!important}</style>`;
+      const openDialog = safeTarget === "modal" ? `<script>window.addEventListener("load",()=>document.querySelector('[data-window="overview"]')?.click())</script>` : "";
+      body = Buffer.from(html.replace("</head>", `${captureStyles}</head>`).replace("</body>", `${openDialog}</body>`));
     }
     response.writeHead(200, { "Content-Type": contentTypes[path.extname(target)] ?? "application/octet-stream" });
     response.end(body);
@@ -59,6 +63,9 @@ try {
     { name: "ai-studio-1440x1100.png", size: "1440,1100", target: "ai-studio" },
     { name: "gallery-1440x1100.png", size: "1440,1100", target: "giao-dien" },
     { name: "pricing-1440x1100.png", size: "1440,1100", target: "bang-gia" },
+    { name: "footer-1440x1100.png", size: "1440,1100", target: "footer" },
+    { name: "modal-1440x1000.png", size: "1440,1000", target: "modal" },
+    { name: "footer-mobile-500x1000.png", size: "500,1000", target: "footer" },
     { name: "mobile-500x900.png", size: "500,900", target: "dau-trang" }
   ]) {
     await execute(chrome, [
