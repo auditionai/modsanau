@@ -70,12 +70,12 @@ BEGIN
 
     IF action = 'analytics' THEN
         WITH dates AS (
-            SELECT generate_series(current_date - (days - 1), current_date, interval '1 day')::date day
+            SELECT generate_series(current_date - (days - 1), current_date, interval '1 day')::date AS metric_day
         ), users_by_day AS (
-            SELECT created_at::date day, count(*) total FROM auth.users
+            SELECT created_at::date AS metric_day, count(*) total FROM auth.users
             WHERE created_at >= current_date - (days - 1) GROUP BY created_at::date
         ), payments_by_day AS (
-            SELECT verified_at::date day, count(*) total, COALESCE(sum(amount_minor),0) revenue
+            SELECT verified_at::date AS metric_day, count(*) total, COALESCE(sum(amount_minor),0) revenue
             FROM private.payment_events WHERE verified_at >= current_date - (days - 1)
             GROUP BY verified_at::date
         )
@@ -94,8 +94,8 @@ BEGIN
             'giftCodeRedemptions', (SELECT count(*) FROM private.gift_code_redemptions),
             'currency', COALESCE((SELECT currency::text FROM private.payment_events GROUP BY currency ORDER BY count(*) DESC LIMIT 1),'vnd'),
             'observedAt', clock_timestamp(),
-            'daily', (SELECT COALESCE(jsonb_agg(jsonb_build_object('day',d.day,'users',COALESCE(u.total,0),'transactions',COALESCE(p.total,0),'revenueMinor',COALESCE(p.revenue,0)) ORDER BY d.day),'[]'::jsonb)
-                FROM dates d LEFT JOIN users_by_day u USING(day) LEFT JOIN payments_by_day p USING(day))
+            'daily', (SELECT COALESCE(jsonb_agg(jsonb_build_object('day',d.metric_day,'users',COALESCE(u.total,0),'transactions',COALESCE(p.total,0),'revenueMinor',COALESCE(p.revenue,0)) ORDER BY d.metric_day),'[]'::jsonb)
+                FROM dates d LEFT JOIN users_by_day u USING(metric_day) LEFT JOIN payments_by_day p USING(metric_day))
         ) INTO result;
         RETURN result;
     END IF;
