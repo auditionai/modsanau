@@ -477,3 +477,14 @@ TEST key và không biến test authority thành production trust root. Updater 
 
 Hostname Netlify/Supabase phản hồi công khai không chứng minh ownership, dashboard configuration hay production trust. Vì exact GitHub remote
 chưa có, không fetch/push/deploy nào được thực hiện; production giữ nguyên. PLAN 104 chưa bắt đầu.
+# PLAN 104 — threat model bổ sung
+
+| Mối đe dọa | Kiểm soát |
+|---|---|
+| Đoán/tuần tự hóa Device Code | Không tuần tự, alphabet không nhập nhằng, unique; code không có quyền xác thực |
+| Đánh cắp session/grant | Credential Manager, TLS, bearer validation, PLAN 86 device-session binding, grant sống ngắn |
+| Sửa đồng hồ/trạng thái client | Gateway dùng server time; capability chỉ tin grant ES256 và expiry đã ký |
+| Redeem lặp hoặc race | Row lock, unique `(gift_code_id, device_profile_id)`, correlation id unique, transaction nguyên tử |
+| Client tự cộng Credits | Không có API đó; Gift Code gọi authority `private.credit_grant` của PLAN 60 |
+| Rò Gift Code | Database chỉ giữ hash; RLS/GRANT chặn client đọc bảng nhạy cảm |
+| Reinstall để có identity mới | Không dùng fingerprint; giảm thiểu bằng abuse/rate limit và kiểm soát server, chấp nhận đây là giới hạn mô hình anonymous |

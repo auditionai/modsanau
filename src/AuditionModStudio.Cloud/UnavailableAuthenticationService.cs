@@ -4,6 +4,8 @@ namespace AuditionModStudio.Cloud;
 
 public sealed class UnavailableAuthenticationService : IAuthenticationService
 {
+    public Task<AuthenticationResult> SignInAnonymouslyAsync(CancellationToken cancellationToken = default) =>
+        UnavailableAsync(cancellationToken);
     public Task<AuthenticationResult> SignUpAsync(AuthEmail email, AuthPassword password,
         CancellationToken cancellationToken = default) => UnavailableAsync(cancellationToken);
     public Task<AuthenticationResult> SignInAsync(AuthEmail email, AuthPassword password,

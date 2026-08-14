@@ -1125,3 +1125,11 @@ Performance evidence không làm yếu path traversal, reparse, resource, transa
   gate, sau đó chỉ đính kèm GitHub Release; repository không nhận ZIP blob.
 - Không có exact GitHub remote hoặc authenticated Netlify dashboard nên PLAN 103 dừng trước fetch/push/deploy. Không đoán identity,
   không expose Supabase key và không thay đổi production.
+# PLAN 104 — kiểm soát bảo mật bổ sung
+
+- Không thu thập hardware fingerprint. Xóa Credential Manager hoặc cài lại tạo anonymous identity mới; đây là giới hạn được công bố, không được che giấu bằng fingerprint.
+- Device Code và tiền tố Gift Code không phải secret. Plaintext Gift Code không lưu trong database; chỉ lưu SHA-256 và metadata quản trị.
+- Private signing key, database connection string và Supabase service-role key chỉ cấu hình tại Gateway/hosting. Client chỉ nhận publishable key và public verification key.
+- Mọi bảng thương mại mới bật và force RLS; `anon`/`authenticated` không có quyền đọc Gift Code, redemption hoặc audit. RPC mutation chỉ cấp cho `service_role`.
+- Redeem chạy trong một transaction, khóa bản ghi, unique theo code/device, correlation id duy nhất và gọi credit ledger hiện hữu để chống double-credit.
+- Grant capability fail-closed khi chữ ký sai, claim không khớp, thiết bị bị chặn/thu hồi hoặc `expiresAt` đã qua.

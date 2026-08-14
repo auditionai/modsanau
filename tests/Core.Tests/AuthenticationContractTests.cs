@@ -26,7 +26,7 @@ public sealed class AuthenticationContractTests
     }
 
     [Fact]
-    public void Contract_exposes_the_plan_58_operation_set()
+    public void Contract_exposes_the_plan_58_and_plan_104_operation_set()
     {
         var operations = typeof(IAuthenticationService).GetMethods()
             .Select(method => method.Name)
@@ -37,6 +37,7 @@ public sealed class AuthenticationContractTests
             "GetProfileAsync",
             "RefreshSessionAsync",
             "ResetPasswordAsync",
+            "SignInAnonymouslyAsync",
             "SignInAsync",
             "SignOutAsync",
             "SignUpAsync",

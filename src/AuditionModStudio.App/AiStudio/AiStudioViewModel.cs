@@ -7,6 +7,7 @@ using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Tasks;
+using AuditionModStudio.Core.Subscriptions;
 
 namespace AuditionModStudio.App.AiStudio;
 
@@ -20,6 +21,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private readonly IApplicationProjectSession? _projectSession;
     private readonly ILocalPromptPresetStore? _localPresets;
     private readonly ICloudPromptPresetService? _cloudPresets;
+    private readonly ICapabilityAuthorizationService? _capabilities;
     private AiStudioOperationOption _selectedOperation = AiStudioOptions.Operations[0];
     private AiStudioOption _selectedModel = AiStudioOptions.Models[0];
     private AiStudioOption _selectedQuality = AiStudioOptions.Qualities[0];
@@ -49,7 +51,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         ITextureApplyService? applyService = null,
         IApplicationProjectSession? projectSession = null,
         ILocalPromptPresetStore? localPresets = null,
-        ICloudPromptPresetService? cloudPresets = null)
+        ICloudPromptPresetService? cloudPresets = null,
+        ICapabilityAuthorizationService? capabilities = null)
     {
         _aiService = aiService ?? throw new ArgumentNullException(nameof(aiService));
         _studioService = studioService ?? throw new ArgumentNullException(nameof(studioService));
@@ -59,6 +62,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         _projectSession = projectSession;
         _localPresets = localPresets;
         _cloudPresets = cloudPresets;
+        _capabilities = capabilities;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -250,6 +254,11 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
 
     public async Task SubmitAsync(AiMask? mask, CancellationToken cancellationToken = default)
     {
+        if (_capabilities is not null && !_capabilities.Current.CanUseAi)
+        {
+            StatusMessage = "Gói sử dụng chưa cho phép dùng AI. Hãy mở Tài khoản để làm mới quyền sử dụng.";
+            return;
+        }
         if (!CanSubmit)
         {
             StatusMessage = "Hãy kiểm tra các yêu cầu đầu vào được đánh dấu trước khi gửi.";

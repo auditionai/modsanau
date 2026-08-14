@@ -1525,3 +1525,11 @@ Netlify là static hosting boundary: `main` dành cho production và `develop` d
 config/checklist local vì remote/dashboard chưa được xác minh. Website không gọi Supabase, AI, payment hay updater; không thêm cloud
 dependency vào `AuditionModStudio.Core` hoặc file-only pipeline. Public download chỉ có thể là GitHub Release asset sau release gate
 riêng, không phải blob repository và không tự động kế thừa artifact internal PLAN 102.
+# PLAN 104 — Device identity và entitlement thương mại
+
+- Supabase Anonymous Auth là credential root cho lần chạy đầu; access/refresh token chỉ nằm trong Windows Credential Manager.
+- `private.device_profiles` ánh xạ duy nhất `auth.users.id` sang Device Code công khai dạng `AMS-XXXX-XXXX-XXXX`. Device Code chỉ để hiển thị/hỗ trợ, không phải secret và không dùng để đăng nhập.
+- PLAN 86 tiếp tục là authority của phiên thiết bị; PLAN 60 tiếp tục là authority duy nhất của ví/ledger. Gift Code Credits bắt buộc gọi `private.credit_grant`.
+- Gateway là trusted boundary cho đăng ký, làm mới entitlement và redeem Gift Code. Client chỉ nhận capability grant ES256 cùng họ `AMS-ENT` v1 của PLAN 70.
+- `ICapabilityAuthorizationService` là cổng tập trung cho `CanUseAi`, `CanBuild`, `CanExport`, `CanUsePremiumTemplates`. AI và Build/Export fail-closed khi grant hết hạn, blocked hoặc revoked.
+- Grant offline được lưu trong Windows Credential Manager và chỉ dùng đến `expiresAt` do Gateway ký. Hết hạn gói không xóa dự án/dữ liệu cục bộ và không ngăn xem trang Tài khoản.

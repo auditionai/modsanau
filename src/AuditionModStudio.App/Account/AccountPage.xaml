@@ -68,6 +68,14 @@
             </Grid>
 
             <StackPanel x:Name="AccountSnapshot" Grid.Row="2" x:Load="{x:Bind ViewModel.ShowProfile, Mode=OneWay}" Spacing="{StaticResource AmsSpace16}">
+                <Border Style="{StaticResource AmsAccentCardStyle}"><Grid ColumnSpacing="16" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <StackPanel Spacing="4"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Mã thiết bị" /><TextBlock AutomationProperties.Name="Mã thiết bị công khai" FontFamily="Consolas" FontSize="20" Text="{x:Bind ViewModel.DeviceCode, Mode=OneWay}" /></StackPanel>
+                    <Button Grid.Column="1" HorizontalAlignment="Right" MinHeight="44" Click="OnCopyDeviceCodeClicked" Style="{StaticResource AmsSecondaryButtonStyle}" Content="Sao chép mã" />
+                    <StackPanel Grid.Row="1" Spacing="4"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Gói sử dụng" /><TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="{x:Bind ViewModel.SubscriptionStatus, Mode=OneWay}" /><TextBlock Text="{x:Bind ViewModel.SubscriptionExpiry, Mode=OneWay}" /><TextBlock Text="{x:Bind ViewModel.RemainingDays, Mode=OneWay}" /></StackPanel>
+                    <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.Benefits, Mode=OneWay}" />
+                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="8"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Mã quà tặng" /><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox AutomationProperties.Name="Nhập mã quà tặng" Header="Mã quà tặng" MaxLength="128" Text="{x:Bind ViewModel.GiftCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /><Button Grid.Column="1" VerticalAlignment="Bottom" MinHeight="44" IsEnabled="{x:Bind ViewModel.CanRedeem, Mode=OneWay}" Click="OnRedeemGiftCodeClicked" Style="{StaticResource AmsPrimaryButtonStyle}" Content="Kích hoạt" /></Grid><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Gia hạn và thanh toán trực tuyến sẽ được bổ sung ở một PLAN riêng; hiện tại không có luồng thanh toán giả." /></StackPanel>
+                </Grid></Border>
                 <Grid x:Name="AccountCards" ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace16}">
                     <VisualStateManager.VisualStateGroups>
                         <VisualStateGroup>

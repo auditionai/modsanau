@@ -17,6 +17,7 @@ using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Startup;
 using AuditionModStudio.Core.Settings;
 using AuditionModStudio.Core.Tasks;
+using AuditionModStudio.Core.Subscriptions;
 using AuditionModStudio.Core.Workspaces;
 using AuditionModStudio.Infrastructure.Logging;
 using AuditionModStudio.Infrastructure.Exports;
@@ -191,6 +192,9 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAiService, UnavailableAiService>();
         builder.Services.AddSingleton<ISecureSessionStore, WindowsCredentialSessionStore>();
         builder.Services.AddSingleton<IDeviceSessionBindingStore, WindowsCredentialDeviceSessionBindingStore>();
+        builder.Services.AddSingleton<IDeviceEntitlementGrantStore, WindowsCredentialDeviceEntitlementGrantStore>();
+        builder.Services.AddSingleton<ICapabilityAuthorizationService>(_ =>
+            new CapabilityAuthorizationService(TimeProvider.System));
         builder.Services.AddSingleton<ITemplateCacheKeyProtector, WindowsDpapiTemplateCacheKeyProtector>();
         builder.Services.AddSingleton<IPremiumTemplateCache, EncryptedPremiumTemplateCache>();
         builder.Services.AddSingleton(new HttpClient(new HttpClientHandler
@@ -268,6 +272,22 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<ISecureSessionStore>(),
                     services.GetRequiredService<IAuthenticationService>(), accountOptions)
                 : new UnavailableAccountOverviewService();
+        });
+        builder.Services.AddSingleton<IDeviceEntitlementService>(services =>
+        {
+            var url = Environment.GetEnvironmentVariable("AUDITION_GATEWAY_URL");
+            var publicKey = Environment.GetEnvironmentVariable("AUDITION_ENTITLEMENT_PUBLIC_KEY_PEM");
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var gatewayUri) || string.IsNullOrWhiteSpace(publicKey))
+                return new UnavailableDeviceEntitlementService();
+            var entitlementOptions = new GatewayDeviceEntitlementOptions(gatewayUri, publicKey);
+            return entitlementOptions.IsValid
+                ? new GatewayDeviceEntitlementService(services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(),
+                    services.GetRequiredService<IDeviceSessionBindingStore>(),
+                    services.GetRequiredService<IDeviceEntitlementGrantStore>(),
+                    services.GetRequiredService<IAuthenticationService>(),
+                    services.GetRequiredService<ICapabilityAuthorizationService>(), entitlementOptions)
+                : new UnavailableDeviceEntitlementService();
         });
         builder.Services.AddSingleton<ITextureStateMachine, TextureStateMachine>();
         builder.Services.AddSingleton<IProjectTextureRestoreService, ProjectTextureRestoreService>();

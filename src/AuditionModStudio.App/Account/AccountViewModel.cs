@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using AuditionModStudio.Core.Accounts;
+using AuditionModStudio.Core.Subscriptions;
 
 namespace AuditionModStudio.App.Account;
 
@@ -14,8 +15,10 @@ public sealed record AccountTransactionItem(
     string BalanceAfter,
     string CreatedAt);
 
-public sealed class AccountViewModel(IAccountOverviewService service) : INotifyPropertyChanged, IDisposable
+public sealed class AccountViewModel : INotifyPropertyChanged, IDisposable
 {
+    private readonly IAccountOverviewService service;
+    private readonly IDeviceEntitlementService deviceEntitlements;
     private CancellationTokenSource? _activationCancellation;
     private ImmutableArray<AccountTransactionItem> _transactions = [];
     private string _statusMessage = "Mở Tài khoản để tải hồ sơ và lịch sử Credits.";
@@ -31,9 +34,18 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
     private bool _isLoading;
     private bool _hasSnapshot;
     private bool _hasError;
+    private string _deviceCode = "—", _subscriptionStatus = "Chưa tải", _subscriptionExpiry = "—", _remainingDays = "—";
+    private string _benefits = "Chưa có dữ liệu quyền sử dụng.", _giftCode = string.Empty;
+    private bool _canRedeem;
     private int _disposed;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public AccountViewModel(IAccountOverviewService service, IDeviceEntitlementService? deviceEntitlements = null)
+    {
+        this.service = service ?? throw new ArgumentNullException(nameof(service));
+        this.deviceEntitlements = deviceEntitlements ?? new UnavailableDeviceEntitlementService();
+    }
 
     public string StatusMessage { get => _statusMessage; private set => Set(ref _statusMessage, value); }
     public string DisplayName { get => _displayName; private set => Set(ref _displayName, value); }
@@ -51,6 +63,13 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
     public bool HasSnapshot { get => _hasSnapshot; private set { if (Set(ref _hasSnapshot, value)) NotifyStates(); } }
     public bool HasError { get => _hasError; private set { if (Set(ref _hasError, value)) NotifyStates(); } }
     public bool CanRefresh => !IsLoading;
+    public string DeviceCode { get => _deviceCode; private set => Set(ref _deviceCode, value); }
+    public string SubscriptionStatus { get => _subscriptionStatus; private set => Set(ref _subscriptionStatus, value); }
+    public string SubscriptionExpiry { get => _subscriptionExpiry; private set => Set(ref _subscriptionExpiry, value); }
+    public string RemainingDays { get => _remainingDays; private set => Set(ref _remainingDays, value); }
+    public string Benefits { get => _benefits; private set => Set(ref _benefits, value); }
+    public string GiftCode { get => _giftCode; set { if (Set(ref _giftCode, value ?? string.Empty)) CanRedeem = !IsLoading && !string.IsNullOrWhiteSpace(_giftCode); } }
+    public bool CanRedeem { get => _canRedeem; private set => Set(ref _canRedeem, value); }
     public bool ShowProfile => HasSnapshot && !IsLoading;
     public bool ShowHistory => ShowProfile && Transactions.Length > 0;
     public bool ShowEmptyState => ShowProfile && Transactions.Length == 0;
@@ -86,6 +105,7 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
                 return;
             }
             Apply(result.Snapshot);
+            await RefreshDeviceAsync(token);
             HasSnapshot = true;
             StatusMessage = result.Snapshot.Transactions.IsEmpty
             ? "Đã tải tài khoản. Chưa có giao dịch Credits."
@@ -96,6 +116,40 @@ public sealed class AccountViewModel(IAccountOverviewService service) : INotifyP
             if (_activationCancellation is not null && _activationCancellation.Token == token) IsLoading = false;
         }
     }
+
+    public async Task RedeemGiftCodeAsync(CancellationToken cancellationToken = default)
+    {
+        if (IsLoading || string.IsNullOrWhiteSpace(GiftCode)) return;
+        IsLoading = true; CanRedeem = false;
+        try
+        {
+            var result = await deviceEntitlements.RedeemGiftCodeAsync(GiftCode, cancellationToken);
+            if (result.Succeeded && result.Snapshot is not null)
+            { ApplyDevice(result.Snapshot); GiftCode = string.Empty; StatusMessage = "Mã quà tặng đã được kích hoạt."; }
+            else StatusMessage = result.Status == DeviceEntitlementResultStatus.Rejected
+                ? "Mã quà tặng không hợp lệ, đã hết hạn hoặc đã được sử dụng trên thiết bị này."
+                : "Chưa thể kích hoạt mã lúc này. Vui lòng thử lại sau.";
+        }
+        finally { IsLoading = false; CanRedeem = !string.IsNullOrWhiteSpace(GiftCode); }
+    }
+
+    private async Task RefreshDeviceAsync(CancellationToken cancellationToken)
+    {
+        var result = await deviceEntitlements.RefreshAsync(cancellationToken);
+        if (result.Succeeded && result.Snapshot is not null) ApplyDevice(result.Snapshot);
+    }
+
+    private void ApplyDevice(DeviceEntitlementSnapshot snapshot)
+    {
+        DeviceCode = snapshot.DeviceCode;
+        SubscriptionStatus = snapshot.SubscriptionStatus switch
+        { Core.Subscriptions.SubscriptionStatus.Active => "Đang hoạt động", Core.Subscriptions.SubscriptionStatus.Expired => "Đã hết hạn", Core.Subscriptions.SubscriptionStatus.Suspended => "Tạm dừng", Core.Subscriptions.SubscriptionStatus.Revoked => "Đã thu hồi", _ => "Chưa kích hoạt" };
+        SubscriptionExpiry = snapshot.SubscriptionExpiresAt?.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) ?? "—";
+        RemainingDays = snapshot.SubscriptionExpiresAt is { } expiry ? $"Còn {Math.Max(0, (int)Math.Ceiling((expiry - snapshot.ObservedAt).TotalDays)):N0} ngày" : "—";
+        Benefits = $"AI: {Yes(snapshot.Capabilities.CanUseAi)} · Build: {Yes(snapshot.Capabilities.CanBuild)} · Export: {Yes(snapshot.Capabilities.CanExport)} · Mẫu Premium: {Yes(snapshot.Capabilities.CanUsePremiumTemplates)}";
+        AvailableCredits = snapshot.AvailableCredits.ToString("N0", CultureInfo.CurrentCulture);
+    }
+    private static string Yes(bool value) => value ? "Có" : "Không";
 
     public void Deactivate()
     {

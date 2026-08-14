@@ -40,6 +40,9 @@ public sealed class SupabaseAuthService(
     private readonly SemaphoreSlim _sessionGate = new(1, 1);
     private int _disposeState;
 
+    public Task<AuthenticationResult> SignInAnonymouslyAsync(CancellationToken cancellationToken = default) =>
+        ExecuteSessionMutationAsync(() => SendSessionAsync("signup", new { }, cancellationToken), cancellationToken);
+
     public Task<AuthenticationResult> SignUpAsync(
         AuthEmail email,
         AuthPassword password,
@@ -482,7 +485,8 @@ public sealed class SupabaseAuthService(
     private sealed record AuthUser(
         [property: JsonPropertyName("id")] Guid Id,
         [property: JsonPropertyName("email")] string? Email,
-        [property: JsonPropertyName("user_metadata")] Dictionary<string, JsonElement>? Metadata)
+        [property: JsonPropertyName("user_metadata")] Dictionary<string, JsonElement>? Metadata,
+        [property: JsonPropertyName("is_anonymous")] bool IsAnonymous = false)
     {
         private const int MaximumDisplayNameLength = 256;
 
@@ -490,7 +494,7 @@ public sealed class SupabaseAuthService(
         {
             try
             {
-                var email = new AuthEmail(Email!);
+                AuthEmail? email = string.IsNullOrWhiteSpace(Email) ? null : new AuthEmail(Email);
                 string? displayName = null;
                 if (Metadata is not null)
                 {
@@ -508,7 +512,7 @@ public sealed class SupabaseAuthService(
                         }
                     }
                 }
-                return Id == Guid.Empty ? null : new(Id, email, displayName);
+                return Id == Guid.Empty || email is null && !IsAnonymous ? null : new(Id, email, displayName, IsAnonymous);
             }
             catch (ArgumentException)
             {

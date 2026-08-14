@@ -22,9 +22,11 @@ public static class GatewayApplication
         var options = TrustedGatewayOptions.FromConfiguration(configuration);
         var abuseProtectionOptions = GatewayAbuseProtectionOptions.FromConfiguration(configuration);
         var deviceSessionOptions = DeviceSessionOptions.FromConfiguration(configuration);
+        var deviceEntitlementOptions = DeviceEntitlementOptions.FromConfiguration(configuration);
         services.AddSingleton(options);
         services.AddSingleton(abuseProtectionOptions);
         services.AddSingleton(deviceSessionOptions);
+        services.AddSingleton(deviceEntitlementOptions);
         services.AddSingleton<GatewayIpRateLimiter>();
         services.AddGatewayRateLimiting(abuseProtectionOptions);
         services.AddSingleton<ISupabaseAuthClient, SupabaseAuthHttpClient>();
@@ -88,6 +90,13 @@ public static class GatewayApplication
                 provider.GetRequiredService<PostgresAiJobService>());
             services.AddSingleton<IPaymentFulfillmentService, PostgresPaymentFulfillmentService>();
             services.AddSingleton<IDeviceSessionService, PostgresDeviceSessionService>();
+            if (deviceEntitlementOptions.IsOperational
+                && EntitlementSigningKey.TryCreate(deviceEntitlementOptions.SigningPrivateKeyPem, out var deviceKey))
+            {
+                services.AddSingleton(deviceKey!);
+                services.AddSingleton<ITrustedDeviceEntitlementService, PostgresDeviceEntitlementService>();
+            }
+            else services.AddSingleton<ITrustedDeviceEntitlementService, UnavailableTrustedDeviceEntitlementService>();
         }
         else
         {
@@ -101,6 +110,7 @@ public static class GatewayApplication
             services.AddSingleton<IAiJobWorkerService, UnavailableAiJobWorkerService>();
             services.AddSingleton<IPaymentFulfillmentService, UnavailablePaymentFulfillmentService>();
             services.AddSingleton<IDeviceSessionService, UnavailableDeviceSessionService>();
+            services.AddSingleton<ITrustedDeviceEntitlementService, UnavailableTrustedDeviceEntitlementService>();
         }
         services.AddSingleton<IAiJobExecutionService, AiJobExecutionService>();
         services.AddHostedService<AiJobWorker>();
@@ -154,6 +164,7 @@ public static class GatewayApplication
 
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
         app.MapDeviceSessionEndpoints();
+        app.MapDeviceEntitlementEndpoints();
         app.MapTrustedGatewayEndpoints();
         app.MapPaymentWebhookEndpoints();
     }

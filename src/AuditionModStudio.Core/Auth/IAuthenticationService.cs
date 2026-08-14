@@ -41,7 +41,7 @@ public sealed class AuthPassword
     public override string ToString() => "[REDACTED]";
 }
 
-public sealed record AuthProfile(Guid UserId, AuthEmail Email, string? DisplayName);
+public sealed record AuthProfile(Guid UserId, AuthEmail? Email, string? DisplayName, bool IsAnonymous = false);
 public sealed record AuthSessionSnapshot(AuthProfile Profile, DateTimeOffset ExpiresAt);
 public sealed class AuthSessionSecrets
 {
@@ -113,6 +113,9 @@ public interface IDeviceSessionBindingStore
 
 public interface IAuthenticationService
 {
+    Task<AuthenticationResult> SignInAnonymouslyAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(AuthenticationResult.Failure(AuthenticationFailureReason.Unavailable,
+            "AUTH_ANONYMOUS_UNAVAILABLE"));
     Task<AuthenticationResult> SignUpAsync(AuthEmail email, AuthPassword password,
         CancellationToken cancellationToken = default);
     Task<AuthenticationResult> SignInAsync(AuthEmail email, AuthPassword password,

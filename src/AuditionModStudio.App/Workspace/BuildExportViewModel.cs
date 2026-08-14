@@ -4,6 +4,7 @@ using AuditionModStudio.App.Shell;
 using AuditionModStudio.Core.Exports;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Tasks;
+using AuditionModStudio.Core.Subscriptions;
 
 namespace AuditionModStudio.App.Workspace;
 
@@ -14,6 +15,7 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
     private readonly IArchiveExportDestinationValidator _destinationValidator;
     private readonly IArchiveExportService _exportService;
     private readonly IBackgroundTaskManager _taskManager;
+    private readonly ICapabilityAuthorizationService? _capabilities;
     private Guid? _loadedProjectId;
     private BackgroundTaskId _activeTaskId;
     private string _outputDirectory = string.Empty;
@@ -32,13 +34,15 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
         IProjectBuildService buildService,
         IArchiveExportDestinationValidator destinationValidator,
         IArchiveExportService exportService,
-        IBackgroundTaskManager taskManager)
+        IBackgroundTaskManager taskManager,
+        ICapabilityAuthorizationService? capabilities = null)
     {
         _projectSession = projectSession ?? throw new ArgumentNullException(nameof(projectSession));
         _buildService = buildService ?? throw new ArgumentNullException(nameof(buildService));
         _destinationValidator = destinationValidator ?? throw new ArgumentNullException(nameof(destinationValidator));
         _exportService = exportService ?? throw new ArgumentNullException(nameof(exportService));
         _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
+        _capabilities = capabilities;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -126,6 +130,11 @@ public sealed class BuildExportViewModel : INotifyPropertyChanged
     {
         if (_isBusy)
         {
+            return;
+        }
+        if (_capabilities is not null && (!_capabilities.Current.CanBuild || !_capabilities.Current.CanExport))
+        {
+            SetStatus("Cần kích hoạt", "Gói sử dụng chưa cho phép Build và Export. Hãy mở Tài khoản để làm mới quyền sử dụng.", 0);
             return;
         }
 
