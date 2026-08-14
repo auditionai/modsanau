@@ -15,12 +15,12 @@ function closeMenu(restoreFocus = false) {
 
 if (menuButton && navigation) {
   menuButton.addEventListener("click", () => {
-    const open = menuButton.getAttribute("aria-expanded") !== "true";
-    menuButton.setAttribute("aria-expanded", String(open));
-    navigation.classList.toggle("is-open", open);
+    const isOpen = menuButton.getAttribute("aria-expanded") !== "true";
+    menuButton.setAttribute("aria-expanded", String(isOpen));
+    navigation.classList.toggle("is-open", isOpen);
   });
   navigation.addEventListener("click", (event) => {
-    if (event.target instanceof HTMLAnchorElement || event.target.closest("a")) closeMenu();
+    if (event.target instanceof Element && event.target.closest("a")) closeMenu();
   });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeMenu(true);
@@ -31,13 +31,24 @@ if (menuButton && navigation) {
 }
 
 const header = document.querySelector("[data-header]");
-let headerFrame = 0;
-function updateHeader() {
-  cancelAnimationFrame(headerFrame);
-  headerFrame = requestAnimationFrame(() => header?.classList.toggle("is-scrolled", window.scrollY > 18));
+let scrollFrame = 0;
+function updateScrollState() {
+  if (scrollFrame) return;
+  scrollFrame = requestAnimationFrame(() => {
+    header?.classList.toggle("is-scrolled", window.scrollY > 16);
+    const process = document.querySelector("#quy-trinh");
+    if (process) {
+      const rect = process.getBoundingClientRect();
+      const span = Math.max(1, rect.height - window.innerHeight * 0.45);
+      const progress = Math.min(1, Math.max(0.12, (window.innerHeight * 0.5 - rect.top) / span));
+      root.style.setProperty("--progress", progress.toFixed(3));
+    }
+    scrollFrame = 0;
+  });
 }
-updateHeader();
-window.addEventListener("scroll", updateHeader, { passive: true });
+updateScrollState();
+window.addEventListener("scroll", updateScrollState, { passive: true });
+window.addEventListener("resize", updateScrollState, { passive: true });
 
 if (!reducedMotion.matches && finePointer.matches) {
   let pointerFrame = 0;
@@ -59,29 +70,29 @@ if (!reducedMotion.matches && finePointer.matches) {
       const rect = element.getBoundingClientRect();
       const x = (event.clientX - rect.left) / rect.width;
       const y = (event.clientY - rect.top) / rect.height;
-      const strength = Number(element.getAttribute("data-tilt-strength") ?? 3);
-      element.style.setProperty("--ry", `${(x - 0.5) * strength * 2}deg`);
-      element.style.setProperty("--rx", `${(0.5 - y) * strength * 2}deg`);
-      element.style.setProperty("--lx", `${x * 100}%`);
-      element.style.setProperty("--ly", `${y * 100}%`);
+      const depth = Number(element.getAttribute("data-depth") ?? 2);
+      element.style.setProperty("--ry", `${(x - 0.5) * depth * 2}deg`);
+      element.style.setProperty("--rx", `${(0.5 - y) * depth * 2}deg`);
     });
     element.addEventListener("pointerleave", () => {
       element.style.setProperty("--ry", "0deg");
       element.style.setProperty("--rx", "0deg");
-      element.style.setProperty("--lx", "50%");
-      element.style.setProperty("--ly", "50%");
     });
   }
 
-  for (const element of document.querySelectorAll(".magnetic")) {
+  for (const element of document.querySelectorAll("[data-card-light]")) {
     element.addEventListener("pointermove", (event) => {
       const rect = element.getBoundingClientRect();
-      element.style.setProperty("--mag-x", `${(event.clientX - rect.left - rect.width / 2) * 0.12}px`);
-      element.style.setProperty("--mag-y", `${(event.clientY - rect.top - rect.height / 2) * 0.16}px`);
+      element.style.setProperty("--lx", `${event.clientX - rect.left}px`);
+      element.style.setProperty("--ly", `${event.clientY - rect.top}px`);
     });
-    element.addEventListener("pointerleave", () => {
-      element.style.setProperty("--mag-x", "0px");
-      element.style.setProperty("--mag-y", "0px");
+  }
+
+  for (const button of document.querySelectorAll(".button")) {
+    button.addEventListener("pointermove", (event) => {
+      const rect = button.getBoundingClientRect();
+      button.style.setProperty("--bx", `${event.clientX - rect.left}px`);
+      button.style.setProperty("--by", `${event.clientY - rect.top}px`);
     });
   }
 }
@@ -93,12 +104,13 @@ if (gallery) {
   const description = gallery.querySelector("[data-gallery-description]");
   const count = gallery.querySelector("[data-gallery-count]");
   const buttons = [...gallery.querySelectorAll("button[data-src]")];
+
   for (const button of buttons) {
     button.addEventListener("click", () => {
       if (!(image instanceof HTMLImageElement)) return;
       for (const item of buttons) item.setAttribute("aria-pressed", String(item === button));
       image.classList.add("is-changing");
-      const applyImage = () => {
+      const updateImage = () => {
         image.src = button.dataset.src ?? "";
         image.alt = button.dataset.alt ?? "";
         if (label) label.textContent = button.dataset.label ?? "";
@@ -106,8 +118,8 @@ if (gallery) {
         if (count) count.textContent = button.dataset.count ?? "";
         image.classList.remove("is-changing");
       };
-      if (reducedMotion.matches) applyImage();
-      else window.setTimeout(applyImage, 160);
+      if (reducedMotion.matches) updateImage();
+      else window.setTimeout(updateImage, 150);
     });
   }
 }
@@ -120,10 +132,10 @@ if ("IntersectionObserver" in window && !reducedMotion.matches) {
       entry.target.classList.add("is-visible");
       observer.unobserve(entry.target);
     }
-  }, { rootMargin: "0px 0px -7%", threshold: 0.07 });
-  for (const item of revealItems) observer.observe(item);
+  }, { rootMargin: "0px 0px -8%", threshold: 0.08 });
+  revealItems.forEach((item) => observer.observe(item));
 } else {
-  for (const item of revealItems) item.classList.add("is-visible");
+  revealItems.forEach((item) => item.classList.add("is-visible"));
 }
 
 for (const year of document.querySelectorAll("[data-year]")) year.textContent = String(new Date().getFullYear());
