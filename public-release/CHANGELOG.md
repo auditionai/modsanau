@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-08-14
+
+- Thiết kế lại toàn bộ landing theo hướng creative workstation nền sáng, bố cục module và typography vừa phải.
+- Viết lại nội dung tiếng Việt theo giọng mô tả trực tiếp, không dùng khẩu hiệu phóng đại.
+- Thay hệ hiệu ứng neon/marquee bằng chiều sâu sản phẩm, ánh sáng con trỏ, hover theo ngữ cảnh và chuyển cảnh ngắn.
+- Giữ ảnh ứng dụng đúng tỷ lệ, tăng khoảng thở giữa tiêu đề, mô tả và các nhóm nội dung.
+
 ## 0.2.0 — 2026-08-14
 
 - Thiết kế lại 100% landing page theo concept immersive dark-tech full-screen.

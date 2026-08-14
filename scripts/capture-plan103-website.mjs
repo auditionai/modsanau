@@ -55,7 +55,7 @@ await new Promise((resolve, reject) => {
 try {
   for (const capture of [
     { name: "desktop-1440x1100.png", size: "1440,1100", target: "" },
-    { name: "features-1440x1100.png", size: "1440,1100", target: "tinh-nang" },
+    { name: "features-1440x1100.png", size: "1440,1100", target: "cong-cu" },
     { name: "gallery-1440x1100.png", size: "1440,1100", target: "giao-dien" },
     { name: "mobile-500x900.png", size: "500,900", target: "" }
   ]) {
