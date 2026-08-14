@@ -99,6 +99,8 @@ public sealed class Plan105AdminPortalContractTests
         Assert.Contains("TO authenticated", directMigration, StringComparison.Ordinal);
         Assert.Contains("AS metric_day", directMigration, StringComparison.Ordinal);
         Assert.DoesNotContain("::date day", directMigration, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'targetId', recent.target_id", directMigration, StringComparison.Ordinal);
+        Assert.Contains("'targetId',e.target_id", directMigration, StringComparison.Ordinal);
         Assert.DoesNotContain("service_role", configFunction, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("localStorage", script, StringComparison.Ordinal);
         Assert.DoesNotContain("data-api-base", index, StringComparison.OrdinalIgnoreCase);

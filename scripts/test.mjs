@@ -75,6 +75,7 @@ expect(/auth\.uid\(\)/.test(adminRpcMigration), "admin RPC must derive actor fro
 expect(/SECURITY DEFINER/.test(adminRpcMigration) && /REVOKE ALL[^;]+anon/s.test(adminRpcMigration), "admin RPC missing privilege boundary");
 expect(/codycn2804@gmail\.com/.test(adminRpcMigration), "admin RPC missing approved bootstrap owner");
 expect(/AS metric_day/.test(adminRpcMigration) && !/::date\s+day\b/.test(adminRpcMigration), "admin analytics uses a PostgreSQL-safe day alias");
+expect(/'targetId',\s*recent\.target_id/.test(adminRpcMigration) && /'targetId',e\.target_id/.test(adminRpcMigration), "admin audit target id must be alias-qualified");
 expect(!/service_role/i.test(adminConfigFunction), "Netlify config function must not expose privileged Supabase key");
 expect(/SUPABASE_URL/.test(adminConfigFunction) && /SUPABASE_PUBLISHABLE_KEY/.test(adminConfigFunction), "Netlify config function missing public Supabase variables");
 expect(/prefers-reduced-motion/.test(adminStyles), "admin/styles.css missing reduced-motion");

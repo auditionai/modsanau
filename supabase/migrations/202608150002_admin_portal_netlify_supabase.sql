@@ -103,10 +103,10 @@ BEGIN
     IF action = 'dashboard' THEN
         SELECT jsonb_build_object(
             'recentAudit', COALESCE(jsonb_agg(jsonb_build_object(
-                'eventId', event_id, 'actorAdminUserId', actor_admin_user_id,
-                'eventType', event_type, 'targetKind', target_kind, 'targetId', target_id,
-                'correlationId', correlation_id, 'details', details::text, 'eventAt', event_at)
-                ORDER BY event_at DESC),'[]'::jsonb)) INTO result
+                'eventId', recent.event_id, 'actorAdminUserId', recent.actor_admin_user_id,
+                'eventType', recent.event_type, 'targetKind', recent.target_kind, 'targetId', recent.target_id,
+                'correlationId', recent.correlation_id, 'details', recent.details::text, 'eventAt', recent.event_at)
+                ORDER BY recent.event_at DESC),'[]'::jsonb)) INTO result
         FROM (SELECT * FROM private.admin_audit_events ORDER BY event_at DESC LIMIT 8) recent;
         RETURN result;
     END IF;
@@ -284,9 +284,9 @@ BEGIN
 
     IF action = 'audit' THEN
         SELECT jsonb_build_object('items',COALESCE(jsonb_agg(jsonb_build_object(
-            'eventId',event_id,'actorAdminUserId',actor_admin_user_id,'eventType',event_type,'targetKind',target_kind,
-            'targetId',target_id,'correlationId',correlation_id,'details',details::text,'eventAt',event_at)
-            ORDER BY event_at DESC),'[]'::jsonb)) INTO result
+            'eventId',e.event_id,'actorAdminUserId',e.actor_admin_user_id,'eventType',e.event_type,'targetKind',e.target_kind,
+            'targetId',e.target_id,'correlationId',e.correlation_id,'details',e.details::text,'eventAt',e.event_at)
+            ORDER BY e.event_at DESC),'[]'::jsonb)) INTO result
         FROM (SELECT * FROM private.admin_audit_events ORDER BY event_at DESC LIMIT page_limit OFFSET page_offset) e;
         RETURN result;
     END IF;
