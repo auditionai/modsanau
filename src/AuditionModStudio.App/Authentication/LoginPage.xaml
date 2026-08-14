@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="AuditionModStudio.App.Authentication.LoginPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource AmsShellBackgroundBrush}"
+    Loaded="OnLoaded">
+    <Grid Padding="32">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="520" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+        <Border Grid.Column="1" Padding="44" VerticalAlignment="Center" Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsStrongBorderBrush}" BorderThickness="1" CornerRadius="20">
+            <StackPanel Spacing="20">
+                <Border Width="58" Height="58" HorizontalAlignment="Left" Background="{ThemeResource AmsButtonPrimaryBrush}" CornerRadius="15"><FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" FontSize="28" Glyph="&#xE77B;" /></Border>
+                <StackPanel Spacing="8"><TextBlock Foreground="{ThemeResource AmsFocusBrush}" FontSize="11" FontWeight="Bold" CharacterSpacing="160" Text="SECURE ACCESS" /><TextBlock AutomationProperties.HeadingLevel="Level1" FontSize="34" FontWeight="SemiBold" Text="Đăng nhập ứng dụng" /><TextBlock Foreground="{ThemeResource AmsTextSecondaryBrush}" TextWrapping="Wrap" Text="Đăng nhập bằng tài khoản đã đăng ký trên website. Thiết bị này sẽ được tạo mã và liên kết tự động với tài khoản của bạn." /></StackPanel>
+                <StackPanel Spacing="8"><TextBlock FontWeight="SemiBold" Text="Gmail" /><TextBox x:Name="EmailInput" AutomationProperties.Name="Gmail đăng nhập" InputScope="EmailNameOrAddress" PlaceholderText="tenban@gmail.com" /></StackPanel>
+                <StackPanel Spacing="8"><TextBlock FontWeight="SemiBold" Text="Mật khẩu" /><PasswordBox x:Name="PasswordInput" AutomationProperties.Name="Mật khẩu" PasswordRevealMode="Peek" PlaceholderText="Nhập mật khẩu" /></StackPanel>
+                <InfoBar x:Name="StatusBar" IsClosable="False" IsOpen="False" Severity="Error" />
+                <Button x:Name="SignInButton" MinHeight="48" AutomationProperties.Name="Đăng nhập và đăng ký thiết bị" Click="OnSignInClicked" Style="{StaticResource AmsPrimaryButtonStyle}" Content="Đăng nhập và tiếp tục" />
+                <ProgressRing x:Name="BusyIndicator" Width="26" Height="26" HorizontalAlignment="Center" IsActive="False" />
+                <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource AmsTextMutedBrush}" FontSize="12" Text="Chưa có tài khoản? Đăng ký tại modsanau.netlify.app" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

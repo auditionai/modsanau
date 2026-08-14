@@ -4,6 +4,7 @@ using AuditionModStudio.Core.AI;
 using AuditionModStudio.Core.Accounts;
 using AuditionModStudio.Core.Archives;
 using AuditionModStudio.Core.Auth;
+using AuditionModStudio.App.Authentication;
 using AuditionModStudio.Core.Catalog;
 using AuditionModStudio.Core.Assets;
 using AuditionModStudio.Core.Dds;
@@ -206,8 +207,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         });
         builder.Services.AddSingleton<IAuthenticationService>(services =>
         {
-            var url = Environment.GetEnvironmentVariable("AUDITION_SUPABASE_URL");
-            var publishableKey = Environment.GetEnvironmentVariable("AUDITION_SUPABASE_PUBLISHABLE_KEY");
+            var (url, publishableKey) = ProductionSupabaseConfiguration.Resolve();
             if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri)
                 || string.IsNullOrWhiteSpace(publishableKey))
             {
@@ -221,6 +221,20 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<ISecureSessionStore>(),
                     options)
                 : new UnavailableAuthenticationService();
+        });
+        builder.Services.AddSingleton<IDesktopAccessService>(services =>
+        {
+            var (url, publishableKey) = ProductionSupabaseConfiguration.Resolve();
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri) || string.IsNullOrWhiteSpace(publishableKey))
+                return new UnavailableDesktopAccessService();
+            var options = new SupabaseAuthOptions(projectUri, publishableKey);
+            return options.IsValid
+                ? new SupabaseDesktopAccessService(
+                    services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(),
+                    services.GetRequiredService<IDeviceSessionBindingStore>(),
+                    options)
+                : new UnavailableDesktopAccessService();
         });
         builder.Services.AddSingleton<IAiStudioService>(services =>
         {
@@ -330,6 +344,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddSingleton<AppShellViewModel>();
         builder.Services.AddTransient<MainPage>();
+        builder.Services.AddTransient<LoginPage>();
         builder.Services.AddSingleton<MainWindow>();
 
         _host = builder.Build();

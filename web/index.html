@@ -39,6 +39,7 @@
         <a href="#giao-dien">Giao diện</a>
         <a href="#bang-gia">Bảng giá</a>
         <a class="nav-status" href="#phat-hanh"><span></span>Trạng thái</a>
+        <button class="account-nav-button" type="button" data-auth-open>Tài khoản</button>
       </nav>
     </div>
   </header>
@@ -234,8 +235,15 @@
     <section id="phat-hanh" class="release" aria-labelledby="release-title">
       <div class="release-pattern" aria-hidden="true"></div>
       <div class="release-inner reveal">
-        <div><p class="section-kicker">Trạng thái hiện tại</p><h2 id="release-title">Bản public đang được chuẩn bị.</h2><p>Website này giới thiệu sản phẩm và giao diện thử nghiệm. File cài đặt chưa được phát hành công khai.</p></div>
-        <div class="release-card"><span><i></i>Đang hoàn thiện</span><dl><div><dt>Nền tảng</dt><dd>Windows x64</dd></div><div><dt>Hình thức</dt><dd>Portable</dd></div><div><dt>Tải xuống</dt><dd>Chưa mở</dd></div></dl></div>
+        <div><p class="section-kicker">Tài khoản ứng dụng</p><h2 id="release-title">Đăng ký một lần, sử dụng trên ứng dụng.</h2><p>Tạo tài khoản bằng Gmail, xác minh email rồi tải Audition AI Mod Studio. Khi mở ứng dụng, đăng nhập để máy được đăng ký tự động.</p></div>
+        <div class="release-card account-release-card">
+          <span data-release-state><i></i>Yêu cầu tài khoản</span>
+          <dl><div><dt>Nền tảng</dt><dd>Windows x64</dd></div><div><dt>Hình thức</dt><dd>Portable</dd></div><div><dt>Tài khoản</dt><dd data-account-state>Chưa đăng nhập</dd></div></dl>
+          <button class="button button-primary release-auth-button" type="button" data-auth-open>Đăng ký để tải ứng dụng</button>
+          <button class="button button-primary release-download-button" type="button" data-release-download hidden>Tải Audition AI Mod Studio</button>
+          <button class="release-signout-button" type="button" data-auth-signout hidden>Đăng xuất</button>
+          <p class="release-message" role="status" aria-live="polite" data-release-message></p>
+        </div>
       </div>
     </section>
 
@@ -295,6 +303,31 @@
       <div class="footer-bottom"><span>© <span data-year>2026</span> Audition AI</span><span class="footer-signal"><i></i>SECURE LOCAL PIPELINE</span><button type="button" data-window="status">Xem trạng thái <b>↗</b></button></div>
     </div>
   </footer>
+
+  <dialog class="auth-dialog" data-auth-dialog aria-labelledby="auth-dialog-title">
+    <div class="auth-frame">
+      <header><div class="brand"><span class="brand-icon"><img src="/assets/brand/brand-mark.svg" width="34" height="34" alt=""></span><span><strong>Audition AI</strong><small>TÀI KHOẢN ỨNG DỤNG</small></span></div><button type="button" data-auth-close aria-label="Đóng">×</button></header>
+      <div class="auth-layout">
+        <aside><p>SECURE ACCESS</p><h2 id="auth-dialog-title">Bắt đầu với Mod Studio.</h2><ul><li>Xác minh Gmail trước khi tải</li><li>Mật khẩu do Supabase Auth bảo vệ</li><li>Máy được đăng ký khi đăng nhập ứng dụng</li></ul></aside>
+        <section>
+          <div class="auth-tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-auth-tab="signup">Đăng ký</button><button type="button" role="tab" aria-selected="false" data-auth-tab="signin">Đăng nhập</button></div>
+          <form data-signup-form novalidate>
+            <label>Tên người dùng<input name="displayName" autocomplete="name" minlength="2" maxlength="128" required placeholder="Tên hiển thị"></label>
+            <label>Gmail<input name="email" type="email" autocomplete="email" required placeholder="tenban@gmail.com"></label>
+            <label>Mật khẩu<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+            <label>Xác nhận mật khẩu<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+            <button class="button button-primary" type="submit">Tạo tài khoản</button>
+          </form>
+          <form data-signin-form novalidate hidden>
+            <label>Gmail<input name="email" type="email" autocomplete="username" required placeholder="tenban@gmail.com"></label>
+            <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label>
+            <button class="button button-primary" type="submit">Đăng nhập</button>
+          </form>
+          <p class="auth-feedback" role="alert" aria-live="polite" data-auth-feedback></p>
+        </section>
+      </div>
+    </div>
+  </dialog>
 
   <dialog class="app-dialog" data-app-dialog aria-labelledby="dialog-title" aria-describedby="dialog-description">
     <div class="dialog-frame">
