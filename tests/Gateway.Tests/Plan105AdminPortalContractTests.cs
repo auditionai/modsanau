@@ -65,7 +65,7 @@ public sealed class Plan105AdminPortalContractTests
     }
 
     [Fact]
-    public void Admin_static_portal_is_noindex_csp_guarded_and_gateway_wired()
+    public void Admin_static_portal_is_noindex_csp_guarded_and_supabase_wired()
     {
         var root = FindRepositoryRoot();
         var adminRoot = Path.Combine(root, "admin-release");
@@ -73,6 +73,9 @@ public sealed class Plan105AdminPortalContractTests
         var script = File.ReadAllText(Path.Combine(adminRoot, "web", "script.js"));
         var headers = File.ReadAllText(Path.Combine(adminRoot, "web", "_headers"));
         var manifest = File.ReadAllText(Path.Combine(adminRoot, "public-allowlist.json"));
+        var directMigration = File.ReadAllText(Path.Combine(root, "supabase", "migrations",
+            "202608150002_admin_portal_netlify_supabase.sql"));
+        var configFunction = File.ReadAllText(Path.Combine(root, "netlify", "functions", "admin-config.mjs"));
 
         Assert.Contains("noindex", index, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Content-Security-Policy:", headers, StringComparison.Ordinal);
@@ -87,7 +90,14 @@ public sealed class Plan105AdminPortalContractTests
         Assert.Contains("/v1/admin/gift-codes", script, StringComparison.Ordinal);
         Assert.Contains("/v1/admin/audit", script, StringComparison.Ordinal);
         Assert.Contains("AbortController", script, StringComparison.Ordinal);
-        Assert.Contains("X-CSRF-Token", script, StringComparison.Ordinal);
+        Assert.Contains("admin_portal_api", script, StringComparison.Ordinal);
+        Assert.Contains("grant_type=password", script, StringComparison.Ordinal);
+        Assert.Contains("Authorization", script, StringComparison.Ordinal);
+        Assert.Contains("auth.uid()", directMigration, StringComparison.Ordinal);
+        Assert.Contains("SECURITY DEFINER", directMigration, StringComparison.Ordinal);
+        Assert.Contains("REVOKE ALL ON FUNCTION", directMigration, StringComparison.Ordinal);
+        Assert.Contains("TO authenticated", directMigration, StringComparison.Ordinal);
+        Assert.DoesNotContain("service_role", configFunction, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("localStorage", script, StringComparison.Ordinal);
         Assert.DoesNotContain("data-api-base", index, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"policy\": \"deny-by-default\"", manifest, StringComparison.Ordinal);

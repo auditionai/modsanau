@@ -30,6 +30,7 @@
     "docs/DEPLOYMENT.md",
     "docs/RELEASE_STATUS.json",
     "netlify.toml",
+    "netlify/functions/admin-config.mjs",
     "package-lock.json",
     "package.json",
     "public-allowlist.json",

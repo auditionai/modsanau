@@ -1,5 +1,9 @@
 # Báo cáo BUILD — Admin Portal V2
 
+> Cập nhật 2026-08-15: triển khai production đã được đơn giản hóa sang Netlify + Supabase trực tiếp. Gateway/reverse proxy
+> bên dưới là bằng chứng lịch sử của bản đầu và không còn là yêu cầu cho Admin Portal. Xem
+> `docs/ADMIN_PORTAL_NETLIFY_SUPABASE.md`.
+
 ## Đã build
 
 - Login BFF email/mật khẩu, cookie admin và CSRF.

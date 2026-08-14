@@ -1,5 +1,8 @@
 # Bảo mật Admin Portal V2
 
+> Kiến trúc deploy hiện hành đã chuyển sang Netlify + Supabase Auth/Data API theo
+> `ADMIN_PORTAL_NETLIFY_SUPABASE.md`. Nội dung Gateway trong tài liệu này mô tả implementation V2 ban đầu.
+
 ## Session và xác thực
 
 - Portal không nhận Gateway URL hoặc bearer token từ người vận hành.

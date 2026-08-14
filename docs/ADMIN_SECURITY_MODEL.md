@@ -1,5 +1,8 @@
 # Mô hình bảo mật Admin Portal
 
+> Cập nhật triển khai: Admin Portal trên Netlify gọi Supabase Auth và RPC bảo mật trực tiếp; không cần host Gateway
+> riêng. Boundary hiện hành được mô tả tại `ADMIN_PORTAL_NETLIFY_SUPABASE.md`.
+
 Admin Portal là bề mặt vận hành tin cậy nhưng không phải security boundary tự thân. Boundary thật nằm ở Gateway, Supabase RLS và bảng/function trong schema `private`.
 
 ## Quyền truy cập
