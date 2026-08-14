@@ -6,6 +6,90 @@ const root = document.documentElement;
 const menuButton = document.querySelector("[data-menu-button]");
 const navigation = document.querySelector("[data-nav]");
 
+const starfield = document.querySelector("[data-starfield]");
+if (starfield instanceof HTMLCanvasElement && !reducedMotion.matches) {
+  const context = starfield.getContext("2d", { alpha: false });
+  const stars = [];
+  let width = 0;
+  let height = 0;
+  let density = 0;
+  let starFrame = 0;
+  let lastTime = performance.now();
+
+  function createStar(initial = false) {
+    return {
+      x: Math.random() * width,
+      y: initial ? Math.random() * height : height + 10,
+      size: Math.random() * 1.45 + 0.25,
+      speed: Math.random() * 12 + 5,
+      drift: (Math.random() - 0.5) * 4,
+      alpha: Math.random() * 0.65 + 0.25,
+      hue: Math.random() > 0.78 ? (Math.random() > 0.5 ? 190 : 268) : 225
+    };
+  }
+
+  function resizeStars() {
+    const ratio = Math.min(window.devicePixelRatio || 1, 1.75);
+    width = window.innerWidth;
+    height = window.innerHeight;
+    starfield.width = Math.round(width * ratio);
+    starfield.height = Math.round(height * ratio);
+    starfield.style.width = `${width}px`;
+    starfield.style.height = `${height}px`;
+    context?.setTransform(ratio, 0, 0, ratio, 0, 0);
+    density = Math.min(150, Math.max(70, Math.round((width * height) / 10500)));
+    while (stars.length < density) stars.push(createStar(true));
+    stars.length = density;
+  }
+
+  function drawStars(time) {
+    if (!context) return;
+    const delta = Math.min(32, time - lastTime) / 1000;
+    lastTime = time;
+    context.fillStyle = "#060713";
+    context.fillRect(0, 0, width, height);
+    const glow = context.createRadialGradient(width * 0.56, height * 0.05, 0, width * 0.56, height * 0.05, width * 0.8);
+    glow.addColorStop(0, "rgba(37,42,104,.25)");
+    glow.addColorStop(0.55, "rgba(13,15,40,.12)");
+    glow.addColorStop(1, "rgba(6,7,19,0)");
+    context.fillStyle = glow;
+    context.fillRect(0, 0, width, height);
+
+    for (let index = 0; index < stars.length; index += 1) {
+      const star = stars[index];
+      star.y -= star.speed * delta;
+      star.x += star.drift * delta;
+      if (star.y < -12 || star.x < -12 || star.x > width + 12) stars[index] = createStar(false);
+      const pulse = 0.72 + Math.sin(time * 0.0015 + index) * 0.28;
+      context.beginPath();
+      context.fillStyle = `hsla(${star.hue}, 100%, 88%, ${star.alpha * pulse})`;
+      context.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+      context.fill();
+      if (star.size > 1.35) {
+        context.strokeStyle = `hsla(${star.hue}, 100%, 84%, ${star.alpha * 0.25})`;
+        context.beginPath();
+        context.moveTo(star.x - 5, star.y);
+        context.lineTo(star.x + 5, star.y);
+        context.moveTo(star.x, star.y - 5);
+        context.lineTo(star.x, star.y + 5);
+        context.stroke();
+      }
+    }
+    starFrame = requestAnimationFrame(drawStars);
+  }
+
+  resizeStars();
+  starFrame = requestAnimationFrame(drawStars);
+  window.addEventListener("resize", resizeStars, { passive: true });
+  document.addEventListener("visibilitychange", () => {
+    cancelAnimationFrame(starFrame);
+    if (!document.hidden) {
+      lastTime = performance.now();
+      starFrame = requestAnimationFrame(drawStars);
+    }
+  });
+}
+
 function closeMenu(restoreFocus = false) {
   if (!menuButton || !navigation) return;
   menuButton.setAttribute("aria-expanded", "false");
