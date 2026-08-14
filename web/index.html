@@ -1,269 +1,265 @@
 <!doctype html>
-<html lang="vi" data-theme="light">
+<html lang="vi" data-theme="night">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f8fc">
-  <meta name="description" content="Audition AI Mod Studio là ứng dụng Windows portable để chỉnh sửa texture, kiểm tra DDS và build archive Audition theo quy trình file-only an toàn.">
+  <meta name="theme-color" content="#070712">
+  <meta name="description" content="Audition AI Mod Studio là studio Windows portable để chỉnh texture, khớp DDS và build archive Audition theo quy trình file-only an toàn.">
   <meta name="robots" content="index,follow,max-image-preview:large">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="vi_VN">
-  <meta property="og:title" content="Audition AI Mod Studio — Studio texture file-only cho Windows">
-  <meta property="og:description" content="Chỉnh sửa hình ảnh, khớp thông số DDS, kiểm tra và xuất archive .ab/.acv độc lập—không cài mod vào game.">
+  <meta property="og:title" content="Audition AI Mod Studio — Biến ý tưởng thành texture">
+  <meta property="og:description" content="Chỉnh ảnh, khớp DDS, kiểm tra và xuất archive .ab/.acv độc lập trong một creative studio tiếng Việt.">
   <meta property="og:url" content="https://modsanau.netlify.app/">
-  <meta property="og:image" content="https://modsanau.netlify.app/assets/screenshots/home-light.png">
+  <meta property="og:image" content="https://modsanau.netlify.app/assets/screenshots/home-dark.png">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="canonical" href="https://modsanau.netlify.app/">
   <link rel="icon" type="image/svg+xml" href="/assets/brand/brand-mark.svg">
   <link rel="stylesheet" href="/styles.css">
-  <title>Audition AI Mod Studio — Studio texture file-only</title>
+  <title>Audition AI Mod Studio — Creative texture studio</title>
 </head>
 <body>
   <a class="skip-link" href="#noi-dung">Bỏ qua điều hướng</a>
 
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient-grid"></div>
+    <div class="ambient-orb ambient-orb-a"></div>
+    <div class="ambient-orb ambient-orb-b"></div>
+    <div class="ambient-orb ambient-orb-c"></div>
+    <div class="pointer-light"></div>
+  </div>
+
   <header class="site-header" data-header>
-    <div class="container header-inner">
+    <div class="header-shell">
       <a class="brand" href="#dau-trang" aria-label="Audition AI Mod Studio — về đầu trang">
-        <img src="/assets/brand/brand-mark.svg" width="40" height="40" alt="" aria-hidden="true">
-        <span>
-          <strong>Audition AI</strong>
-          <small>Mod Studio</small>
-        </span>
+        <span class="brand-mark"><img src="/assets/brand/brand-mark.svg" width="42" height="42" alt="" aria-hidden="true"></span>
+        <span class="brand-copy"><strong>Audition AI</strong><small>MOD STUDIO / 015</small></span>
       </a>
 
       <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav" data-menu-button>
         <span class="sr-only">Mở điều hướng</span>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <span></span><span></span>
       </button>
 
       <nav id="site-nav" class="site-nav" aria-label="Điều hướng chính" data-nav>
-        <a href="#quy-trinh">Quy trình</a>
-        <a href="#tinh-nang">Tính năng</a>
-        <a href="#giao-dien">Giao diện</a>
-        <a href="#an-toan">An toàn</a>
-        <a class="nav-cta" href="#phat-hanh">Trạng thái phát hành</a>
+        <a href="#quy-trinh"><span>01</span>Quy trình</a>
+        <a href="#tinh-nang"><span>02</span>Tính năng</a>
+        <a href="#giao-dien"><span>03</span>Giao diện</a>
+        <a href="#an-toan"><span>04</span>An toàn</a>
+        <a class="nav-cta magnetic" href="#phat-hanh"><i></i>Trạng thái bản public</a>
       </nav>
     </div>
   </header>
 
   <main id="noi-dung">
-    <section id="dau-trang" class="hero section-pad" aria-labelledby="hero-title">
-      <div class="hero-glow hero-glow-one" aria-hidden="true"></div>
-      <div class="hero-glow hero-glow-two" aria-hidden="true"></div>
-      <div class="container hero-grid">
-        <div class="hero-copy reveal">
-          <p class="eyebrow"><span></span> Portable · Windows x64 · File-only</p>
-          <h1 id="hero-title">Biến ý tưởng thành texture Audition—<em>trong một quy trình có kiểm soát.</em></h1>
-          <p class="hero-lead">Một studio desktop tiếng Việt để chỉnh ảnh, khớp thông số DDS gốc, kiểm tra và build archive độc lập. Không dò thư mục game. Không tự cài mod. Không cần quyền quản trị.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#quy-trinh">
-              Khám phá quy trình
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-            </a>
-            <a class="button button-secondary" href="#giao-dien">Xem giao diện thật</a>
+    <section id="dau-trang" class="hero" aria-labelledby="hero-title">
+      <div class="hero-noise" aria-hidden="true"></div>
+      <div class="hero-shell">
+        <div class="hero-copy">
+          <div class="hero-kicker reveal">
+            <span class="live-dot"></span>
+            <span>Creative desktop studio</span>
+            <b>Windows x64</b>
           </div>
-          <dl class="hero-facts" aria-label="Thông tin sản phẩm">
-            <div><dt>Định dạng đầu ra</dt><dd>.ab / .acv</dd></div>
-            <div><dt>Kiểu phân phối</dt><dd>Portable ZIP</dd></div>
-            <div><dt>Ngôn ngữ</dt><dd>Tiếng Việt</dd></div>
-          </dl>
+          <h1 id="hero-title" class="hero-title reveal">
+            <span class="title-line">Biến ý tưởng</span>
+            <span class="title-line title-outline">thành texture</span>
+            <span class="title-line gradient-text">không giới hạn.</span>
+          </h1>
+          <div class="hero-bottom reveal">
+            <p>Chỉnh ảnh, giữ đúng metadata DDS và build archive độc lập—trong một studio tiếng Việt không chạm vào cài đặt game.</p>
+            <div class="hero-actions">
+              <a class="button button-primary magnetic" href="#giao-dien"><span>Xem sản phẩm thật</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12h14M13 6l6 6-6 6"/></svg></a>
+              <a class="button button-ghost" href="#quy-trinh"><span>Khám phá workflow</span></a>
+            </div>
+          </div>
         </div>
 
-        <figure class="product-window reveal reveal-delay">
-          <div class="window-bar" aria-hidden="true">
-            <span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span>
-            <span class="window-label">Audition AI Mod Studio</span>
-            <span class="window-badge">PORTABLE · x64</span>
-          </div>
-          <img src="/assets/screenshots/home-light.png" width="1920" height="1080" alt="Màn hình Trang chủ thực tế của Audition AI Mod Studio ở giao diện Creative Daylight" fetchpriority="high">
-          <figcaption>Ảnh chụp ứng dụng WinUI thật · Creative Daylight</figcaption>
-        </figure>
+        <div class="hero-product-wrap reveal reveal-delay" data-tilt data-tilt-strength="5">
+          <div class="orbit orbit-one" aria-hidden="true"></div>
+          <div class="orbit orbit-two" aria-hidden="true"></div>
+          <div class="float-chip chip-a" aria-hidden="true"><span></span>FILE-ONLY</div>
+          <div class="float-chip chip-b" aria-hidden="true"><span></span>DDS VERIFIED</div>
+          <div class="float-chip chip-c" aria-hidden="true"><span></span>LOCAL-FIRST</div>
+          <figure class="product-frame">
+            <div class="product-glow" aria-hidden="true"></div>
+            <div class="product-bar" aria-hidden="true">
+              <span class="traffic"><i></i><i></i><i></i></span>
+              <span>AUDITION AI MOD STUDIO</span>
+              <b>PORTABLE / x64</b>
+            </div>
+            <div class="product-screen">
+              <img src="/assets/screenshots/home-dark.png" width="1920" height="1080" alt="Toàn bộ màn hình Trang chủ Studio Night thực tế của Audition AI Mod Studio" fetchpriority="high">
+              <div class="screen-scan" aria-hidden="true"></div>
+            </div>
+            <figcaption><span>ACTUAL WINUI BUILD</span><span>1920 × 1080</span></figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <div class="hero-rail" aria-label="Thông tin sản phẩm">
+        <div><span>OUTPUT</span><strong>.ab / .acv</strong></div>
+        <div><span>ENGINE</span><strong>FILE-ONLY</strong></div>
+        <div><span>MODE</span><strong>LOCAL-FIRST</strong></div>
+        <div><span>LANGUAGE</span><strong>TIẾNG VIỆT</strong></div>
+        <a href="#quy-trinh" aria-label="Cuộn đến quy trình"><span>SCROLL TO EXPLORE</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M6 14l6 6 6-6"/></svg></a>
       </div>
     </section>
 
-    <section class="proof-bar" aria-label="Cam kết cốt lõi">
-      <div class="container proof-grid">
-        <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.7 2.8 8 7 10 4.2-2 7-5.3 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg><span><strong>Local-first</strong>Dự án vẫn hoạt động khi offline</span></div>
-        <div><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h10M7 13h6"/></svg><span><strong>File-only</strong>Kết thúc ở archive độc lập</span></div>
-        <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v20M5 7h10a4 4 0 0 1 0 8H9"/></svg><span><strong>Không installer</strong>Giải nén ZIP và chạy</span></div>
-        <div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/></svg><span><strong>Updater an toàn</strong>Verify, stage và rollback</span></div>
+    <section class="marquee" aria-label="Khả năng chính">
+      <div class="marquee-track" aria-hidden="true">
+        <span>IMAGE EDITOR <i>✦</i> MATCH ORIGINAL DDS <i>✦</i> BUILD ARCHIVE <i>✦</i> BEFORE / AFTER <i>✦</i> PORTABLE UPDATE <i>✦</i></span>
+        <span>IMAGE EDITOR <i>✦</i> MATCH ORIGINAL DDS <i>✦</i> BUILD ARCHIVE <i>✦</i> BEFORE / AFTER <i>✦</i> PORTABLE UPDATE <i>✦</i></span>
       </div>
     </section>
 
-    <section id="quy-trinh" class="section-pad workflow" aria-labelledby="workflow-title">
-      <div class="container">
-        <div class="section-heading reveal">
-          <p class="eyebrow"><span></span> Từ archive đến đầu ra</p>
-          <h2 id="workflow-title">Một đường đi rõ ràng, không có bước “bí mật”.</h2>
-          <p>Mỗi bước đều giữ nguyên nguồn gốc, làm việc trên bản sao cô lập và chỉ promote kết quả sau khi kiểm tra đạt.</p>
+    <section id="quy-trinh" class="chapter workflow" aria-labelledby="workflow-title">
+      <div class="chapter-index" aria-hidden="true">01</div>
+      <div class="section-shell">
+        <div class="section-intro reveal">
+          <p class="section-label"><span></span>WORKFLOW RÕ RÀNG</p>
+          <h2 id="workflow-title">Từ archive gốc đến bản build—<em>qua bốn lớp kiểm soát.</em></h2>
+          <p class="section-lead">Không có bước ngầm. Không sửa pristine template. Mỗi thay đổi đều đi qua working copy, validation và atomic export.</p>
         </div>
 
-        <ol class="workflow-list">
-          <li class="reveal">
-            <span class="step-number">01</span>
-            <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h5l2 2h9v10H4V7Z"/></svg></div>
-            <div><h3>Tạo hoặc mở dự án</h3><p>Archive/template gốc được xem là read-only. Studio tạo working copy riêng cho từng dự án.</p></div>
+        <ol class="workflow-grid">
+          <li class="workflow-card reveal tilt-card" data-tilt data-tilt-strength="3">
+            <div class="card-light" aria-hidden="true"></div><span class="step">01 / INGEST</span>
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M6 13h14l5 5h17v23H6V13Z"/><path d="M12 7h15l5 5"/></svg>
+            <h3>Tạo working copy</h3><p>Archive/template nguồn chỉ đọc. Mỗi dự án có workspace cô lập và identity chính xác.</p>
           </li>
-          <li class="reveal">
-            <span class="step-number">02</span>
-            <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.5-1 10-10-3.5-3.5-10 10L4 20Z"/><path d="m13.5 6.5 3.5 3.5"/></svg></div>
-            <div><h3>Chỉnh ảnh có xem trước</h3><p>Cắt, đổi kích thước, điều chỉnh và so sánh trước/sau trong một editor không phá hủy nguồn.</p></div>
+          <li class="workflow-card reveal tilt-card" data-tilt data-tilt-strength="3">
+            <div class="card-light" aria-hidden="true"></div><span class="step">02 / CREATE</span>
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="m7 40 8-2 23-23-6-6L9 32l-2 8Z"/><path d="m27 14 7 7"/></svg>
+            <h3>Chỉnh sửa trực quan</h3><p>Crop, resize, canvas, alpha, adjustment và Before/After trong một editor có trạng thái rõ ràng.</p>
           </li>
-          <li class="reveal">
-            <span class="step-number">03</span>
-            <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="m8 13 2.5 2.5L16 9"/></svg></div>
-            <div><h3>Khớp DDS và xác minh</h3><p>Giữ đúng kích thước, format, mip và cấu trúc của texture đích; candidate sai bị chặn trước Apply.</p></div>
+          <li class="workflow-card reveal tilt-card" data-tilt data-tilt-strength="3">
+            <div class="card-light" aria-hidden="true"></div><span class="step">03 / VERIFY</span>
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 8h32v32H8z"/><path d="m15 25 6 6 13-15"/></svg>
+            <h3>Match & validate DDS</h3><p>Candidate phải khớp dimension, format, mip và cấu trúc texture đích trước khi Apply.</p>
           </li>
-          <li class="reveal">
-            <span class="step-number">04</span>
-            <div class="step-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></div>
-            <div><h3>Build và xuất archive</h3><p>Validate, pack, verify rồi atomic-export một file <code>.ab</code> hoặc <code>.acv</code> độc lập.</p></div>
+          <li class="workflow-card reveal tilt-card" data-tilt data-tilt-strength="3">
+            <div class="card-light" aria-hidden="true"></div><span class="step">04 / EXPORT</span>
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6v25M14 21l10 10 10-10"/><path d="M8 41h32"/></svg>
+            <h3>Build archive độc lập</h3><p>Pack, re-verify và atomic-export một file <code>.ab</code> hoặc <code>.acv</code> standalone.</p>
           </li>
         </ol>
       </div>
     </section>
 
-    <section id="tinh-nang" class="section-pad features" aria-labelledby="features-title">
-      <div class="container">
-        <div class="section-heading section-heading-row reveal">
-          <div><p class="eyebrow"><span></span> Bộ công cụ sáng tạo</p><h2 id="features-title">Đủ sâu cho texture. Đủ rõ cho người mới.</h2></div>
-          <p>Chi tiết kỹ thuật nằm trong engine; giao diện chỉ đưa ra quyết định mà người dùng thực sự cần.</p>
+    <section id="tinh-nang" class="chapter feature-world" aria-labelledby="features-title">
+      <div class="chapter-index" aria-hidden="true">02</div>
+      <div class="section-shell">
+        <div class="section-intro reveal">
+          <p class="section-label"><span></span>CREATIVE ENGINE</p>
+          <h2 id="features-title">Nhiều sức mạnh hơn.<br><em>Ít mơ hồ hơn.</em></h2>
         </div>
 
-        <div class="bento-grid">
-          <article class="feature-card feature-card-wide reveal">
-            <div class="feature-copy">
-              <span class="feature-tag">Image workspace</span>
-              <h3>Editor tập trung vào đúng texture đang làm.</h3>
-              <p>Cắt, resize, canvas, alpha, điều chỉnh ảnh và lịch sử undo/redo trong một không gian làm việc có trạng thái rõ ràng.</p>
-              <ul class="check-list"><li>Preview trước khi Apply</li><li>Match Original DDS</li><li>Before / After</li></ul>
-            </div>
-            <div class="mini-editor" aria-hidden="true">
-              <div class="mini-toolbar"><i></i><i></i><i></i></div>
-              <div class="mini-canvas"><span></span><b>6000 × 1801</b></div>
-              <div class="mini-panel"><span></span><span></span><span></span></div>
-            </div>
+        <div class="feature-panels">
+          <article class="feature-panel panel-violet reveal" data-tilt data-tilt-strength="2">
+            <div class="panel-number">01</div>
+            <div class="panel-copy"><span>IMAGE WORKSPACE</span><h3>Một canvas tập trung cho texture.</h3><p>Editor đặt ảnh, công cụ và thông số đích trong cùng một tầm nhìn.</p><ul><li>Undo / Redo</li><li>Before / After</li><li>Match Original</li></ul></div>
+            <div class="editor-visual" aria-hidden="true"><div class="editor-top"><i></i><i></i><i></i></div><div class="editor-canvas"><span></span><b>6000 × 1801</b></div><div class="editor-tools"><i></i><i></i><i></i><i></i></div></div>
           </article>
 
-          <article class="feature-card reveal">
-            <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"/><path d="m7 15 3-3 2 2 3-4 2 5"/></svg></div>
-            <h3>Metadata thật, không suy đoán</h3>
-            <p>Studio đọc header DDS và dùng chính metadata đích làm nguồn cho encode/validation.</p>
+          <article class="feature-panel panel-cyan reveal" data-tilt data-tilt-strength="2">
+            <div class="panel-number">02</div>
+            <div class="panel-copy"><span>REAL METADATA</span><h3>Đọc DDS thật. Không đoán.</h3><p>Header đích là nguồn dữ liệu cho encode và validation.</p></div>
+            <div class="metadata-visual" aria-hidden="true"><div><span>FORMAT</span><strong>DXT5 / BC3</strong></div><div><span>SIZE</span><strong>6000 × 1801</strong></div><div><span>MIPS</span><strong>01</strong></div><div><span>ALPHA</span><strong>FULL</strong></div></div>
           </article>
 
-          <article class="feature-card feature-card-dark reveal">
-            <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></div>
-            <h3>Nhật ký tác vụ có cấu trúc</h3>
-            <p>Theo dõi tiến độ, retry và lỗi phục hồi mà không ghi secret hay nội dung dự án vào log.</p>
-            <div class="log-lines" aria-hidden="true"><span></span><span></span><span></span></div>
+          <article class="feature-panel panel-orange reveal" data-tilt data-tilt-strength="2">
+            <div class="panel-number">03</div>
+            <div class="panel-copy"><span>BACKGROUND TASKS</span><h3>Tiến độ nhìn thấy. Lỗi không bị nuốt.</h3><p>Tác vụ dài có progress, cancellation, retry và activity log có cấu trúc.</p></div>
+            <div class="task-visual" aria-hidden="true"><div class="task-ring"><span>78%</span></div><div class="task-lines"><i></i><i></i><i></i><i></i></div></div>
           </article>
 
-          <article class="feature-card reveal">
-            <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 12h10M12 7v10"/><circle cx="12" cy="12" r="9"/></svg></div>
-            <h3>NPOT là bình thường</h3>
-            <p>Không ép power-of-two. Kích thước như 6000 × 1801 được giữ đúng khi texture yêu cầu.</p>
-          </article>
-
-          <article class="feature-card feature-card-accent reveal">
-            <div class="feature-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.7 2.8 8 7 10 4.2-2 7-5.3 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg></div>
-            <h3>Fail closed tại ranh giới</h3>
-            <p>Path traversal, tool/package tamper và output sai inventory đều bị chặn trước khi có authority.</p>
+          <article class="feature-panel panel-lime reveal" data-tilt data-tilt-strength="2">
+            <div class="panel-number">04</div>
+            <div class="panel-copy"><span>SAFE BOUNDARY</span><h3>Fail closed trước mọi authority.</h3><p>Path traversal, package tamper và inventory sai đều bị chặn trước promote.</p></div>
+            <div class="shield-visual" aria-hidden="true"><svg viewBox="0 0 80 92"><path d="M40 5 72 18v24c0 22-13 37-32 45C21 79 8 64 8 42V18L40 5Z"/><path d="m25 45 10 10 21-25"/></svg><span></span><span></span></div>
           </article>
         </div>
       </div>
     </section>
 
-    <section id="giao-dien" class="section-pad gallery" aria-labelledby="gallery-title">
-      <div class="container">
-        <div class="section-heading section-heading-row reveal">
-          <div><p class="eyebrow"><span></span> Ảnh chụp WinUI thật</p><h2 id="gallery-title">Hai giao diện, cùng một nhịp làm việc.</h2></div>
-          <p>Không dùng mockup để thay thế trạng thái sản phẩm. Các ảnh dưới đây đến từ acceptance build thực tế.</p>
+    <section id="giao-dien" class="chapter showcase" aria-labelledby="gallery-title">
+      <div class="chapter-index" aria-hidden="true">03</div>
+      <div class="section-shell">
+        <div class="showcase-head reveal">
+          <div><p class="section-label"><span></span>ACTUAL PRODUCT / NO MOCKUP</p><h2 id="gallery-title">Giao diện thật.<br><em>Trọn từng pixel.</em></h2></div>
+          <p>Ảnh acceptance build được đặt nguyên tỉ lệ 16:9, không zoom, không crop, không dùng mockup che sản phẩm.</p>
         </div>
 
-        <div class="gallery-shell reveal" data-gallery>
-          <div class="gallery-stage">
-            <img data-gallery-image src="/assets/screenshots/home-light.png" width="1920" height="1080" alt="Trang chủ ở giao diện Creative Daylight">
+        <div class="gallery-shell reveal" data-gallery data-tilt data-tilt-strength="1.5">
+          <div class="gallery-aura" aria-hidden="true"></div>
+          <div class="gallery-frame">
+            <div class="gallery-top" aria-hidden="true"><span><i></i><i></i><i></i></span><b>AUDITION_AI_MOD_STUDIO.EXE</b><em>ACTUAL WINUI</em></div>
+            <div class="gallery-stage">
+              <img data-gallery-image src="/assets/screenshots/home-light.png" width="1920" height="1080" alt="Toàn bộ Trang chủ ở giao diện Creative Daylight">
+            </div>
           </div>
           <div class="gallery-meta" aria-live="polite" aria-atomic="true">
             <div><span data-gallery-label>Creative Daylight</span><p data-gallery-description>Trang chủ và luồng tạo dự án ba bước.</p></div>
-            <span class="actual-badge">ACTUAL WINUI</span>
+            <div class="gallery-counter"><span>VIEW</span><b data-gallery-count>01 / 04</b></div>
           </div>
           <div class="gallery-tabs" role="group" aria-label="Chọn ảnh giao diện">
-            <button type="button" aria-pressed="true" data-src="/assets/screenshots/home-light.png" data-alt="Trang chủ ở giao diện Creative Daylight" data-label="Creative Daylight" data-description="Trang chủ và luồng tạo dự án ba bước.">
-              <img src="/assets/screenshots/home-light.png" width="240" height="135" alt=""><span>Daylight</span>
-            </button>
-            <button type="button" aria-pressed="false" data-src="/assets/screenshots/home-dark.png" data-alt="Trang chủ ở giao diện Studio Night" data-label="Studio Night" data-description="Theme tối giữ nguyên độ rõ, phân cấp và trạng thái.">
-              <img src="/assets/screenshots/home-dark.png" width="240" height="135" alt=""><span>Studio Night</span>
-            </button>
-            <button type="button" aria-pressed="false" data-src="/assets/screenshots/image-editor.png" data-alt="Trình chỉnh sửa ảnh của Audition AI Mod Studio" data-label="Image Editor" data-description="Canvas trung tâm với điều khiển crop và kích thước ở cạnh phải.">
-              <img src="/assets/screenshots/image-editor.png" width="240" height="135" alt=""><span>Image Editor</span>
-            </button>
-            <button type="button" aria-pressed="false" data-src="/assets/screenshots/update-available.png" data-alt="Màn hình cập nhật portable bằng tiếng Việt" data-label="Portable Update" data-description="Thông báo cập nhật, release notes và handoff rõ ràng.">
-              <img src="/assets/screenshots/update-available.png" width="240" height="135" alt=""><span>Updater</span>
-            </button>
+            <button type="button" aria-pressed="true" data-src="/assets/screenshots/home-light.png" data-alt="Toàn bộ Trang chủ ở giao diện Creative Daylight" data-label="Creative Daylight" data-description="Trang chủ và luồng tạo dự án ba bước." data-count="01 / 04"><span class="thumb"><img src="/assets/screenshots/home-light.png" width="240" height="135" alt=""></span><span><b>01</b>DAYLIGHT</span></button>
+            <button type="button" aria-pressed="false" data-src="/assets/screenshots/home-dark.png" data-alt="Toàn bộ Trang chủ ở giao diện Studio Night" data-label="Studio Night" data-description="Theme tối giữ nguyên phân cấp, độ rõ và trạng thái." data-count="02 / 04"><span class="thumb"><img src="/assets/screenshots/home-dark.png" width="240" height="135" alt=""></span><span><b>02</b>STUDIO NIGHT</span></button>
+            <button type="button" aria-pressed="false" data-src="/assets/screenshots/image-editor.png" data-alt="Toàn bộ trình chỉnh sửa ảnh của Audition AI Mod Studio" data-label="Image Editor" data-description="Canvas trung tâm với crop, resize và điều khiển ảnh." data-count="03 / 04"><span class="thumb"><img src="/assets/screenshots/image-editor.png" width="240" height="135" alt=""></span><span><b>03</b>IMAGE EDITOR</span></button>
+            <button type="button" aria-pressed="false" data-src="/assets/screenshots/update-available.png" data-alt="Toàn bộ màn hình cập nhật portable bằng tiếng Việt" data-label="Portable Update" data-description="Release notes, kiểm tra và handoff cập nhật rõ ràng." data-count="04 / 04"><span class="thumb"><img src="/assets/screenshots/update-available.png" width="240" height="135" alt=""></span><span><b>04</b>UPDATER</span></button>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="an-toan" class="section-pad safety" aria-labelledby="safety-title">
-      <div class="container safety-grid">
-        <div class="section-heading reveal">
-          <p class="eyebrow eyebrow-light"><span></span> Ranh giới sản phẩm</p>
-          <h2 id="safety-title">Sáng tạo file mod, không điều khiển trò chơi.</h2>
-          <p>Studio cố ý dừng ở archive đã export. Cách này giữ workflow dễ kiểm tra và không mở rộng authority ngoài phạm vi cần thiết.</p>
-          <a class="text-link" href="#cau-hoi">Đọc câu hỏi thường gặp <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a>
+    <section id="an-toan" class="chapter boundary" aria-labelledby="safety-title">
+      <div class="chapter-index" aria-hidden="true">04</div>
+      <div class="boundary-glow" aria-hidden="true"></div>
+      <div class="section-shell boundary-grid">
+        <div class="section-intro reveal">
+          <p class="section-label"><span></span>PRODUCT BOUNDARY</p>
+          <h2 id="safety-title">Sáng tạo file mod.<br><em>Không điều khiển trò chơi.</em></h2>
+          <p class="section-lead">Studio cố ý dừng ở standalone archive. Rõ ràng hơn, an toàn hơn và không mở rộng authority ngoài nhu cầu.</p>
         </div>
-        <div class="boundary-list reveal reveal-delay">
-          <div><span>01</span><p><strong>Không dò cài đặt Audition</strong>Không đọc registry, launcher, game folder hoặc process.</p></div>
-          <div><span>02</span><p><strong>Không tự cài hay patch mod</strong>Người dùng nhận archive standalone và tự quyết định cách sử dụng.</p></div>
-          <div><span>03</span><p><strong>Không nhúng secret đặc quyền</strong>AI key, service-role, payment secret và signing private key không thuộc client/public web.</p></div>
-          <div><span>04</span><p><strong>Không hy sinh local workflow</strong>Cloud/update lỗi không khóa chỉnh sửa, validate, build hoặc export local.</p></div>
-        </div>
-      </div>
-    </section>
-
-    <section id="phat-hanh" class="section-pad release" aria-labelledby="release-title">
-      <div class="container release-card reveal">
-        <div class="release-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></div>
-        <div class="release-copy">
-          <p class="eyebrow"><span></span> Kênh phát hành công khai</p>
-          <h2 id="release-title">Bản tải xuống đang được chuẩn bị.</h2>
-          <p>Build nội bộ hiện tại chưa được phê duyệt để phát hành công khai. Trang này sẽ chỉ mở nút tải sau khi artifact, quyền phân phối và production signing hoàn tất kiểm tra.</p>
-        </div>
-        <div class="release-status" role="status">
-          <span class="status-dot"></span>
-          <div><small>Trạng thái</small><strong>Chưa mở public download</strong></div>
+        <div class="boundary-stack">
+          <article class="boundary-card reveal"><span>01</span><div><h3>Không dò cài đặt Audition</h3><p>Không đọc registry, launcher, game folder hoặc process.</p></div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></article>
+          <article class="boundary-card reveal"><span>02</span><div><h3>Không tự cài hoặc patch mod</h3><p>Đầu ra là archive độc lập; quyền sử dụng thuộc về người dùng.</p></div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></article>
+          <article class="boundary-card reveal"><span>03</span><div><h3>Không nhúng secret đặc quyền</h3><p>AI key, service-role và signing private key không thuộc client/web.</p></div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></article>
+          <article class="boundary-card reveal"><span>04</span><div><h3>Local workflow luôn độc lập</h3><p>Cloud/update lỗi không khóa editor, validate, build hoặc export.</p></div><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></article>
         </div>
       </div>
     </section>
 
-    <section id="cau-hoi" class="section-pad faq" aria-labelledby="faq-title">
-      <div class="container faq-grid">
-        <div class="section-heading reveal">
-          <p class="eyebrow"><span></span> Câu hỏi thường gặp</p>
-          <h2 id="faq-title">Nói rõ trước khi tải.</h2>
-          <p>Những giới hạn quan trọng được công khai cùng sản phẩm, không giấu trong ghi chú kỹ thuật.</p>
-        </div>
-        <div class="faq-list reveal reveal-delay">
-          <details><summary>Ứng dụng có tự cài mod vào Audition không?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><p>Không. Studio chỉ tạo và xuất archive <code>.ab</code>/<code>.acv</code> độc lập. Nó không tìm, backup, patch hoặc launch game.</p></details>
-          <details><summary>Có cần quyền Administrator không?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><p>Không. Ứng dụng và updater đều chạy <code>asInvoker</code>. Nếu folder portable không cho ghi, auto-update sẽ dừng an toàn thay vì yêu cầu nâng quyền.</p></details>
-          <details><summary>AI và tài khoản đã sẵn sàng production chưa?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><p>Chưa. UI và contract đã có, nhưng production feed, AI/payment deployment và live Supabase evidence chưa được công bố là VERIFIED.</p></details>
-          <details><summary>Khi nào có thể tải bản public?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary><p>Sau khi public artifact vượt qua license/provenance, secret scan, signing và release gate. Không dùng build internal làm public download.</p></details>
+    <section id="phat-hanh" class="release" aria-labelledby="release-title">
+      <div class="release-rays" aria-hidden="true"></div>
+      <div class="release-shell reveal">
+        <p class="section-label"><span></span>PUBLIC RELEASE STATUS</p>
+        <h2 id="release-title">Sắp mở một chương mới.</h2>
+        <p>Public download chỉ xuất hiện sau khi artifact, quyền phân phối và production signing hoàn tất release gate.</p>
+        <div class="release-state" role="status"><span class="state-pulse"></span><div><small>CHANNEL / PRE-PUBLIC</small><strong>ĐANG CHUẨN BỊ BẢN PHÁT HÀNH</strong></div></div>
+      </div>
+    </section>
+
+    <section id="cau-hoi" class="faq" aria-labelledby="faq-title">
+      <div class="section-shell faq-grid">
+        <div class="section-intro reveal"><p class="section-label"><span></span>FAQ / STRAIGHT ANSWERS</p><h2 id="faq-title">Câu hỏi rõ.<br><em>Trả lời thẳng.</em></h2></div>
+        <div class="faq-list reveal">
+          <details><summary><span>01</span>Ứng dụng có tự cài mod vào Audition không?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary><p>Không. Studio chỉ tạo và xuất archive <code>.ab</code>/<code>.acv</code> độc lập; không tìm, backup, patch hoặc launch game.</p></details>
+          <details><summary><span>02</span>Có cần quyền Administrator không?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary><p>Không. Ứng dụng và updater chạy <code>asInvoker</code>; operation không đủ quyền sẽ dừng an toàn.</p></details>
+          <details><summary><span>03</span>AI và tài khoản đã sẵn sàng production chưa?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary><p>Chưa. UI và contract đã có, nhưng production AI/payment/Supabase evidence chưa được công bố VERIFIED.</p></details>
+          <details><summary><span>04</span>Khi nào có thể tải bản public?<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></summary><p>Sau license/provenance, secret scan, signing và release gate. Build internal không tự động trở thành public download.</p></details>
         </div>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="container footer-grid">
-      <div class="brand footer-brand">
-        <img src="/assets/brand/brand-mark.svg" width="40" height="40" alt="" aria-hidden="true">
-        <span><strong>Audition AI</strong><small>Mod Studio</small></span>
-      </div>
-      <p>Studio texture portable, local-first cho Windows.</p>
-      <nav aria-label="Liên kết pháp lý"><a href="/privacy.html">Quyền riêng tư</a><a href="/terms.html">Điều khoản</a><a href="#phat-hanh">Phát hành</a></nav>
-      <p class="copyright">© <span data-year>2026</span> Audition AI Mod Studio. Sản phẩm độc lập, không đại diện cho nhà phát hành Audition.</p>
+    <div class="footer-shell">
+      <div class="brand footer-brand"><span class="brand-mark"><img src="/assets/brand/brand-mark.svg" width="42" height="42" alt="" aria-hidden="true"></span><span class="brand-copy"><strong>Audition AI</strong><small>MOD STUDIO / 015</small></span></div>
+      <p>Creative texture studio · Portable · Local-first · File-only</p>
+      <nav aria-label="Liên kết pháp lý"><a href="/privacy.html">Quyền riêng tư</a><a href="/terms.html">Điều khoản</a><a href="#dau-trang">Về đầu trang ↑</a></nav>
+      <small>© <span data-year>2026</span> Audition AI Mod Studio. Sản phẩm độc lập, không đại diện cho nhà phát hành Audition.</small>
     </div>
   </footer>
 
