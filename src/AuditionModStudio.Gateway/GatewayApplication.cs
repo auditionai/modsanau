@@ -23,10 +23,12 @@ public static class GatewayApplication
         var abuseProtectionOptions = GatewayAbuseProtectionOptions.FromConfiguration(configuration);
         var deviceSessionOptions = DeviceSessionOptions.FromConfiguration(configuration);
         var deviceEntitlementOptions = DeviceEntitlementOptions.FromConfiguration(configuration);
+        var adminPortalOptions = AdminPortalOptions.FromConfiguration(configuration);
         services.AddSingleton(options);
         services.AddSingleton(abuseProtectionOptions);
         services.AddSingleton(deviceSessionOptions);
         services.AddSingleton(deviceEntitlementOptions);
+        services.AddSingleton(adminPortalOptions);
         services.AddSingleton<GatewayIpRateLimiter>();
         services.AddGatewayRateLimiting(abuseProtectionOptions);
         services.AddSingleton<ISupabaseAuthClient, SupabaseAuthHttpClient>();
@@ -83,6 +85,10 @@ public static class GatewayApplication
             services.AddSingleton<ITrustedCreditQueryService>(provider =>
                 provider.GetRequiredService<PostgresCreditLedgerService>());
             services.AddSingleton<ITrustedAccountQueryService, PostgresAccountQueryService>();
+            services.AddSingleton<IAdminPortalService>(provider =>
+                adminPortalOptions.IsValid
+                    ? new PostgresAdminPortalService(provider.GetRequiredService<NpgsqlDataSource>(), adminPortalOptions)
+                    : new UnavailableAdminPortalService());
             services.AddSingleton<PostgresAiJobService>();
             services.AddSingleton<IAiJobService>(provider =>
                 provider.GetRequiredService<PostgresAiJobService>());
@@ -111,6 +117,7 @@ public static class GatewayApplication
             services.AddSingleton<IPaymentFulfillmentService, UnavailablePaymentFulfillmentService>();
             services.AddSingleton<IDeviceSessionService, UnavailableDeviceSessionService>();
             services.AddSingleton<ITrustedDeviceEntitlementService, UnavailableTrustedDeviceEntitlementService>();
+            services.AddSingleton<IAdminPortalService, UnavailableAdminPortalService>();
         }
         services.AddSingleton<IAiJobExecutionService, AiJobExecutionService>();
         services.AddHostedService<AiJobWorker>();
@@ -165,6 +172,7 @@ public static class GatewayApplication
         app.MapGet("/health", () => Results.Ok(new { status = "healthy" })).AllowAnonymous();
         app.MapDeviceSessionEndpoints();
         app.MapDeviceEntitlementEndpoints();
+        app.MapAdminPortalEndpoints();
         app.MapTrustedGatewayEndpoints();
         app.MapPaymentWebhookEndpoints();
     }

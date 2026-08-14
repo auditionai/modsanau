@@ -169,6 +169,7 @@ public sealed class CreditLedgerContractTests
             .ToArray();
 
         Assert.DoesNotContain(endpointNamespaceTypes, type =>
+            !type.Name.StartsWith("Admin", StringComparison.Ordinal) &&
             type.Name.Contains("Credit", StringComparison.Ordinal)
             && type.Name.EndsWith("Request", StringComparison.Ordinal));
         Assert.DoesNotContain(endpointNamespaceTypes.SelectMany(type => type.GetProperties()), property =>

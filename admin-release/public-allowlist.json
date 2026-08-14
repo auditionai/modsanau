@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "policy": "deny-by-default",
+  "buildSourceFiles": [
+    "web/404.html",
+    "web/_headers",
+    "web/index.html",
+    "web/robots.txt",
+    "web/script.js",
+    "web/styles.css"
+  ],
+  "repositoryFiles": [
+    ".gitignore",
+    "netlify.toml",
+    "package.json",
+    "public-allowlist.json",
+    "scripts/build.mjs",
+    "scripts/test.mjs",
+    "web/404.html",
+    "web/_headers",
+    "web/index.html",
+    "web/robots.txt",
+    "web/script.js",
+    "web/styles.css"
+  ]
+}
