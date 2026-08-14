@@ -1495,3 +1495,21 @@ Shell chỉ hiển thị route V1 có surface thật: Home, Project Workspace (g
 (gồm Crop/Resize và Before/After), AI Studio, Account và Settings. Route placeholder lịch sử bị loại khỏi navigation.
 Startup maximize bằng `OverlappedPresenter` trong work area monitor hiện tại; không đổi resolution/exclusive fullscreen.
 Layout tiếp tục dùng adaptive triggers/scrolling, semantic Dark/Light/HighContrast resources và minimum target 1366×768.
+
+## Portable Automatic Updater từ PLAN 102
+
+PLAN 102 thay primary updater path từ MSIX PLAN 96 sang Portable ZIP, nhưng giữ nguyên envelope ES256/P-256,
+domain separation và verify-before-authority của PLAN 77. Payload portable schema 3 bind product `AuditionAI.ModStudio`,
+stable channel, typed version/policy, exact HTTPS ZIP URL/length/SHA-256, release notes, `win-x64`/`portable` identity,
+full file inventory và signed removal inventory.
+
+`PortableUpdateStager` stream vào `.partial`, verify trước atomic promote, extract vào LocalAppData operation root,
+chặn ZIP Slip/absolute/drive/UNC/duplicate/link/reparse/expansion và verify từng file. `AuditionAI.Updater.exe`
+chạy từ staging bằng exact path/typed arguments, đợi main PID thoát, verify lại manifest/package/inventory,
+backup app-owned file, replace qua `.update-new`, post-verify và rollback exact byte khi failure. Unknown file và user data
+không thuộc signed inventory được bảo toàn.
+
+UI Settings/command palette/Activity Log chỉ hiển thị service state thật, tiếng Việt và không block startup.
+Extract/Convert/Build active hoặc editor còn state có thể Apply thì handoff bị defer. Production feed/trust
+root chưa được cung cấp nên default composition fail closed; local file-only pipeline vẫn độc lập. Chi tiết tại
+[PORTABLE_UPDATE_ARCHITECTURE.md](PORTABLE_UPDATE_ARCHITECTURE.md).

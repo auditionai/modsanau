@@ -1,0 +1,3 @@
+Sửa lỗi cập nhật ứng dụng portable mà không cần installer hoặc quyền quản trị.
+Thêm kiểm tra chữ ký, tải streaming, staging an toàn và rollback khi thay file thất bại.
+Thêm giao diện cập nhật tiếng Việt và nhật ký tác vụ bảo vệ quyền riêng tư.

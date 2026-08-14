@@ -44,7 +44,7 @@ public sealed partial class SupplyChainPolicyTests
                 SearchOption.AllDirectories))
             .ToArray();
 
-        Assert.Equal(22, projects.Length);
+        Assert.Equal(25, projects.Length);
         Assert.All(projects, project =>
         {
             var lockPath = Path.Combine(Path.GetDirectoryName(project)!, "packages.lock.json");

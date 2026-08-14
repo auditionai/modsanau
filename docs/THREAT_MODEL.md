@@ -445,3 +445,20 @@ Residual risk còn gồm mất điện giữa lời gọi filesystem và flush t
 Các threat về availability gồm input hợp lệ nhưng lớn gây allocation pressure, native codec giữ peak memory ngoài quan sát managed, batch cạnh tranh CPU/I/O, cache stampede khác key, page-cache/antivirus làm latency dao động và UI bị chậm dù background contract vẫn đúng. Bound kích thước/pixel/mip, bounded queue/concurrency, cancellation, timeout, thumbnail single-flight và immutable working-copy semantics giảm rủi ro nhưng không biến số đo local thành resource guarantee.
 
 PLAN 100 chưa đo peak working set, native child-process peak, GUI frame/input latency, startup cold end-to-end hoặc tải đồng thời trên máy cấu hình thấp. Allocation đáng kể của thao tác ảnh 6.000×1.801 cần tiếp tục theo dõi; không tự thêm pooling/tiling khi chưa có ownership và data-lifetime analysis. Rủi ro này không cấp quyền nới resource limit, bỏ validation hoặc mở rộng sang game runtime. Chi tiết và giới hạn claim tại [PERFORMANCE_TEST_REPORT.md](PERFORMANCE_TEST_REPORT.md).
+
+## Portable updater threats từ PLAN 102
+
+| Threat | Mitigation PLAN 102 | Residual risk |
+|---|---|---|
+| Manifest tamper/MITM/CDN package replace | ES256 domain-separated envelope verify trước authority; exact HTTPS URI/size/SHA-256 | Signing key/CDN account compromise |
+| Rollback/malformed version | Typed monotonic comparison; equal/no-update; lower reject | Compromised trusted signer có thể ký malicious newer release |
+| ZIP Slip/link/duplicate/bomb | Canonical relative path, inventory exact, link/reparse reject, entry/expanded bounds | Parser/filesystem/filter-driver vulnerability |
+| Staging tamper/TOCTOU | App verify package/files; updater reverify envelope/package/files; copy updater re-hash | Same-user attacker racing after a verify boundary |
+| Argument/path injection | Exact executable path, fixed typed switches, restart allowlist, no shell/PATH, canonical roots | Same-user process có thể DoS/lock file |
+| Partial install/crash/locked file | Backup before mutation, `.update-new`, signed ownership, post-verify, deterministic rollback | Power loss/storage cache failure giữa filesystem operations |
+| Privilege escalation | `asInvoker`, `uiAccess=false`, no runas/service/registry/admin fallback | Portable folder không writable thì auto-update unavailable |
+| User data loss | Chỉ signed app-owned paths; unknown/LocalAppData/project/export preserved; unsaved/active-work guard | App-level dirty-state model chưa bao phủ future editor surface |
+| Endpoint outage/privacy | Non-blocking check, bounded retry/cadence, local-first; không project/hardware identity | Availability outage, last-check timestamp local |
+
+Production update feed/public key build input/signer HSM/AuthentiCode/timestamp/CDN vẫn chưa verified. Local E2E dùng dedicated
+TEST key và không biến test authority thành production trust root. Updater không có Audition game authority.

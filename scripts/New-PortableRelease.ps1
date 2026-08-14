@@ -12,6 +12,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $projectPath = Join-Path $repositoryRoot 'src/AuditionModStudio.App/AuditionModStudio.App.csproj'
+$updaterProjectPath = Join-Path $repositoryRoot 'src/AuditionModStudio.PortableUpdater/AuditionModStudio.PortableUpdater.csproj'
 $requestedOutput = if ([IO.Path]::IsPathRooted($OutputRoot)) {
     [IO.Path]::GetFullPath($OutputRoot)
 } else {
@@ -48,6 +49,23 @@ New-Item -ItemType Directory -Path $packageRoot -Force | Out-Null
     -p:InformationalVersion=$Version `
     -p:ContinuousIntegrationBuild=true
 if ($LASTEXITCODE -ne 0) { throw 'PORTABLE_PUBLISH_FAILED' }
+
+$updaterPublishRoot = Join-Path $stagingRoot 'updater-publish'
+& dotnet publish $updaterProjectPath `
+    --configuration $Configuration `
+    --runtime $RuntimeIdentifier `
+    --self-contained true `
+    --output $updaterPublishRoot `
+    -p:Version=$Version `
+    -p:InformationalVersion=$Version `
+    -p:ContinuousIntegrationBuild=true
+if ($LASTEXITCODE -ne 0) { throw 'PORTABLE_UPDATER_PUBLISH_FAILED' }
+$updaterExecutable = Join-Path $updaterPublishRoot 'AuditionAI.Updater.exe'
+if (-not (Test-Path -LiteralPath $updaterExecutable -PathType Leaf)) {
+    throw 'PORTABLE_UPDATER_ENTRY_POINT_MISSING'
+}
+Copy-Item -LiteralPath $updaterExecutable -Destination (Join-Path $packageRoot 'AuditionAI.Updater.exe')
+Remove-Item -LiteralPath $updaterPublishRoot -Recurse -Force
 
 $portableEntryPointName = 'AuditionModStudio.App.exe'
 $publishedEntryPoint = Join-Path $packageRoot $portableEntryPointName
@@ -101,6 +119,7 @@ $report = [ordered]@{
     publishModel = 'unpackaged; Windows App SDK self-contained; .NET self-contained; framework-dependent=false'
     packageDirectoryName = 'AuditionAI-ModStudio'
     entryPoint = $portableEntryPointName
+    updaterEntryPoint = 'AuditionAI.Updater.exe'
     resourceEntryAssembly = 'AuditionModStudio.App.dll'
     fileCount = $files.Count
     payloadBytes = [long]$payloadBytes

@@ -3,7 +3,7 @@
     "dataLicense":  "CC0-1.0",
     "SPDXID":  "SPDXRef-DOCUMENT",
     "name":  "Audition-AI-Mod-Studio-NuGet-Dependencies",
-    "documentNamespace":  "https://auditionmodstudio.invalid/spdx/nuget/f0b7b78a1f081ffe2b38888e02dd3faad0ba82dc060b8c70a70854f72746f811",
+    "documentNamespace":  "https://auditionmodstudio.invalid/spdx/nuget/2d46e30dc9ff03c44fd0ea19410bfc3e9ace62da3afc95181de8541e7e84ce5c",
     "creationInfo":  {
                          "created":  "2026-08-13T00:00:00Z",
                          "creators":  [
@@ -618,6 +618,25 @@
                                               }
                                           ],
                          "comment":  "Transitive dependency."
+                     },
+                     {
+                         "name":  "Microsoft.NET.ILLink.Tasks",
+                         "SPDXID":  "SPDXRef-Package-Microsoft.NET.ILLink.Tasks-10.0.10",
+                         "versionInfo":  "10.0.10",
+                         "downloadLocation":  "https://api.nuget.org/v3-flatcontainer/microsoft.net.illink.tasks/10.0.10/microsoft.net.illink.tasks.10.0.10.nupkg",
+                         "filesAnalyzed":  false,
+                         "licenseConcluded":  "NOASSERTION",
+                         "licenseDeclared":  "MIT",
+                         "copyrightText":  "NOASSERTION",
+                         "supplier":  "NOASSERTION",
+                         "externalRefs":  [
+                                              {
+                                                  "referenceCategory":  "PACKAGE-MANAGER",
+                                                  "referenceType":  "purl",
+                                                  "referenceLocator":  "pkg:nuget/Microsoft.NET.ILLink.Tasks@10.0.10"
+                                              }
+                                          ],
+                         "comment":  "Direct dependency in at least one project."
                      },
                      {
                          "name":  "Microsoft.NET.Test.Sdk",
@@ -1464,6 +1483,11 @@
                               "spdxElementId":  "SPDXRef-DOCUMENT",
                               "relationshipType":  "DESCRIBES",
                               "relatedSpdxElement":  "SPDXRef-Package-Microsoft.Extensions.Primitives-10.0.10"
+                          },
+                          {
+                              "spdxElementId":  "SPDXRef-DOCUMENT",
+                              "relationshipType":  "DESCRIBES",
+                              "relatedSpdxElement":  "SPDXRef-Package-Microsoft.NET.ILLink.Tasks-10.0.10"
                           },
                           {
                               "spdxElementId":  "SPDXRef-DOCUMENT",

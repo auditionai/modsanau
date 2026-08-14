@@ -27,8 +27,9 @@ public sealed partial class MainPage : Page
     private readonly AiStudioPage _aiStudioPage;
     private readonly AccountPage _accountPage;
     private readonly SettingsPage _settingsPage;
+    private readonly IUserActivityService _activityService;
 
-    public MainPage(AppShellViewModel viewModel, HomePage homePage, ProjectWorkspacePage workspacePage, AiStudioPage aiStudioPage, ImageEditorPage imageEditorPage, AccountPage accountPage, SettingsPage settingsPage)
+    public MainPage(AppShellViewModel viewModel, HomePage homePage, ProjectWorkspacePage workspacePage, AiStudioPage aiStudioPage, ImageEditorPage imageEditorPage, AccountPage accountPage, SettingsPage settingsPage, IUserActivityService activityService)
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         _homePage = homePage ?? throw new ArgumentNullException(nameof(homePage));
@@ -37,6 +38,7 @@ public sealed partial class MainPage : Page
         _imageEditorPage = imageEditorPage ?? throw new ArgumentNullException(nameof(imageEditorPage));
         _accountPage = accountPage ?? throw new ArgumentNullException(nameof(accountPage));
         _settingsPage = settingsPage ?? throw new ArgumentNullException(nameof(settingsPage));
+        _activityService = activityService ?? throw new ArgumentNullException(nameof(activityService));
         InitializeComponent();
         PopulateNavigationItems();
         HomeContent.Content = _homePage;
@@ -48,14 +50,19 @@ public sealed partial class MainPage : Page
         ActivityList.ItemsSource = _visibleActivity;
         CommandList.ItemsSource = _allCommands;
         foreach (var item in ViewModel.NavigationItems)
-            _allCommands.Add(new ShellCommand(item.Label, item.Description, item.Glyph, item.Route));
+            _allCommands.Add(new ShellCommand(item.Label, item.Description, item.Glyph, item.Route, false));
+        if (_settingsPage.UpdateServiceAvailable)
+            _allCommands.Add(new ShellCommand("Kiểm tra cập nhật", "Kiểm tra kênh stable trong nền", "\uE895", null, true));
         _homePage.ViewModel.PropertyChanged += OnHomePropertyChanged;
         _workspacePage.ViewModel.PropertyChanged += OnWorkspacePropertyChanged;
         _workspacePage.BuildExportViewModel.PropertyChanged += OnBuildExportPropertyChanged;
         _imageEditorPage.ViewModel.PropertyChanged += OnEditorPropertyChanged;
         _aiStudioPage.ViewModel.PropertyChanged += OnAiStudioPropertyChanged;
+        _activityService.Published += OnExternalActivityPublished;
+        _settingsPage.UpdateAvailable += OnUpdateAvailable;
         AddActivity("SUCCESS", "Ứng dụng đã sẵn sàng.");
         UpdateRouteContent();
+        _ = _settingsPage.CheckForUpdatesAsync(false);
     }
 
     public AppShellViewModel ViewModel { get; }
@@ -133,7 +140,15 @@ public sealed partial class MainPage : Page
     {
         if (e.ClickedItem is not ShellCommand command) return;
         CommandPalette.Visibility = Visibility.Collapsed;
-        SelectRoute(command.Route);
+        if (command.IsUpdateCheck)
+        {
+            SelectRoute(AppRoute.Settings);
+            _ = _settingsPage.CheckForUpdatesAsync(true);
+        }
+        else if (command.Route is AppRoute route)
+        {
+            SelectRoute(route);
+        }
     }
 
     private void SelectRoute(AppRoute route)
@@ -169,6 +184,20 @@ public sealed partial class MainPage : Page
         ActivityCountText.Text = _allActivity.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (ActivityDrawer?.Visibility == Visibility.Visible && AutoScrollToggle?.IsOn == true && _visibleActivity.Count > 0)
             ActivityList.ScrollIntoView(_visibleActivity[^1]);
+    }
+
+    private void OnExternalActivityPublished(object? sender, UserActivityEvent activity)
+    {
+        if (DispatcherQueue.HasThreadAccess) AddActivity(activity.Severity, activity.Message);
+        else DispatcherQueue.TryEnqueue(() => AddActivity(activity.Severity, activity.Message));
+    }
+
+    private void OnUpdateAvailable(object? sender, Version version)
+    {
+        NotificationBar.Title = "Có bản cập nhật mới";
+        NotificationBar.Message = $"Phiên bản {version} đã sẵn sàng trong Cài đặt → Cập nhật.";
+        NotificationBar.Severity = InfoBarSeverity.Informational;
+        NotificationBar.IsOpen = true;
     }
 
     private void ApplyActivityFilter(string? query)
@@ -241,7 +270,7 @@ public sealed partial class MainPage : Page
         PlaceholderContent.Visibility = Visibility.Collapsed;
     }
 
-    private sealed record ShellCommand(string Label, string Description, string Glyph, AppRoute Route);
+    private sealed record ShellCommand(string Label, string Description, string Glyph, AppRoute? Route, bool IsUpdateCheck);
 
     private sealed record ActivityLogEntry(string Time, string Severity, string Message, string Glyph, Brush Brush)
     {

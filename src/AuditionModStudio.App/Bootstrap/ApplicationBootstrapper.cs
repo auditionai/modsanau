@@ -276,6 +276,13 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         // Production update signing keys/feed/CDN are intentionally not configured in source.
         // Local editing/build/export remains available while the updater fails closed.
         builder.Services.AddSingleton<IAppUpdateService, UnavailableAppUpdateService>();
+        // Production endpoint/public trust root chưa được Product Owner cung cấp: fail closed, không dùng env làm trust root.
+#if PLAN102_UI_EVIDENCE
+        builder.Services.AddSingleton<IPortableUpdateCoordinator, Plan102UiEvidenceUpdateCoordinator>();
+#else
+        builder.Services.AddSingleton<IPortableUpdateCoordinator, UnavailablePortableUpdateCoordinator>();
+#endif
+        builder.Services.AddSingleton<IUserActivityService, UserActivityService>();
         builder.Services.AddSingleton(BackgroundTaskManagerOptions.Default);
         builder.Services.AddSingleton<BackgroundTaskManager>();
         builder.Services.AddSingleton<IBackgroundTaskManager>(services =>

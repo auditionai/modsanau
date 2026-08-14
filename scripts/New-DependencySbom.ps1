@@ -107,11 +107,13 @@ if ($Verify) {
 }
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
 $temporary = $destination + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
+$backup = $destination + '.' + [Guid]::NewGuid().ToString('N') + '.bak'
 try {
   [IO.File]::WriteAllText($temporary, $json, $encoding)
-  if (Test-Path -LiteralPath $destination) { [IO.File]::Replace($temporary, $destination, $null) }
+  if (Test-Path -LiteralPath $destination) { [IO.File]::Replace($temporary, $destination, $backup) }
   else { [IO.File]::Move($temporary, $destination) }
 } finally {
   if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+  if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Force }
 }
 Write-Output "SBOM generated: $($ordered.Count) NuGet package version duy nhất."

@@ -36,6 +36,19 @@
     <DebugType>None</DebugType>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Plan102UiEvidence)' == 'true'">
+    <DefineConstants>$(DefineConstants);PLAN102_UI_EVIDENCE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Plan102UiEvidenceDark)' == 'true'">
+    <DefineConstants>$(DefineConstants);PLAN102_UI_EVIDENCE_DARK</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Settings\Plan102UiEvidenceUpdateCoordinator.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Plan102UiEvidence)' == 'true'">
+    <Compile Include="Settings\Plan102UiEvidenceUpdateCoordinator.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
     <Content Include="Assets\LockScreenLogo.scale-200.png" />

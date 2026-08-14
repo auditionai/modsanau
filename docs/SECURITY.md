@@ -1094,3 +1094,21 @@ Performance evidence không làm yếu path traversal, reparse, resource, transa
 - Không tự tải/bundle helper chưa có quyền redistribution. Thiếu helper chỉ vô hiệu operation cần helper bằng typed error;
   app vẫn khởi động và giữ pristine/project data.
 - Portable artifact của PLAN 101 là Development/Internal QA, không phải production-signed public release.
+
+## Portable updater boundary từ PLAN 102
+
+- Signed envelope/domain/key rollover PLAN 77 được tái sử dụng. Portable payload schema 3 chỉ được parse
+  sau signature; bind product/channel/version/policy, exact HTTPS ZIP length/hash, identity, inventory và removal list.
+- Client chặn equal/downgrade/malformed version, unsigned/modified/wrong-key/wrong-product/channel/architecture/distribution,
+  redirect/host/HTTP, length/hash mismatch và package quá bound. Production trust root không được tải runtime.
+- ZIP extraction chỉ vào operation root; chặn traversal, absolute/drive/UNC, duplicate case-insensitive, link/reparse,
+  missing/unexpected entry và expansion bomb. `.partial` không bao giờ là candidate.
+- Handoff dùng absolute `AuditionAI.Updater.exe`, `UseShellExecute=false`, `ArgumentList` typed; không cmd,
+  PowerShell, batch, arbitrary restart exe, PATH search, runas, UAC, service hoặc registry install.
+- Updater reverify signed envelope/package/extracted inventory sau main process exit. In-place replacement backup trước
+  mutation, post-verify và rollback. Chỉ signed app-owned file bị xóa; unknown file/user project/export/
+  LocalAppData/Credential Manager được giữ.
+- UI/network failure không block local editor. Activity event là bounded Vietnamese message, không raw manifest,
+  URL/path/hash/stack trace/secret. TEST private key chỉ sinh dưới ignored `artifacts`; public artifact không mang key.
+- Production endpoint/CDN/signing key/HSM/AuthentiCode/timestamp/live update vẫn **NOT VERIFIED**; default composition
+  `UnavailablePortableUpdateCoordinator` không tạo unsigned fallback.
