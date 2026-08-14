@@ -6,7 +6,9 @@ Quy trình: **PLAN → BUILD → TEST → BÁO CÁO → DỪNG**
 
 ## Kết quả
 
-PLAN 103 đã tạo và phát hành bản landing page **v0.4.0** trên nhánh `develop`. Sau vòng phản hồi thứ ba, toàn bộ giao diện chuyển sang dark cosmic với starfield canvas, nebula, liquid-glass header, footer nhiều tầng và nội dung mô tả trực tiếp.
+PLAN 103 đã tạo và phát hành bản landing page **v0.5.0** trên nhánh `develop`. Sau vòng phản hồi mới nhất, khu vực “Các công cụ chính” đã được thiết kế lại hoàn toàn thành technology command deck tương tác, thay cho bố cục thẻ 2×2 cũ.
+
+Command deck gồm rail chọn bốn module Image Lab, DDS Matrix, Visual Diff và Archive Core; viewport mô phỏng trực quan ở trung tâm; telemetry ở cạnh phải. Mỗi module có scene riêng, chuyển trạng thái bằng chuột hoặc bàn phím, cùng các hiệu ứng scan, orbit, packet flow, waveform, holographic border và ánh sáng theo ngữ cảnh. Bố cục responsive chuyển thành dạng dọc trên màn hình nhỏ và tôn trọng `prefers-reduced-motion`.
 
 Typography giữ tỷ lệ vừa phải nhưng bổ sung spectral gradient, underline ánh sáng và chuyển màu cho từ khóa nổi bật. Hệ hiệu ứng gồm sao bay/twinkle, nebula drift, spotlight con trỏ, chiều sâu cửa sổ sản phẩm, hover lighting, card lift, orbit, caret, progress theo cuộn và reveal ngắn. `prefers-reduced-motion` vẫn được hỗ trợ để bảo đảm khả năng tiếp cận.
 
@@ -38,11 +40,11 @@ Landing bổ sung AI Studio với bảy tác vụ Generate/Edit/Inpaint/Outpaint
 
 | Hạng mục | Kết quả |
 |---|---|
-| Root source commit giao diện v4 | `e3352975499aa987265304dc66b26e23c46d759e` |
+| Root source commit giao diện v5 | `1672d13` |
 | Public Git repository | `https://github.com/auditionai/modsanau.git` |
 | Public branch | `develop` |
-| Public commit đã push | `f3b92f9287dd7fb156447d6d7897747edbc4e39d` |
-| GitHub Actions | **PASS** — run `31796682861` |
+| Public commit đã push | `c4fdd2e` |
+| GitHub Actions | **PASS** — run `31797543312` |
 | Netlify branch deploy | **LIVE / HTTP 200** |
 | URL develop | `https://develop--modsanau.netlify.app/` |
 | Production hostname | `https://modsanau.netlify.app/` — HTTP 200 tại lần kiểm tra cuối |
@@ -54,6 +56,6 @@ Chi tiết tích hợp nằm tại [PLAN_103_EXTERNAL_INTEGRATION_SETTINGS.md](P
 
 ## Kết luận gate
 
-Landing page v0.4.0, GitHub `develop`, CI và Netlify branch deploy đều **PASS**. Không promote sang production, không mở public download và không bắt đầu PLAN 104.
+Landing page v0.5.0, GitHub `develop`, CI và Netlify branch deploy đều **PASS**. Bản live đã xác nhận có `data-tool-deck` và `tool-tab-editor`. Không promote sang production, không mở public download và không bắt đầu PLAN 104.
 
 **DỪNG sau PLAN 103.**
