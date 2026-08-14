@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-14",
+  "channel": "pre-public",
+  "publicDownloadAvailable": false,
+  "approvedArtifact": null,
+  "notes": "PLAN 103 chỉ chuẩn bị website và deployment boundary; build nội bộ PLAN 102 không tự động được phép public."
+}
