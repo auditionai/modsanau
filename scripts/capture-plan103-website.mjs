@@ -24,14 +24,22 @@ await mkdir(evidenceRoot, { recursive: true });
 
 const server = createServer(async (request, response) => {
   try {
-    const requestPath = new URL(request.url ?? "/", "http://127.0.0.1").pathname;
+    const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
+    const requestPath = requestUrl.pathname;
     const relative = requestPath === "/" ? "index.html" : decodeURIComponent(requestPath).replace(/^\/+/, "");
     const target = path.resolve(siteRoot, relative);
     if (path.relative(siteRoot, target).startsWith("..")) {
       response.writeHead(403).end("Forbidden");
       return;
     }
-    const body = await readFile(target);
+    let body = await readFile(target);
+    const captureTarget = requestUrl.searchParams.get("capture");
+    if (relative === "index.html" && captureTarget) {
+      const html = body.toString("utf8");
+      const safeTarget = captureTarget.replace(/[^a-z0-9-]/gi, "");
+      const captureStyles = `<style>main>*{display:none!important}main>#${safeTarget}{display:block!important;margin-top:78px}.reveal{opacity:1!important;transform:none!important}</style>`;
+      body = Buffer.from(html.replace("</head>", `${captureStyles}</head>`));
+    }
     response.writeHead(200, { "Content-Type": contentTypes[path.extname(target)] ?? "application/octet-stream" });
     response.end(body);
   } catch {
@@ -46,17 +54,20 @@ await new Promise((resolve, reject) => {
 
 try {
   for (const capture of [
-    { name: "desktop-1440x1100.png", size: "1440,1100" },
-    { name: "mobile-500x900.png", size: "500,900" }
+    { name: "desktop-1440x1100.png", size: "1440,1100", target: "" },
+    { name: "features-1440x1100.png", size: "1440,1100", target: "tinh-nang" },
+    { name: "gallery-1440x1100.png", size: "1440,1100", target: "giao-dien" },
+    { name: "mobile-500x900.png", size: "500,900", target: "" }
   ]) {
     await execute(chrome, [
       "--headless=new",
       "--disable-gpu",
       "--hide-scrollbars",
+      "--force-prefers-reduced-motion=reduce",
       "--virtual-time-budget=1500",
       `--window-size=${capture.size}`,
       `--screenshot=${path.join(evidenceRoot, capture.name)}`,
-      "http://127.0.0.1:4173/"
+      `http://127.0.0.1:4173/${capture.target ? `?capture=${capture.target}` : ""}`
     ], { timeout: 60_000 });
   }
   console.log(`Đã capture website vào ${evidenceRoot}`);
