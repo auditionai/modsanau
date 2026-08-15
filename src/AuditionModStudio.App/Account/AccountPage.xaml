@@ -8,6 +8,7 @@
     Background="Transparent"
     mc:Ignorable="d">
 
+    <Grid>
     <ScrollViewer AutomationProperties.Name="Hồ sơ tài khoản và lịch sử Credits" HorizontalContentAlignment="Stretch">
         <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="{StaticResource AmsSpace20}">
             <Grid.RowDefinitions>
@@ -72,9 +73,9 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <StackPanel Spacing="4"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Mã thiết bị" /><TextBlock AutomationProperties.Name="Mã thiết bị công khai" FontFamily="Consolas" FontSize="20" Text="{x:Bind ViewModel.DeviceCode, Mode=OneWay}" /></StackPanel>
                     <Button Grid.Column="1" HorizontalAlignment="Right" MinHeight="44" Click="OnCopyDeviceCodeClicked" Style="{StaticResource AmsSecondaryButtonStyle}" Content="Sao chép mã" />
-                    <StackPanel Grid.Row="1" Spacing="4"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Gói sử dụng" /><TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="{x:Bind ViewModel.SubscriptionStatus, Mode=OneWay}" /><TextBlock Text="{x:Bind ViewModel.SubscriptionExpiry, Mode=OneWay}" /><TextBlock Text="{x:Bind ViewModel.RemainingDays, Mode=OneWay}" /></StackPanel>
-                    <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.Benefits, Mode=OneWay}" />
-                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="8"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Mã quà tặng" /><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox AutomationProperties.Name="Nhập mã quà tặng" Header="Mã quà tặng" MaxLength="128" Text="{x:Bind ViewModel.GiftCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /><Button Grid.Column="1" VerticalAlignment="Bottom" MinHeight="44" IsEnabled="{x:Bind ViewModel.CanRedeem, Mode=OneWay}" Click="OnRedeemGiftCodeClicked" Style="{StaticResource AmsPrimaryButtonStyle}" Content="Kích hoạt" /></Grid><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Gia hạn và thanh toán trực tuyến sẽ được bổ sung ở một PLAN riêng; hiện tại không có luồng thanh toán giả." /></StackPanel>
+                    <StackPanel Grid.Row="1" Spacing="8"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Gói sử dụng" /><TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="{x:Bind ViewModel.SubscriptionStatus, Mode=OneWay}" /><TextBlock Text="{x:Bind ViewModel.SubscriptionExpiry, Mode=OneWay}" /><TextBlock Text="{x:Bind ViewModel.RemainingDays, Mode=OneWay}" /><Button MinHeight="44" HorizontalAlignment="Left" Click="OnRenewClicked" Style="{StaticResource AmsPrimaryButtonStyle}"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8AB;" /><TextBlock Text="Gia hạn" /></StackPanel></Button></StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Spacing="8"><TextBlock TextWrapping="Wrap" Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.Benefits, Mode=OneWay}" /><Button MinHeight="44" HorizontalAlignment="Left" Click="OnBuyCreditsClicked" Style="{StaticResource AmsSecondaryButtonStyle}"><StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE8C7;" /><TextBlock Text="Mua Credits" /></StackPanel></Button></StackPanel>
+                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="8"><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Mã quà tặng" /><Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBox AutomationProperties.Name="Nhập mã quà tặng" Header="Mã quà tặng" MaxLength="128" Text="{x:Bind ViewModel.GiftCode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /><Button Grid.Column="1" VerticalAlignment="Bottom" MinHeight="44" IsEnabled="{x:Bind ViewModel.CanRedeem, Mode=OneWay}" Click="OnRedeemGiftCodeClicked" Style="{StaticResource AmsPrimaryButtonStyle}" Content="Kích hoạt" /></Grid></StackPanel>
                 </Grid></Border>
                 <Grid x:Name="AccountCards" ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace16}">
                     <VisualStateManager.VisualStateGroups>
@@ -160,4 +161,33 @@
             </Border>
         </Grid>
     </ScrollViewer>
+
+    <ContentDialog x:Name="PurchaseDialog" Title="Thanh toán" CloseButtonText="Đóng" DefaultButton="None">
+        <ScrollViewer MaxHeight="680">
+            <StackPanel MinWidth="520" Spacing="16">
+                <TextBlock AutomationProperties.LiveSetting="Polite" Text="{x:Bind ViewModel.PaymentMessage, Mode=OneWay}" TextWrapping="Wrap" />
+                <ProgressRing HorizontalAlignment="Left" IsActive="{x:Bind ViewModel.IsPaymentBusy, Mode=OneWay}" />
+                <StackPanel x:Name="PaymentOrderPanel" x:Load="{x:Bind ViewModel.HasPaymentOrder, Mode=OneWay}" Spacing="12">
+                    <Image Width="240" Height="240" Stretch="Uniform" Source="{x:Bind ViewModel.PaymentQrUrl, Mode=OneWay}" AutomationProperties.Name="Mã QR thanh toán" />
+                    <Grid ColumnSpacing="16" RowSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="160" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <TextBlock Text="Sản phẩm" /><TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{x:Bind ViewModel.PaymentProductName, Mode=OneWay}" TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="1" Text="Tổng thanh toán" /><TextBlock Grid.Row="1" Grid.Column="1" FontSize="24" FontWeight="SemiBold" Text="{x:Bind ViewModel.PaymentAmount, Mode=OneWay}" />
+                        <TextBlock Grid.Row="2" Text="Ngân hàng" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind ViewModel.PaymentBank, Mode=OneWay}" />
+                        <TextBlock Grid.Row="3" Text="Tài khoản" /><TextBlock Grid.Row="3" Grid.Column="1" FontFamily="Consolas" Text="{x:Bind ViewModel.PaymentAccount, Mode=OneWay}" />
+                        <TextBlock Grid.Row="4" Text="Nội dung chuyển khoản" /><TextBlock Grid.Row="4" Grid.Column="1" FontFamily="Consolas" FontWeight="SemiBold" Text="{x:Bind ViewModel.PaymentContent, Mode=OneWay}" />
+                        <TextBlock Grid.Row="5" Text="Đơn hết hạn" /><TextBlock Grid.Row="5" Grid.Column="1" Text="{x:Bind ViewModel.PaymentExpiresAt, Mode=OneWay}" />
+                    </Grid>
+                    <Button HorizontalAlignment="Left" MinHeight="44" Click="OnCopyPaymentContentClicked" Style="{StaticResource AmsSecondaryButtonStyle}" Content="Sao chép nội dung" />
+                    <Button HorizontalAlignment="Left" MinHeight="44" IsEnabled="{x:Bind ViewModel.CanCancelPayment, Mode=OneWay}" Click="OnCancelPaymentClicked" Style="{StaticResource AmsSecondaryButtonStyle}" Content="Hủy đơn" />
+                </StackPanel>
+                <StackPanel x:Name="PaymentProductPanel" x:Load="{x:Bind ViewModel.ShowPaymentProductSelection, Mode=OneWay}" Spacing="12">
+                    <ComboBox Header="Chọn gói" ItemsSource="{x:Bind ViewModel.PaymentProducts, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedPaymentProduct, Mode=TwoWay}" DisplayMemberPath="Label" MinHeight="44" />
+                    <Button HorizontalAlignment="Left" MinHeight="44" IsEnabled="{x:Bind ViewModel.CanCreatePayment, Mode=OneWay}" Click="OnCreatePaymentClicked" Style="{StaticResource AmsPrimaryButtonStyle}" Content="Tạo đơn thanh toán" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </ContentDialog>
+    </Grid>
 </Page>

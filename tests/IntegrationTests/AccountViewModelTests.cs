@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using AuditionModStudio.App.Account;
 using AuditionModStudio.App.Shell;
 using AuditionModStudio.Core.Accounts;
+using AuditionModStudio.Core.Payments;
 
 namespace IntegrationTests;
 
@@ -80,6 +81,26 @@ public sealed class AccountViewModelTests
         Assert.Contains("Đã tải", viewModel.StatusMessage, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task Purchase_flow_uses_server_catalog_and_authoritative_order_instructions()
+    {
+        var payment = new StubPaymentService();
+        using var viewModel = new AccountViewModel(new StubService(Success()), payments: payment);
+
+        var prepared = await viewModel.PreparePurchaseAsync(PaymentProductType.Credits);
+        await viewModel.CreatePaymentOrderAsync();
+
+        Assert.True(prepared);
+        Assert.Equal("credits_500", payment.CreatedProductId);
+        Assert.StartsWith("desktop.", payment.IdempotencyKey, StringComparison.Ordinal);
+        Assert.True(viewModel.HasPaymentOrder);
+        Assert.Equal("50.000 đ", viewModel.PaymentAmount);
+        Assert.Equal("VCB", viewModel.PaymentBank);
+        Assert.Equal("AMS0123456789ABCDEF", viewModel.PaymentContent);
+        Assert.Equal("https://vietqr.app/img?fixture=107", viewModel.PaymentQrUrl);
+        Assert.Contains("Đang chờ thanh toán", viewModel.PaymentMessage, StringComparison.Ordinal);
+    }
+
     private static AccountOverviewResult Success(params AccountCreditTransaction[] transactions) => new(
         AccountOverviewStatus.Succeeded, "ACCOUNT_READ", new(
             new(Guid.Parse("d344ca41-25a5-4f24-8b8e-1654de660997"), "person@example.com", "Person"),
@@ -112,5 +133,39 @@ public sealed class AccountViewModelTests
             }
             return Second.Task;
         }
+    }
+
+    private sealed class StubPaymentService : IPaymentService
+    {
+        private static readonly PaymentProduct Product = new(
+            "credits_500", PaymentProductType.Credits, "500 Credits", 50000, null, 500, 10);
+        private static readonly PaymentOrder Order = new(
+            Guid.Parse("10700000-0000-0000-0000-000000000001"), "AMS0123456789ABCDEF",
+            PaymentOrderStatus.WaitingPayment, PaymentProductType.Credits, "500 Credits", 50000,
+            null, 500, "VND", "AMS0123456789ABCDEF", DateTimeOffset.UtcNow.AddMinutes(15),
+            "VCB", "1234567890", "AUDITION AI", new("https://vietqr.app/img?fixture=107"), null, null);
+
+        public string? CreatedProductId { get; private set; }
+        public string? IdempotencyKey { get; private set; }
+
+        public Task<PaymentCatalogResult> GetCatalogAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new PaymentCatalogResult(true, "PAYMENT_CATALOG_READY", [Product]));
+
+        public Task<PaymentOrderResult> CreateOrderAsync(string productId, string idempotencyKey,
+            CancellationToken cancellationToken = default)
+        {
+            CreatedProductId = productId;
+            IdempotencyKey = idempotencyKey;
+            return Task.FromResult(new PaymentOrderResult(true, "PAYMENT_ORDER_READY", Order));
+        }
+
+        public Task<PaymentOrderResult> GetOrderAsync(Guid orderId,
+            CancellationToken cancellationToken = default) => Task.FromResult(
+                new PaymentOrderResult(true, "PAYMENT_ORDER_READY", Order));
+
+        public Task<PaymentOrderResult> CancelOrderAsync(Guid orderId,
+            CancellationToken cancellationToken = default) => Task.FromResult(
+                new PaymentOrderResult(true, "PAYMENT_ORDER_READY", Order with
+                { Status = PaymentOrderStatus.Cancelled }));
     }
 }

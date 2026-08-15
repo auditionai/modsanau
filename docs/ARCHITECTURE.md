@@ -1533,3 +1533,6 @@ riêng, không phải blob repository và không tự động kế thừa artifa
 - Gateway là trusted boundary cho đăng ký, làm mới entitlement và redeem Gift Code. Client chỉ nhận capability grant ES256 cùng họ `AMS-ENT` v1 của PLAN 70.
 - `ICapabilityAuthorizationService` là cổng tập trung cho `CanUseAi`, `CanBuild`, `CanExport`, `CanUsePremiumTemplates`. AI và Build/Export fail-closed khi grant hết hạn, blocked hoặc revoked.
 - Grant offline được lưu trong Windows Credential Manager và chỉ dùng đến `expiresAt` do Gateway ký. Hết hạn gói không xóa dự án/dữ liệu cục bộ và không ngăn xem trang Tài khoản.
+## SePay payment authority từ PLAN 107
+
+Payment catalog, order, provider transaction và fulfillment authority nằm trong hosted Supabase, không nằm trong Desktop/Landing. `Core` giữ contract `IPaymentService`; `Cloud` gọi Edge Function; UI không gọi SePay trực tiếp. Dedicated webhook xác minh HMAC raw body rồi gọi một service-role RPC để match và fulfillment transactionally. Subscription dùng `greatest(expiry, server_now)`; Credits đi qua append-only Credit Ledger. Chi tiết tại [SEPAY_PAYMENT_ARCHITECTURE.md](SEPAY_PAYMENT_ARCHITECTURE.md) và [PAYMENT_FULFILLMENT_MODEL.md](PAYMENT_FULFILLMENT_MODEL.md).

@@ -77,7 +77,8 @@ expect(/admin_portal_api/.test(adminScript), "admin/script.js missing Supabase a
 expect(/grant_type=password/.test(adminScript), "admin/script.js missing Supabase password login");
 expect(/\/v1\/admin\/users/.test(adminScript), "admin/script.js missing user management route");
 expect(/\/v1\/admin\/transactions/.test(adminScript), "admin/script.js missing transaction search route");
-expect(/Authorization/.test(adminScript) && /sessionStorage/.test(adminScript), "admin/script.js missing authenticated session handling");
+expect(/Authorization/.test(adminScript) && /csrfToken/.test(adminScript) && !/localStorage|sessionStorage/.test(adminScript),
+  "admin/script.js must keep authenticated session in memory and attach CSRF correlation");
 expect(/auth\.uid\(\)/.test(adminRpcMigration), "admin RPC must derive actor from Supabase JWT");
 expect(/SECURITY DEFINER/.test(adminRpcMigration) && /REVOKE ALL[^;]+anon/s.test(adminRpcMigration), "admin RPC missing privilege boundary");
 expect(/codycn2804@gmail\.com/.test(adminRpcMigration), "admin RPC missing approved bootstrap owner");

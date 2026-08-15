@@ -14,6 +14,7 @@ using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Games;
 using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Core.Paths;
+using AuditionModStudio.Core.Payments;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Startup;
 using AuditionModStudio.Core.Settings;
@@ -278,6 +279,15 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<ISecureSessionStore>(),
                     services.GetRequiredService<IAuthenticationService>(), accountOptions)
                 : new UnavailableAccountOverviewService();
+        });
+        builder.Services.AddSingleton<IPaymentService>(services =>
+        {
+            var (url, _) = ProductionSupabaseConfiguration.Resolve();
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri) || projectUri.Scheme != Uri.UriSchemeHttps)
+                return new UnavailablePaymentService();
+            return new SupabasePaymentService(services.GetRequiredService<HttpClient>(),
+                services.GetRequiredService<ISecureSessionStore>(),
+                services.GetRequiredService<IAuthenticationService>(), projectUri);
         });
         builder.Services.AddSingleton<IDeviceEntitlementService>(services =>
         {

@@ -488,3 +488,14 @@ chưa có, không fetch/push/deploy nào được thực hiện; production gi�
 | Client tự cộng Credits | Không có API đó; Gift Code gọi authority `private.credit_grant` của PLAN 60 |
 | Rò Gift Code | Database chỉ giữ hash; RLS/GRANT chặn client đọc bảng nhạy cảm |
 | Reinstall để có identity mới | Không dùng fingerprint; giảm thiểu bằng abuse/rate limit và kiểm soát server, chấp nhận đây là giới hạn mô hình anonymous |
+## Payment threats từ PLAN 107
+
+| Mối đe dọa | Kiểm soát | Rủi ro còn lại |
+|---|---|---|
+| Webhook giả/replay | Raw-body HMAC, timestamp +/-5 phút, constant-time, provider ID dedupe | Secret/provider account hoặc clock bị compromise |
+| Double fulfillment | Advisory/row lock, unique transaction/order/event/reference, transactional fulfillment | Hosted PostgreSQL topology chưa được live test |
+| Sai số tiền/tài khoản/order | Exact integer amount, merchant account và order-code match; ambiguity vào review | Manual reconciliation vẫn cần quy trình bốn mắt |
+| Client giả giá/success | Server catalog + immutable snapshot; server-only fulfillment | Compromised service role/backend vẫn là high impact |
+| Enumeration Device Code | Generic response, bounded input/rate limit, không trả entitlement/balance | Edge per-instance rate limit chưa phân tán |
+| XSS transaction content | Admin escape dữ liệu, bounded normalized fields, CSP | Future renderer/header drift |
+| Secret leakage | Backend secret store, no raw webhook/log, repository/bundle scan | Memory/host/CI administrator compromise |

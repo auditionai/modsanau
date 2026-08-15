@@ -461,3 +461,138 @@ document.querySelector("[data-release-download]")?.addEventListener("click", asy
 
 try { publicSession = JSON.parse(localStorage.getItem(publicAuthKey) || "null"); } catch { localStorage.removeItem(publicAuthKey); }
 renderPublicAccount();
+
+const paymentDialog = document.querySelector("[data-payment-dialog]");
+const paymentFeedback = document.querySelector("[data-payment-feedback]");
+const paymentState = { product: null, order: null, deviceCode: "", pollGeneration: 0 };
+
+async function paymentRequest(route, options = {}) {
+  const config = await getPublicConfig();
+  const headers = { "Content-Type": "application/json", apikey: config.publishableKey, ...(options.headers || {}) };
+  const response = await fetch(`${config.supabaseUrl}/functions/v1/payments/${route}`, { ...options, headers, cache: "no-store" });
+  let result = null;
+  try { result = await response.json(); } catch { /* generic bounded error below */ }
+  if (!response.ok) throw new Error(result?.error || "PAYMENT_REQUEST_FAILED");
+  return result;
+}
+
+function formatVnd(value) { return `${new Intl.NumberFormat("vi-VN").format(Number(value) || 0)} đ`; }
+
+function productCard(product) {
+  const isSubscription = product.type === "subscription";
+  const card = document.createElement("article");
+  card.className = isSubscription ? "price-card" : "credit-card";
+  card.dataset.priceCard = "";
+  if (!isSubscription) {
+    const coin = document.createElement("div"); coin.className = "credit-coin";
+    coin.append(document.createElement("i")); const mark = document.createElement("b"); mark.textContent = "C"; coin.append(mark); card.append(coin);
+  }
+  const label = document.createElement("span"); label.className = "price-label";
+  label.textContent = isSubscription ? `${product.durationDays} ngày` : `${new Intl.NumberFormat("vi-VN").format(product.creditAmount)} Credits`;
+  const title = document.createElement("h4"); title.textContent = product.displayName;
+  const price = document.createElement(isSubscription ? "p" : "strong");
+  price.className = isSubscription ? "price-value" : ""; price.textContent = formatVnd(product.priceVnd);
+  const buy = document.createElement("button"); buy.type = "button"; buy.className = "price-state";
+  buy.textContent = isSubscription ? "Gia hạn" : "Mua Credits"; buy.addEventListener("click", () => openPurchase(product));
+  card.append(label, title, price, buy);
+  return card;
+}
+
+async function loadPaymentCatalog() {
+  const subscriptions = document.querySelector("[data-subscription-products]");
+  const credits = document.querySelector("[data-credit-products]");
+  if (!subscriptions || !credits) return;
+  const creditNote = credits.querySelector(".credit-note");
+  try {
+    const result = await paymentRequest("catalog");
+    const products = Array.isArray(result?.products) ? result.products : [];
+    const subscriptionCards = products.filter(item => item?.type === "subscription").map(productCard);
+    const creditCards = products.filter(item => item?.type === "credits").map(productCard);
+    subscriptions.replaceChildren(...(subscriptionCards.length ? subscriptionCards : [catalogEmpty()]));
+    credits.replaceChildren(...(creditCards.length ? creditCards : [catalogEmpty()]));
+    if (creditNote) credits.append(creditNote);
+  } catch {
+    subscriptions.replaceChildren(catalogEmpty("Chưa thể tải bảng giá. Vui lòng thử lại sau."));
+    credits.replaceChildren(catalogEmpty("Chưa thể tải bảng giá. Vui lòng thử lại sau."));
+    if (creditNote) credits.append(creditNote);
+  }
+}
+
+function catalogEmpty(message = "Chưa có gói đang phát hành.") {
+  const state = document.createElement("p"); state.className = "catalog-state"; state.textContent = message; return state;
+}
+
+function openPurchase(product) {
+  if (!(paymentDialog instanceof HTMLDialogElement)) return;
+  paymentState.product = product; paymentState.order = null; paymentState.pollGeneration += 1;
+  document.querySelector("[data-payment-title]").textContent = product.displayName;
+  document.querySelector("[data-payment-form]").hidden = false;
+  document.querySelector("[data-payment-order]").hidden = true;
+  paymentFeedback.textContent = "Kiểm tra Mã thiết bị trước khi tạo đơn.";
+  paymentDialog.showModal();
+}
+
+function renderPaymentOrder(order) {
+  paymentState.order = order;
+  const qr = document.querySelector("[data-payment-qr]");
+  const qrUrl = new URL(order.qrUrl);
+  if (qrUrl.protocol !== "https:" || qrUrl.hostname !== "vietqr.app") throw new Error("PAYMENT_QR_INVALID");
+  qr.src = qrUrl.href;
+  document.querySelector("[data-payment-product]").textContent = order.productName;
+  document.querySelector("[data-payment-amount]").textContent = formatVnd(order.priceVnd);
+  document.querySelector("[data-payment-bank]").textContent = `${order.bankCode} · ${order.accountHolder}`;
+  document.querySelector("[data-payment-account]").textContent = order.accountNumber;
+  document.querySelector("[data-payment-content]").textContent = order.paymentContent;
+  document.querySelector("[data-payment-expiry]").textContent = new Date(order.expiresAt).toLocaleString("vi-VN");
+  document.querySelector("[data-payment-form]").hidden = true;
+  document.querySelector("[data-payment-order]").hidden = false;
+}
+
+document.querySelector("[data-payment-form]")?.addEventListener("submit", async event => {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.reportValidity() || !paymentState.product) return;
+  const deviceCode = form.deviceCode.value.trim().toUpperCase();
+  paymentFeedback.textContent = "Đang tạo đơn thanh toán…";
+  try {
+    const order = await paymentRequest("orders", { method: "POST", headers: { "X-Idempotency-Key": `web.${crypto.randomUUID()}` },
+      body: JSON.stringify({ device_code: deviceCode, product_id: paymentState.product.productId }) });
+    paymentState.deviceCode = deviceCode; renderPaymentOrder(order);
+    paymentFeedback.textContent = "Đang chờ thanh toán. Vui lòng giữ nguyên nội dung chuyển khoản.";
+    pollPayment(order.orderId, ++paymentState.pollGeneration);
+  } catch { paymentFeedback.textContent = "Không thể tạo đơn. Hãy kiểm tra Mã thiết bị hoặc thử lại sau."; }
+});
+
+async function pollPayment(orderId, generation) {
+  const delays = [4000, 5000, 7000, 10000, 15000, 20000, 30000];
+  for (let attempt = 0; generation === paymentState.pollGeneration; attempt += 1) {
+    await new Promise(resolve => window.setTimeout(resolve, delays[Math.min(attempt, delays.length - 1)]));
+    if (generation !== paymentState.pollGeneration) return;
+    try {
+      const order = await paymentRequest(`orders/${encodeURIComponent(orderId)}?device_code=${encodeURIComponent(paymentState.deviceCode)}`);
+      paymentState.order = { ...paymentState.order, ...order };
+      if (order.status === "fulfilled") {
+        paymentFeedback.textContent = order.productType === "subscription"
+          ? `Thanh toán thành công. Đã gia hạn thêm ${order.durationDays} ngày.`
+          : `Thanh toán thành công. Đã cộng ${new Intl.NumberFormat("vi-VN").format(order.creditAmount)} Credits.`; return;
+      }
+      if (order.status === "expired") { paymentFeedback.textContent = "Đơn thanh toán đã hết hạn. Hãy tạo đơn mới."; return; }
+      if (order.status === "cancelled") { paymentFeedback.textContent = "Đơn thanh toán đã được hủy."; return; }
+      if (order.status === "review_required") { paymentFeedback.textContent = "Thanh toán cần kiểm tra. Không chuyển thêm tiền cho đơn này."; return; }
+      paymentFeedback.textContent = "Đang chờ thanh toán. Trạng thái sẽ được cập nhật tự động.";
+    } catch { paymentFeedback.textContent = "Không thể cập nhật trạng thái. Hệ thống sẽ thử lại."; }
+  }
+}
+
+document.querySelector("[data-payment-copy]")?.addEventListener("click", async () => {
+  if (paymentState.order?.paymentContent) await navigator.clipboard.writeText(paymentState.order.paymentContent);
+});
+document.querySelector("[data-payment-cancel]")?.addEventListener("click", async () => {
+  if (!paymentState.order) return;
+  try {
+    await paymentRequest(`orders/${paymentState.order.orderId}?device_code=${encodeURIComponent(paymentState.deviceCode)}`, { method: "DELETE" });
+    paymentState.pollGeneration += 1; paymentFeedback.textContent = "Đơn thanh toán đã được hủy.";
+  } catch { paymentFeedback.textContent = "Không thể hủy đơn lúc này."; }
+});
+document.querySelector("[data-payment-close]")?.addEventListener("click", () => paymentDialog?.close());
+paymentDialog?.addEventListener("close", () => { paymentState.pollGeneration += 1; });
+loadPaymentCatalog();

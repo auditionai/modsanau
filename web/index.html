@@ -208,27 +208,21 @@
     <section id="bang-gia" class="section pricing" aria-labelledby="pricing-title">
       <div class="pricing-heading reveal">
         <div><span class="section-number">06</span><p class="section-kicker">Bảng giá</p></div>
-        <div><h2 id="pricing-title">Thuê ứng dụng theo thời gian, nạp Credits khi cần dùng AI.</h2><p>Các mức giá chính thức chưa được cấu hình trên hệ thống. Bảng dưới đây thể hiện đầy đủ cấu trúc gói để bạn theo dõi trước khi mở bán.</p></div>
+        <div><h2 id="pricing-title">Thuê ứng dụng theo thời gian, nạp Credits khi cần dùng AI.</h2><p>Giá và giá trị gói được tải trực tiếp từ catalog thương mại phía server.</p></div>
       </div>
 
       <div class="pricing-block reveal">
         <div class="pricing-block-head"><div><span>01</span><h3>Thời hạn sử dụng ứng dụng</h3></div><p>Mỗi gói mở quyền sử dụng ứng dụng trong thời hạn tương ứng. Credits AI được quản lý riêng.</p></div>
-        <div class="rental-grid">
-          <article class="price-card" data-price-card><span class="price-label">7 ngày</span><h4>Gói tuần</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
-          <article class="price-card price-featured" data-price-card><span class="price-badge">Phổ biến</span><span class="price-label">30 ngày</span><h4>Gói tháng</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
-          <article class="price-card" data-price-card><span class="price-label">365 ngày</span><h4>Gói năm</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
-        </div>
+        <div class="rental-grid" data-subscription-products><p class="catalog-state">Đang tải bảng giá…</p></div>
       </div>
 
       <div class="pricing-block credit-pricing reveal">
         <div class="pricing-block-head"><div><span>02</span><h3>Gói nạp Credits</h3></div><p>Credits dùng cho Generate, Edit, Inpaint, Outpaint, Remove, Replace và Upscale. Chi phí từng tác vụ do server báo trước khi chạy.</p></div>
-        <div class="credit-grid">
-          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>100 Credits</h4><p>Gói dùng thử các tác vụ AI.</p><strong>Chưa công bố giá</strong></article>
-          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>500 Credits</h4><p>Phù hợp với nhu cầu chỉnh sửa thường xuyên.</p><strong>Chưa công bố giá</strong></article>
-          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>1.000 Credits</h4><p>Dành cho nhiều tác vụ hoặc ảnh độ phân giải cao.</p><strong>Chưa công bố giá</strong></article>
+        <div class="credit-grid" data-credit-products>
+          <p class="catalog-state">Đang tải bảng giá…</p>
           <article class="credit-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/></svg><div><h4>Cách tính an toàn</h4><p>Server giữ Credits trước khi xử lý, chốt chi phí khi tác vụ hoàn tất và hoàn lại phần giữ nếu tác vụ thất bại theo chính sách hệ thống.</p></div></article>
         </div>
-        <p class="pricing-disclaimer">Giá hiển thị trên website chỉ được cập nhật sau khi Product Owner phê duyệt catalog thương mại. Website không tự tạo giao dịch hoặc cấp Credits.</p>
+        <p class="pricing-disclaimer">Thanh toán được đối soát tự động qua SePay. Website không thể tự đổi số tiền, thời hạn hoặc Credits của đơn.</p>
       </div>
     </section>
 
@@ -326,6 +320,15 @@
           <p class="auth-feedback" role="alert" aria-live="polite" data-auth-feedback></p>
         </section>
       </div>
+    </div>
+  </dialog>
+
+  <dialog class="payment-dialog" data-payment-dialog aria-labelledby="payment-dialog-title">
+    <div class="payment-dialog-shell">
+      <header><div><p>SEPAY · BANK TRANSFER</p><h2 id="payment-dialog-title" data-payment-title>Thanh toán</h2></div><button type="button" aria-label="Đóng thanh toán" data-payment-close>×</button></header>
+      <form data-payment-form><label>Mã thiết bị<input name="deviceCode" inputmode="text" autocomplete="off" maxlength="18" pattern="AMS-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}" placeholder="AMS-XXXX-XXXX-XXXX" required></label><p>Nhập mã hiển thị trong trang Tài khoản của ứng dụng.</p><button class="button button-primary" type="submit">Tạo đơn thanh toán</button></form>
+      <section class="payment-order" data-payment-order hidden><img data-payment-qr width="280" height="280" alt="Mã QR thanh toán SePay"><dl><div><dt>Sản phẩm</dt><dd data-payment-product></dd></div><div><dt>Tổng thanh toán</dt><dd data-payment-amount></dd></div><div><dt>Ngân hàng</dt><dd data-payment-bank></dd></div><div><dt>Tài khoản</dt><dd data-payment-account></dd></div><div><dt>Nội dung chuyển khoản</dt><dd data-payment-content></dd></div><div><dt>Đơn hết hạn</dt><dd data-payment-expiry></dd></div></dl><button class="button" type="button" data-payment-copy>Sao chép nội dung</button><button class="button" type="button" data-payment-cancel>Hủy đơn</button></section>
+      <p class="payment-feedback" role="status" aria-live="polite" data-payment-feedback></p>
     </div>
   </dialog>
 
