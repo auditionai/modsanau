@@ -1,11 +1,14 @@
--- Thêm loại 'hybrid' vào enum (phải chạy NGOÀI transaction)
+-- Thêm loại 'hybrid' vào enum (phải chạy NGOÀI transaction và COMMIT ngay)
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'hybrid' AND enumtypid = 'private.gift_code_kind'::regtype) THEN
         ALTER TYPE private.gift_code_kind ADD VALUE 'hybrid';
     END IF;
 END $$;
 
--- Các thay đổi còn lại trong transaction
+-- COMMIT ở đây để PostgreSQL cho phép dùng giá trị 'hybrid' mới
+-- (không cần explicit COMMIT vì DO block tự động commit)
+
+-- Bây giờ mới được phép dùng 'hybrid' trong constraint
 BEGIN;
 
 -- 1. Cho phép gift code vừa có credits VÀ duration_days (hoặc chỉ một trong hai = 0)
