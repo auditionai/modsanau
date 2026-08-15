@@ -215,7 +215,7 @@ BEGIN
     IF action = 'packages' THEN
         SELECT jsonb_build_object('items',COALESCE(jsonb_agg(jsonb_build_object(
             'packageId',package_id,'productId',product_id,'displayName',display_name,'description',description,
-            'amountMinor',amount_minor,'currency',currency::text,'credits',credits,'isActive',is_active,
+            'amountMinor',amount_minor,'currency',currency::text,'credits',credits,'durationDays',duration_days,'isActive',is_active,
             'sortOrder',sort_order,'archivedAt',archived_at,'createdAt',created_at,'updatedAt',updated_at)
             ORDER BY archived_at NULLS FIRST,sort_order,created_at),'[]'::jsonb)) INTO result FROM private.commercial_packages;
         RETURN result;
@@ -225,9 +225,9 @@ BEGIN
         IF actor_role='auditor' THEN RAISE EXCEPTION 'ADMIN_MUTATION_FORBIDDEN' USING ERRCODE='42501'; END IF;
         saved_package_id := COALESCE(NULLIF(payload->>'packageId','')::uuid,gen_random_uuid()); correlation := (payload->>'correlationId')::uuid;
         reason := left(btrim(COALESCE(payload->>'reason','')),500); IF reason='' THEN RAISE EXCEPTION 'ADMIN_MUTATION_INVALID'; END IF;
-        INSERT INTO private.commercial_packages(package_id,product_id,display_name,description,amount_minor,currency,credits,is_active,sort_order,archived_at)
-        VALUES(saved_package_id,payload->>'productId',payload->>'displayName',NULLIF(payload->>'description',''),(payload->>'amountMinor')::bigint,lower(payload->>'currency'),(payload->>'credits')::bigint,COALESCE((payload->>'isActive')::boolean,true),COALESCE((payload->>'sortOrder')::integer,0),CASE WHEN COALESCE((payload->>'isActive')::boolean,true) THEN NULL ELSE clock_timestamp() END)
-        ON CONFLICT(package_id) DO UPDATE SET product_id=excluded.product_id,display_name=excluded.display_name,description=excluded.description,amount_minor=excluded.amount_minor,currency=excluded.currency,credits=excluded.credits,is_active=excluded.is_active,sort_order=excluded.sort_order,archived_at=CASE WHEN excluded.is_active THEN NULL ELSE COALESCE(private.commercial_packages.archived_at,clock_timestamp()) END,updated_at=clock_timestamp();
+        INSERT INTO private.commercial_packages(package_id,product_id,display_name,description,amount_minor,currency,credits,duration_days,is_active,sort_order,archived_at)
+        VALUES(saved_package_id,payload->>'productId',payload->>'displayName',NULLIF(payload->>'description',''),(payload->>'amountMinor')::bigint,lower(payload->>'currency'),(payload->>'credits')::bigint,(payload->>'durationDays')::integer,COALESCE((payload->>'isActive')::boolean,true),COALESCE((payload->>'sortOrder')::integer,0),CASE WHEN COALESCE((payload->>'isActive')::boolean,true) THEN NULL ELSE clock_timestamp() END)
+        ON CONFLICT(package_id) DO UPDATE SET product_id=excluded.product_id,display_name=excluded.display_name,description=excluded.description,amount_minor=excluded.amount_minor,currency=excluded.currency,credits=excluded.credits,duration_days=excluded.duration_days,is_active=excluded.is_active,sort_order=excluded.sort_order,archived_at=CASE WHEN excluded.is_active THEN NULL ELSE COALESCE(private.commercial_packages.archived_at,clock_timestamp()) END,updated_at=clock_timestamp();
         PERFORM private.admin_audit_record(actor_id,'PACKAGE_SAVED','COMMERCIAL_PACKAGE',saved_package_id,correlation,jsonb_build_object('reason',reason));
         RETURN jsonb_build_object('code','ADMIN_PACKAGE_SAVED','packageId',saved_package_id);
     END IF;
