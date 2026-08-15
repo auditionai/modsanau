@@ -1,7 +1,47 @@
 import { createClient } from "@supabase/supabase-js";
-import { MAX_BODY_BYTES, hex, normalizeSePayPayload, verifyHmac } from "../_shared/sepay-webhook.mjs";
 
 type AnyMap = Record<string, unknown>;
+
+// Inline utilities
+const MAX_BODY_BYTES = 1_048_576;
+
+function hex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function normalizeSePayPayload(raw: AnyMap) {
+  return {
+    id: String(raw.id || ''),
+    gateway: String(raw.gateway || ''),
+    transaction_date: String(raw.transaction_date || ''),
+    account_number: String(raw.account_number || ''),
+    sub_account: String(raw.sub_account || ''),
+    amount_in: String(raw.amount_in || '0'),
+    amount_out: String(raw.amount_out || '0'),
+    accumulated: String(raw.accumulated || '0'),
+    code: String(raw.code || ''),
+    transaction_content: String(raw.transaction_content || ''),
+    reference_number: String(raw.reference_number || ''),
+    body: String(raw.body || '')
+  };
+}
+
+async function verifyHmac(payload: Uint8Array, timestamp: string, signature: string, secret: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const data = encoder.encode(timestamp + new TextDecoder().decode(payload));
+  const mac = await crypto.subtle.sign('HMAC', key, data);
+  const computed = hex(mac);
+  return computed === signature;
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: {
