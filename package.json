@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node scripts/test.mjs",
+    "test": "node scripts/test.mjs && node --test scripts/test-sepay-payments.mjs",
     "verify:public": "node scripts/verify-public-inventory.mjs",
     "verify:dist": "node scripts/verify-public-inventory.mjs --dist",
     "check": "npm run verify:public && npm test && npm run build && npm run verify:dist"

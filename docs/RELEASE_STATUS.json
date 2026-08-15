@@ -4,5 +4,5 @@
   "channel": "pre-public",
   "publicDownloadAvailable": false,
   "approvedArtifact": null,
-  "notes": "PLAN 103 chỉ chuẩn bị website và deployment boundary; build nội bộ PLAN 102 không tự động được phép public."
+  "notes": "PLAN 106 đã chuẩn bị cổng tài khoản và private release. Chưa có artifact đã ký/phê duyệt nên download tiếp tục fail-closed."
 }

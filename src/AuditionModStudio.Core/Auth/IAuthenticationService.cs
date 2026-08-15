@@ -126,3 +126,21 @@ public interface IAuthenticationService
         CancellationToken cancellationToken = default);
     Task<AuthenticationResult> GetProfileAsync(CancellationToken cancellationToken = default);
 }
+
+public sealed record DesktopAccessSnapshot(
+    Guid DeviceId,
+    Guid SessionId,
+    string PublicDeviceCode,
+    string DeviceStatus,
+    DateTimeOffset LastSeenAt);
+
+public sealed record DesktopAccessResult(bool Succeeded, string DiagnosticCode, DesktopAccessSnapshot? Access)
+{
+    public static DesktopAccessResult Success(DesktopAccessSnapshot access) => new(true, "DESKTOP_ACCESS_ACTIVE", access);
+    public static DesktopAccessResult Failure(string code) => new(false, code, null);
+}
+
+public interface IDesktopAccessService
+{
+    Task<DesktopAccessResult> EnsureAccessAsync(CancellationToken cancellationToken = default);
+}

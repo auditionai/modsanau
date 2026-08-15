@@ -1133,3 +1133,6 @@ Performance evidence không làm yếu path traversal, reparse, resource, transa
 - Mọi bảng thương mại mới bật và force RLS; `anon`/`authenticated` không có quyền đọc Gift Code, redemption hoặc audit. RPC mutation chỉ cấp cho `service_role`.
 - Redeem chạy trong một transaction, khóa bản ghi, unique theo code/device, correlation id duy nhất và gọi credit ledger hiện hữu để chống double-credit.
 - Grant capability fail-closed khi chữ ký sai, claim không khớp, thiết bị bị chặn/thu hồi hoặc `expiresAt` đã qua.
+## Kiểm soát thanh toán SePay từ PLAN 107
+
+Webhook production bắt buộc HMAC-SHA256 trên timestamp cộng raw body, replay window 5 phút và constant-time comparison. Body bị giới hạn 64 KiB; transaction/order/fulfillment có lock và unique constraints; client không giữ SePay/service-role/payment secret. Admin mutation yêu cầu authorization, MFA, đăng nhập gần đây, reason và audit. Xem [SEPAY_WEBHOOK_SECURITY.md](SEPAY_WEBHOOK_SECURITY.md).

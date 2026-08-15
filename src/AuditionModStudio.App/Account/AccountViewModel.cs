@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using AuditionModStudio.Core.Accounts;
+using AuditionModStudio.Core.Payments;
 using AuditionModStudio.Core.Subscriptions;
 
 namespace AuditionModStudio.App.Account;
@@ -15,11 +16,20 @@ public sealed record AccountTransactionItem(
     string BalanceAfter,
     string CreatedAt);
 
+public sealed record PaymentProductItem(PaymentProduct Product)
+{
+    public string Label => Product.Type == PaymentProductType.Subscription
+        ? $"{Product.DisplayName} · {Product.DurationDays:N0} ngày · {Product.PriceVnd:N0} đ"
+        : $"{Product.DisplayName} · {Product.CreditAmount:N0} Credits · {Product.PriceVnd:N0} đ";
+}
+
 public sealed class AccountViewModel : INotifyPropertyChanged, IDisposable
 {
     private readonly IAccountOverviewService service;
     private readonly IDeviceEntitlementService deviceEntitlements;
+    private readonly IPaymentService payments;
     private CancellationTokenSource? _activationCancellation;
+    private CancellationTokenSource? _paymentCancellation;
     private ImmutableArray<AccountTransactionItem> _transactions = [];
     private string _statusMessage = "Mở Tài khoản để tải hồ sơ và lịch sử Credits.";
     private string _displayName = "Chưa cung cấp";
@@ -37,14 +47,22 @@ public sealed class AccountViewModel : INotifyPropertyChanged, IDisposable
     private string _deviceCode = "—", _subscriptionStatus = "Chưa tải", _subscriptionExpiry = "—", _remainingDays = "—";
     private string _benefits = "Chưa có dữ liệu quyền sử dụng.", _giftCode = string.Empty;
     private bool _canRedeem;
+    private ImmutableArray<PaymentProductItem> _paymentProducts = [];
+    private PaymentProductItem? _selectedPaymentProduct;
+    private PaymentOrder? _paymentOrder;
+    private string? _paymentQrUrl;
+    private string _paymentMessage = "Chọn gói để xem tổng thanh toán.";
+    private bool _isPaymentBusy;
     private int _disposed;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public AccountViewModel(IAccountOverviewService service, IDeviceEntitlementService? deviceEntitlements = null)
+    public AccountViewModel(IAccountOverviewService service, IDeviceEntitlementService? deviceEntitlements = null,
+        IPaymentService? payments = null)
     {
         this.service = service ?? throw new ArgumentNullException(nameof(service));
         this.deviceEntitlements = deviceEntitlements ?? new UnavailableDeviceEntitlementService();
+        this.payments = payments ?? new UnavailablePaymentService();
     }
 
     public string StatusMessage { get => _statusMessage; private set => Set(ref _statusMessage, value); }
@@ -73,6 +91,153 @@ public sealed class AccountViewModel : INotifyPropertyChanged, IDisposable
     public bool ShowProfile => HasSnapshot && !IsLoading;
     public bool ShowHistory => ShowProfile && Transactions.Length > 0;
     public bool ShowEmptyState => ShowProfile && Transactions.Length == 0;
+    public ImmutableArray<PaymentProductItem> PaymentProducts
+    { get => _paymentProducts; private set { if (Set(ref _paymentProducts, value)) NotifyPaymentStates(); } }
+    public PaymentProductItem? SelectedPaymentProduct
+    { get => _selectedPaymentProduct; set { if (Set(ref _selectedPaymentProduct, value)) NotifyPaymentStates(); } }
+    public string PaymentMessage { get => _paymentMessage; private set => Set(ref _paymentMessage, value); }
+    public bool IsPaymentBusy
+    { get => _isPaymentBusy; private set { if (Set(ref _isPaymentBusy, value)) NotifyPaymentStates(); } }
+    public bool CanCreatePayment => !IsPaymentBusy && SelectedPaymentProduct is not null;
+    public bool HasPaymentOrder => _paymentOrder is not null;
+    public bool ShowPaymentProductSelection => !HasPaymentOrder;
+    public string PaymentProductName => _paymentOrder?.ProductName ?? "—";
+    public string PaymentAmount => _paymentOrder is null ? "—" : $"{_paymentOrder.PriceVnd:N0} đ";
+    public string PaymentBank => _paymentOrder?.BankCode ?? "—";
+    public string PaymentAccount => _paymentOrder?.AccountNumber ?? "—";
+    public string PaymentAccountHolder => _paymentOrder?.AccountHolder ?? "—";
+    public string PaymentContent => _paymentOrder?.PaymentContent ?? "—";
+    public string PaymentExpiresAt => _paymentOrder?.ExpiresAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) ?? "—";
+    public string? PaymentQrUrl => _paymentQrUrl;
+    public bool CanCancelPayment => !IsPaymentBusy && _paymentOrder?.Status == PaymentOrderStatus.WaitingPayment;
+
+    public async Task<bool> PreparePurchaseAsync(PaymentProductType type, CancellationToken cancellationToken = default)
+    {
+        _paymentCancellation?.Cancel();
+        _paymentCancellation?.Dispose();
+        _paymentCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        ClearPaymentOrder();
+        IsPaymentBusy = true;
+        PaymentMessage = "Đang tải danh sách gói…";
+        try
+        {
+            var result = await payments.GetCatalogAsync(_paymentCancellation.Token);
+            PaymentProducts = result.Succeeded
+                ? result.Products.Where(product => product.Type == type).Select(product => new PaymentProductItem(product))
+                    .ToImmutableArray()
+                : [];
+            SelectedPaymentProduct = PaymentProducts.FirstOrDefault();
+            PaymentMessage = PaymentProducts.IsEmpty
+                ? "Chưa có gói đang phát hành. Giá và sản phẩm do server quản lý."
+                : "Kiểm tra gói và tổng thanh toán trước khi tạo đơn.";
+            return !PaymentProducts.IsEmpty;
+        }
+        finally { IsPaymentBusy = false; }
+    }
+
+    public async Task CreatePaymentOrderAsync(CancellationToken cancellationToken = default)
+    {
+        if (!CanCreatePayment || SelectedPaymentProduct is null) return;
+        IsPaymentBusy = true;
+        PaymentMessage = "Đang tạo đơn thanh toán…";
+        try
+        {
+            var idempotencyKey = $"desktop.{Guid.NewGuid():N}";
+            var result = await payments.CreateOrderAsync(SelectedPaymentProduct.Product.ProductId,
+                idempotencyKey, cancellationToken);
+            if (!result.Succeeded || result.Order is null)
+            {
+                PaymentMessage = "Không thể tạo đơn thanh toán lúc này. Vui lòng thử lại.";
+                return;
+            }
+            ApplyPaymentOrder(result.Order);
+            PaymentMessage = "Đang chờ thanh toán. Vui lòng giữ nguyên nội dung chuyển khoản.";
+            _paymentCancellation?.Cancel();
+            _paymentCancellation?.Dispose();
+            _paymentCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            _ = MonitorPaymentAsync(result.Order.OrderId, _paymentCancellation.Token);
+        }
+        finally { IsPaymentBusy = false; }
+    }
+
+    public async Task CancelPaymentAsync(CancellationToken cancellationToken = default)
+    {
+        if (_paymentOrder is null || !CanCancelPayment) return;
+        IsPaymentBusy = true;
+        try
+        {
+            var result = await payments.CancelOrderAsync(_paymentOrder.OrderId, cancellationToken);
+            if (result.Succeeded && result.Order is not null) ApplyPaymentOrder(result.Order);
+            PaymentMessage = result.Succeeded ? "Đơn thanh toán đã được hủy." : "Không thể hủy đơn lúc này.";
+            _paymentCancellation?.Cancel();
+        }
+        finally { IsPaymentBusy = false; }
+    }
+
+    private async Task MonitorPaymentAsync(Guid orderId, CancellationToken cancellationToken)
+    {
+        var delays = new[] { 4, 5, 7, 10, 15, 20, 30 };
+        var stopAt = (_paymentOrder?.ExpiresAt ?? DateTimeOffset.UtcNow.AddMinutes(15)).AddMinutes(2);
+        for (var attempt = 0;
+             !cancellationToken.IsCancellationRequested && DateTimeOffset.UtcNow < stopAt;
+             attempt++)
+        {
+            try { await Task.Delay(TimeSpan.FromSeconds(delays[Math.Min(attempt, delays.Length - 1)]), cancellationToken); }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
+            var result = await payments.GetOrderAsync(orderId, cancellationToken);
+            if (!result.Succeeded || result.Order is null)
+            {
+                PaymentMessage = "Không thể cập nhật trạng thái thanh toán. Ứng dụng sẽ thử lại.";
+                continue;
+            }
+            ApplyPaymentOrder(result.Order);
+            switch (result.Order.Status)
+            {
+                case PaymentOrderStatus.Fulfilled:
+                    PaymentMessage = result.Order.ProductType == PaymentProductType.Subscription
+                        ? $"Thanh toán thành công. Đã gia hạn thêm {result.Order.DurationDays:N0} ngày."
+                        : $"Thanh toán thành công. Đã cộng {result.Order.CreditAmount:N0} Credits.";
+                    await RefreshAfterPaymentAsync(cancellationToken);
+                    return;
+                case PaymentOrderStatus.Expired:
+                    PaymentMessage = "Đơn thanh toán đã hết hạn. Hãy tạo đơn mới.";
+                    return;
+                case PaymentOrderStatus.Cancelled:
+                    PaymentMessage = "Đơn thanh toán đã được hủy.";
+                    return;
+                case PaymentOrderStatus.ReviewRequired:
+                    PaymentMessage = "Thanh toán cần kiểm tra. Không chuyển thêm tiền cho đơn này.";
+                    return;
+                default:
+                    PaymentMessage = "Đang chờ thanh toán. Trạng thái sẽ được cập nhật tự động.";
+                    break;
+            }
+        }
+        if (!cancellationToken.IsCancellationRequested)
+            PaymentMessage = "Đã dừng cập nhật tự động. Hãy làm mới để kiểm tra trạng thái mới nhất.";
+    }
+
+    private async Task RefreshAfterPaymentAsync(CancellationToken cancellationToken)
+    {
+        var account = await service.RefreshAsync(cancellationToken);
+        if (account.Succeeded && account.Snapshot is not null) Apply(account.Snapshot);
+        await RefreshDeviceAsync(cancellationToken);
+        HasSnapshot = account.Succeeded || HasSnapshot;
+    }
+
+    private void ApplyPaymentOrder(PaymentOrder order)
+    {
+        _paymentOrder = order;
+        _paymentQrUrl = order.QrUri?.AbsoluteUri;
+        NotifyPaymentStates();
+    }
+
+    private void ClearPaymentOrder()
+    {
+        _paymentOrder = null;
+        _paymentQrUrl = null;
+        NotifyPaymentStates();
+    }
 
     public async Task ActivateAsync(CancellationToken cancellationToken = default)
     {
@@ -156,6 +321,9 @@ public sealed class AccountViewModel : INotifyPropertyChanged, IDisposable
         _activationCancellation?.Cancel();
         _activationCancellation?.Dispose();
         _activationCancellation = null;
+        _paymentCancellation?.Cancel();
+        _paymentCancellation?.Dispose();
+        _paymentCancellation = null;
         IsLoading = false;
     }
 
@@ -199,6 +367,22 @@ public sealed class AccountViewModel : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(nameof(ShowProfile));
         OnPropertyChanged(nameof(ShowHistory));
         OnPropertyChanged(nameof(ShowEmptyState));
+    }
+
+    private void NotifyPaymentStates()
+    {
+        OnPropertyChanged(nameof(CanCreatePayment));
+        OnPropertyChanged(nameof(HasPaymentOrder));
+        OnPropertyChanged(nameof(ShowPaymentProductSelection));
+        OnPropertyChanged(nameof(PaymentProductName));
+        OnPropertyChanged(nameof(PaymentAmount));
+        OnPropertyChanged(nameof(PaymentBank));
+        OnPropertyChanged(nameof(PaymentAccount));
+        OnPropertyChanged(nameof(PaymentAccountHolder));
+        OnPropertyChanged(nameof(PaymentContent));
+        OnPropertyChanged(nameof(PaymentExpiresAt));
+        OnPropertyChanged(nameof(PaymentQrUrl));
+        OnPropertyChanged(nameof(CanCancelPayment));
     }
 
     private bool Set<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)

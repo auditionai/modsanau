@@ -103,10 +103,10 @@ BEGIN
     IF action = 'dashboard' THEN
         SELECT jsonb_build_object(
             'recentAudit', COALESCE(jsonb_agg(jsonb_build_object(
-                'eventId', event_id, 'actorAdminUserId', actor_admin_user_id,
-                'eventType', event_type, 'targetKind', target_kind, 'targetId', target_id,
-                'correlationId', correlation_id, 'details', details::text, 'eventAt', event_at)
-                ORDER BY event_at DESC),'[]'::jsonb)) INTO result
+                'eventId', recent.event_id, 'actorAdminUserId', recent.actor_admin_user_id,
+                'eventType', recent.event_type, 'targetKind', recent.target_kind, 'targetId', recent.target_id,
+                'correlationId', recent.correlation_id, 'details', recent.details::text, 'eventAt', recent.event_at)
+                ORDER BY recent.event_at DESC),'[]'::jsonb)) INTO result
         FROM (SELECT * FROM private.admin_audit_events ORDER BY event_at DESC LIMIT 8) recent;
         RETURN result;
     END IF;
@@ -156,16 +156,30 @@ BEGIN
     IF action = 'devices' THEN
         WITH rows AS (
             SELECT dp.device_profile_id,dp.auth_user_id,dp.public_device_code,dp.status::text device_status,
+                COALESCE(u.email,'') email,mp.display_name,
                 COALESCE(s.status::text,'none') subscription_status,s.starts_at,s.expires_at subscription_expires_at,
                 COALESCE(w.available_credits,0) available_credits,COALESCE(w.reserved_credits,0) reserved_credits,
-                dp.created_at,dp.last_seen_at
+                dp.created_at,GREATEST(dp.last_seen_at,uds.last_seen_at) last_seen_at,
+                uds.device_id,uds.session_id,uds.display_name device_display_name,
+                uds.client_version,uds.platform,
+                CASE WHEN uds.last_seen_at>=clock_timestamp()-interval '2 minutes' THEN 'online'
+                     WHEN uds.last_seen_at>=clock_timestamp()-interval '24 hours' THEN 'recent'
+                     ELSE 'offline' END presence_status
             FROM private.device_profiles dp LEFT JOIN private.subscriptions s USING(device_profile_id)
             LEFT JOIN private.credit_wallets w ON w.user_id=dp.auth_user_id
-            WHERE (search_query IS NULL OR dp.public_device_code ILIKE '%'||upper(search_query)||'%' OR dp.auth_user_id::text ILIKE '%'||search_query||'%')
+            LEFT JOIN auth.users u ON u.id=dp.auth_user_id
+            LEFT JOIN private.managed_user_profiles mp ON mp.user_id=dp.auth_user_id
+            LEFT JOIN LATERAL (SELECT x.* FROM private.user_device_sessions x
+                WHERE x.user_id=dp.auth_user_id ORDER BY x.last_seen_at DESC LIMIT 1) uds ON true
+            WHERE (search_query IS NULL OR dp.public_device_code ILIKE '%'||upper(search_query)||'%' OR dp.auth_user_id::text ILIKE '%'||search_query||'%'
+                OR COALESCE(u.email,'') ILIKE '%'||search_query||'%' OR COALESCE(mp.display_name,'') ILIKE '%'||search_query||'%'
+                OR COALESCE(uds.device_id::text,'') ILIKE '%'||search_query||'%')
               AND (status_filter IS NULL OR dp.status::text=status_filter)
         ), page AS (SELECT * FROM rows ORDER BY last_seen_at DESC,device_profile_id DESC LIMIT page_limit OFFSET page_offset)
         SELECT jsonb_build_object('totalCount',(SELECT count(*) FROM rows),'items',COALESCE(jsonb_agg(jsonb_build_object(
             'deviceProfileId',device_profile_id,'authUserId',auth_user_id,'publicDeviceCode',public_device_code,
+            'email',email,'displayName',display_name,'deviceId',device_id,'sessionId',session_id,
+            'deviceDisplayName',device_display_name,'clientVersion',client_version,'platform',platform,'presenceStatus',presence_status,
             'deviceStatus',device_status,'subscriptionStatus',subscription_status,'startsAt',starts_at,
             'subscriptionExpiresAt',subscription_expires_at,'availableCredits',available_credits,
             'reservedCredits',reserved_credits,'createdAt',created_at,'lastSeenAt',last_seen_at)
@@ -284,9 +298,9 @@ BEGIN
 
     IF action = 'audit' THEN
         SELECT jsonb_build_object('items',COALESCE(jsonb_agg(jsonb_build_object(
-            'eventId',event_id,'actorAdminUserId',actor_admin_user_id,'eventType',event_type,'targetKind',target_kind,
-            'targetId',target_id,'correlationId',correlation_id,'details',details::text,'eventAt',event_at)
-            ORDER BY event_at DESC),'[]'::jsonb)) INTO result
+            'eventId',e.event_id,'actorAdminUserId',e.actor_admin_user_id,'eventType',e.event_type,'targetKind',e.target_kind,
+            'targetId',e.target_id,'correlationId',e.correlation_id,'details',e.details::text,'eventAt',e.event_at)
+            ORDER BY e.event_at DESC),'[]'::jsonb)) INTO result
         FROM (SELECT * FROM private.admin_audit_events ORDER BY event_at DESC LIMIT page_limit OFFSET page_offset) e;
         RETURN result;
     END IF;

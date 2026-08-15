@@ -270,8 +270,8 @@ if (appDialog instanceof HTMLDialogElement) {
     interface: { code: "WINDOW / 03", kicker: "INTERFACE PREVIEW", title: "Giao diện Windows hiện tại.", description: "Ảnh chụp được hiển thị nguyên tỷ lệ để bạn xem rõ bố cục ứng dụng mà không bị crop hoặc zoom quá mức.", points: ["Giao diện sáng và tối", "Image Editor chuyên biệt", "Thông báo cập nhật rõ ràng"], image: "/assets/screenshots/home-dark.png", alt: "Màn hình giao diện tối của Audition AI Mod Studio", state: "1920 × 1080 / PREVIEW" },
     pricing: { code: "WINDOW / 04", kicker: "PRICING STATUS", title: "Gói thuê và Credits.", description: "Cấu trúc gồm thời hạn tuần, tháng, năm và các gói nạp Credits. Giá chính thức hiện chưa được công bố.", points: ["Quyền ứng dụng tách khỏi Credits", "Server quyết định số dư và chi phí", "Website chưa tạo giao dịch"], image: "/assets/screenshots/home-dark.png", alt: "Màn hình Audition AI Mod Studio", state: "CATALOG / PENDING" },
     scope: { code: "WINDOW / 05", kicker: "FILE-ONLY SCOPE", title: "Làm việc với file do bạn chọn.", description: "Ứng dụng không tìm game, không điều khiển tiến trình và không tự cài mod vào thư mục Audition.", points: ["Workspace riêng cho từng dự án", "Không sửa pristine template", "Đầu ra là archive độc lập"], image: "/assets/screenshots/home-light.png", alt: "Trang chủ Audition AI Mod Studio", state: "BOUNDARY / VERIFIED" },
-    legal: { code: "WINDOW / 06", kicker: "LEGAL INFORMATION", title: "Thông tin pháp lý.", description: "Website giới thiệu không thu thập dữ liệu dự án, không có biểu mẫu tài khoản và chưa cung cấp file tải xuống.", points: ["Quyền riêng tư được mô tả minh bạch", "Điều khoản áp dụng cho website thử nghiệm", "Không nhúng analytics hoặc tracker"], image: "/assets/screenshots/home-dark.png", alt: "Giao diện Audition AI Mod Studio", state: "PUBLIC SITE / STATIC" },
-    status: { code: "WINDOW / 07", kicker: "RELEASE TELEMETRY", title: "Bản public đang được chuẩn bị.", description: "Website đang hoạt động để giới thiệu sản phẩm. Bản portable chưa được mở tải xuống công khai.", points: ["Nền tảng Windows x64", "Hình thức portable", "Ngày phát hành chưa công bố"], image: "/assets/screenshots/update-available.png", alt: "Màn hình thông báo cập nhật Audition AI Mod Studio", state: "RELEASE / PENDING" },
+    legal: { code: "WINDOW / 06", kicker: "LEGAL INFORMATION", title: "Thông tin pháp lý.", description: "Website không thu thập dữ liệu dự án. Tài khoản, trạng thái xác minh và thiết bị được xử lý qua Supabase theo chính sách quyền riêng tư.", points: ["Mật khẩu không lưu trong bảng ứng dụng", "Không nhúng analytics hoặc tracker", "Bộ cài dùng vùng lưu trữ riêng tư"], image: "/assets/screenshots/home-dark.png", alt: "Giao diện Audition AI Mod Studio", state: "ACCOUNT / PROTECTED" },
+    status: { code: "WINDOW / 07", kicker: "RELEASE TELEMETRY", title: "Cổng phát hành đã sẵn sàng.", description: "Người dùng đăng ký, xác minh Gmail và đăng nhập để nhận liên kết tải ngắn hạn khi bộ cài được phê duyệt.", points: ["Nền tảng Windows x64", "Xác thực Supabase", "Private release storage"], image: "/assets/screenshots/update-available.png", alt: "Màn hình thông báo cập nhật Audition AI Mod Studio", state: "RELEASE / AUTH GATED" },
     "ai-approval": { code: "WINDOW / AI", kicker: "USER APPROVAL", title: "Kiểm tra trước khi áp dụng.", description: "AI chỉ tạo bản preview. Bạn cần xem kết quả, xác nhận thay đổi và chờ kiểm tra DDS trước khi ảnh thay thế được lưu.", points: ["So sánh ảnh nguồn và preview", "Xác nhận hoặc hủy kết quả", "Validate DDS sau khi duyệt"], image: "/assets/screenshots/image-editor.png", alt: "Màn hình kiểm tra hình ảnh trước khi áp dụng", state: "WAITING / USER" }
   };
 
@@ -327,3 +327,272 @@ if ("IntersectionObserver" in window && !reducedMotion.matches) {
 }
 
 for (const year of document.querySelectorAll("[data-year]")) year.textContent = String(new Date().getFullYear());
+
+const authDialog = document.querySelector("[data-auth-dialog]");
+const authFeedback = document.querySelector("[data-auth-feedback]");
+const publicAuthKey = "aams.public.session";
+let publicConfig = null;
+let publicSession = null;
+
+async function getPublicConfig() {
+  if (publicConfig) return publicConfig;
+  const response = await fetch("/app/config", { cache: "no-store" });
+  if (!response.ok) throw new Error("Cấu hình dịch vụ hiện chưa sẵn sàng.");
+  publicConfig = await response.json();
+  return publicConfig;
+}
+
+function savePublicSession(session) {
+  publicSession = session;
+  if (session) localStorage.setItem(publicAuthKey, JSON.stringify(session));
+  else localStorage.removeItem(publicAuthKey);
+  renderPublicAccount();
+}
+
+async function publicAuthRequest(route, body, token = "") {
+  const config = await getPublicConfig();
+  const headers = { "Content-Type": "application/json", apikey: config.publishableKey };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await fetch(`${config.supabaseUrl}/auth/v1/${route}`, {
+    method: "POST", headers, body: JSON.stringify(body), cache: "no-store"
+  });
+  let result = null;
+  try { result = await response.json(); } catch { /* bounded generic error below */ }
+  if (!response.ok) throw new Error(response.status === 400 ? "Thông tin đăng nhập không hợp lệ hoặc tài khoản chưa xác minh." : "Không thể kết nối dịch vụ tài khoản.");
+  return result;
+}
+
+async function refreshPublicSession() {
+  if (!publicSession?.refresh_token) return false;
+  try {
+    const next = await publicAuthRequest("token?grant_type=refresh_token", { refresh_token: publicSession.refresh_token });
+    savePublicSession(next);
+    return Boolean(next?.access_token);
+  } catch { savePublicSession(null); return false; }
+}
+
+function renderPublicAccount() {
+  const signedIn = Boolean(publicSession?.access_token);
+  const email = publicSession?.user?.email ?? "";
+  document.querySelectorAll("[data-auth-open]").forEach((button) => { button.hidden = signedIn; });
+  const download = document.querySelector("[data-release-download]");
+  const signout = document.querySelector("[data-auth-signout]");
+  if (download) download.hidden = !signedIn;
+  if (signout) signout.hidden = !signedIn;
+  const state = document.querySelector("[data-account-state]");
+  if (state) state.textContent = signedIn ? email : "Chưa đăng nhập";
+  const releaseState = document.querySelector("[data-release-state]");
+  if (releaseState) releaseState.lastChild.textContent = signedIn ? " Sẵn sàng tải" : " Yêu cầu tài khoản";
+}
+
+function selectAuthTab(name) {
+  document.querySelectorAll("[data-auth-tab]").forEach((button) => button.setAttribute("aria-selected", String(button.dataset.authTab === name)));
+  const signup = document.querySelector("[data-signup-form]");
+  const signin = document.querySelector("[data-signin-form]");
+  if (signup) signup.hidden = name !== "signup";
+  if (signin) signin.hidden = name !== "signin";
+  if (authFeedback) { authFeedback.textContent = ""; authFeedback.classList.remove("is-success"); }
+}
+
+if (authDialog instanceof HTMLDialogElement) {
+  document.querySelectorAll("[data-auth-open]").forEach((button) => button.addEventListener("click", () => authDialog.showModal()));
+  document.querySelectorAll("[data-auth-close]").forEach((button) => button.addEventListener("click", () => authDialog.close()));
+  document.querySelectorAll("[data-auth-tab]").forEach((button) => button.addEventListener("click", () => selectAuthTab(button.dataset.authTab)));
+}
+
+document.querySelector("[data-signup-form]")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const displayName = String(data.get("displayName") ?? "").trim();
+  const email = String(data.get("email") ?? "").trim().toLowerCase();
+  const password = String(data.get("password") ?? "");
+  const confirmPassword = String(data.get("confirmPassword") ?? "");
+  if (displayName.length < 2 || !/^[^\s@]+@gmail\.com$/i.test(email) || password.length < 8 || password !== confirmPassword) {
+    authFeedback.textContent = "Vui lòng nhập tên, địa chỉ @gmail.com và mật khẩu khớp nhau từ 8 ký tự.";
+    return;
+  }
+  try {
+    const result = await publicAuthRequest("signup", { email, password, data: { display_name: displayName } });
+    if (result?.access_token) { savePublicSession(result); authDialog.close(); return; }
+    authFeedback.classList.add("is-success");
+    authFeedback.textContent = "Đăng ký thành công. Hãy mở Gmail và xác minh tài khoản, sau đó quay lại đăng nhập.";
+    selectAuthTab("signin");
+    authFeedback.classList.add("is-success");
+    authFeedback.textContent = "Đăng ký thành công. Hãy xác minh Gmail rồi đăng nhập.";
+  } catch (error) { authFeedback.textContent = error.message; }
+});
+
+document.querySelector("[data-signin-form]")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  try {
+    const result = await publicAuthRequest("token?grant_type=password", { email: String(data.get("email") ?? "").trim(), password: String(data.get("password") ?? "") });
+    savePublicSession(result);
+    authDialog?.close();
+    document.querySelector("#phat-hanh")?.scrollIntoView({ behavior: reducedMotion.matches ? "auto" : "smooth" });
+  } catch (error) { authFeedback.textContent = error.message; }
+});
+
+document.querySelector("[data-auth-signout]")?.addEventListener("click", async () => {
+  if (publicSession?.access_token) {
+    try { await publicAuthRequest("logout?scope=local", {}, publicSession.access_token); } catch { /* local sign-out still completes */ }
+  }
+  savePublicSession(null);
+});
+
+document.querySelector("[data-release-download]")?.addEventListener("click", async () => {
+  const message = document.querySelector("[data-release-message]");
+  try {
+    const config = await getPublicConfig();
+    const send = async () => fetch(`${config.supabaseUrl}/storage/v1/object/sign/${config.releaseBucket}/${config.releaseObject}`, {
+      method: "POST", headers: { "Content-Type": "application/json", apikey: config.publishableKey, Authorization: `Bearer ${publicSession.access_token}` },
+      body: JSON.stringify({ expiresIn: 120, download: "AuditionAI-Mod-Studio-win-x64.zip" }), cache: "no-store"
+    });
+    let response = await send();
+    if (response.status === 401 && await refreshPublicSession()) response = await send();
+    if (!response.ok) throw new Error("Bộ cài chưa được phát hành hoặc tài khoản chưa đủ điều kiện tải.");
+    const result = await response.json();
+    const signedPath = result.signedURL ?? result.signedUrl;
+    if (!signedPath) throw new Error("Không nhận được liên kết tải hợp lệ.");
+    location.assign(signedPath.startsWith("http") ? signedPath : `${config.supabaseUrl}/storage/v1${signedPath}`);
+  } catch (error) { if (message) message.textContent = error.message; }
+});
+
+try { publicSession = JSON.parse(localStorage.getItem(publicAuthKey) || "null"); } catch { localStorage.removeItem(publicAuthKey); }
+renderPublicAccount();
+
+const paymentDialog = document.querySelector("[data-payment-dialog]");
+const paymentFeedback = document.querySelector("[data-payment-feedback]");
+const paymentState = { product: null, order: null, deviceCode: "", pollGeneration: 0 };
+
+async function paymentRequest(route, options = {}) {
+  const config = await getPublicConfig();
+  const headers = { "Content-Type": "application/json", apikey: config.publishableKey, ...(options.headers || {}) };
+  const response = await fetch(`${config.supabaseUrl}/functions/v1/payments/${route}`, { ...options, headers, cache: "no-store" });
+  let result = null;
+  try { result = await response.json(); } catch { /* generic bounded error below */ }
+  if (!response.ok) throw new Error(result?.error || "PAYMENT_REQUEST_FAILED");
+  return result;
+}
+
+function formatVnd(value) { return `${new Intl.NumberFormat("vi-VN").format(Number(value) || 0)} đ`; }
+
+function productCard(product) {
+  const isSubscription = product.type === "subscription";
+  const card = document.createElement("article");
+  card.className = isSubscription ? "price-card" : "credit-card";
+  card.dataset.priceCard = "";
+  if (!isSubscription) {
+    const coin = document.createElement("div"); coin.className = "credit-coin";
+    coin.append(document.createElement("i")); const mark = document.createElement("b"); mark.textContent = "C"; coin.append(mark); card.append(coin);
+  }
+  const label = document.createElement("span"); label.className = "price-label";
+  label.textContent = isSubscription ? `${product.durationDays} ngày` : `${new Intl.NumberFormat("vi-VN").format(product.creditAmount)} Credits`;
+  const title = document.createElement("h4"); title.textContent = product.displayName;
+  const price = document.createElement(isSubscription ? "p" : "strong");
+  price.className = isSubscription ? "price-value" : ""; price.textContent = formatVnd(product.priceVnd);
+  const buy = document.createElement("button"); buy.type = "button"; buy.className = "price-state";
+  buy.textContent = isSubscription ? "Gia hạn" : "Mua Credits"; buy.addEventListener("click", () => openPurchase(product));
+  card.append(label, title, price, buy);
+  return card;
+}
+
+async function loadPaymentCatalog() {
+  const subscriptions = document.querySelector("[data-subscription-products]");
+  const credits = document.querySelector("[data-credit-products]");
+  if (!subscriptions || !credits) return;
+  const creditNote = credits.querySelector(".credit-note");
+  try {
+    const result = await paymentRequest("catalog");
+    const products = Array.isArray(result?.products) ? result.products : [];
+    const subscriptionCards = products.filter(item => item?.type === "subscription").map(productCard);
+    const creditCards = products.filter(item => item?.type === "credits").map(productCard);
+    subscriptions.replaceChildren(...(subscriptionCards.length ? subscriptionCards : [catalogEmpty()]));
+    credits.replaceChildren(...(creditCards.length ? creditCards : [catalogEmpty()]));
+    if (creditNote) credits.append(creditNote);
+  } catch {
+    subscriptions.replaceChildren(catalogEmpty("Chưa thể tải bảng giá. Vui lòng thử lại sau."));
+    credits.replaceChildren(catalogEmpty("Chưa thể tải bảng giá. Vui lòng thử lại sau."));
+    if (creditNote) credits.append(creditNote);
+  }
+}
+
+function catalogEmpty(message = "Chưa có gói đang phát hành.") {
+  const state = document.createElement("p"); state.className = "catalog-state"; state.textContent = message; return state;
+}
+
+function openPurchase(product) {
+  if (!(paymentDialog instanceof HTMLDialogElement)) return;
+  paymentState.product = product; paymentState.order = null; paymentState.pollGeneration += 1;
+  document.querySelector("[data-payment-title]").textContent = product.displayName;
+  document.querySelector("[data-payment-form]").hidden = false;
+  document.querySelector("[data-payment-order]").hidden = true;
+  paymentFeedback.textContent = "Kiểm tra Mã thiết bị trước khi tạo đơn.";
+  paymentDialog.showModal();
+}
+
+function renderPaymentOrder(order) {
+  paymentState.order = order;
+  const qr = document.querySelector("[data-payment-qr]");
+  const qrUrl = new URL(order.qrUrl);
+  if (qrUrl.protocol !== "https:" || qrUrl.hostname !== "vietqr.app") throw new Error("PAYMENT_QR_INVALID");
+  qr.src = qrUrl.href;
+  document.querySelector("[data-payment-product]").textContent = order.productName;
+  document.querySelector("[data-payment-amount]").textContent = formatVnd(order.priceVnd);
+  document.querySelector("[data-payment-bank]").textContent = `${order.bankCode} · ${order.accountHolder}`;
+  document.querySelector("[data-payment-account]").textContent = order.accountNumber;
+  document.querySelector("[data-payment-content]").textContent = order.paymentContent;
+  document.querySelector("[data-payment-expiry]").textContent = new Date(order.expiresAt).toLocaleString("vi-VN");
+  document.querySelector("[data-payment-form]").hidden = true;
+  document.querySelector("[data-payment-order]").hidden = false;
+}
+
+document.querySelector("[data-payment-form]")?.addEventListener("submit", async event => {
+  event.preventDefault(); const form = event.currentTarget;
+  if (!form.reportValidity() || !paymentState.product) return;
+  const deviceCode = form.deviceCode.value.trim().toUpperCase();
+  paymentFeedback.textContent = "Đang tạo đơn thanh toán…";
+  try {
+    const order = await paymentRequest("orders", { method: "POST", headers: { "X-Idempotency-Key": `web.${crypto.randomUUID()}` },
+      body: JSON.stringify({ device_code: deviceCode, product_id: paymentState.product.productId }) });
+    paymentState.deviceCode = deviceCode; renderPaymentOrder(order);
+    paymentFeedback.textContent = "Đang chờ thanh toán. Vui lòng giữ nguyên nội dung chuyển khoản.";
+    pollPayment(order.orderId, ++paymentState.pollGeneration);
+  } catch { paymentFeedback.textContent = "Không thể tạo đơn. Hãy kiểm tra Mã thiết bị hoặc thử lại sau."; }
+});
+
+async function pollPayment(orderId, generation) {
+  const delays = [4000, 5000, 7000, 10000, 15000, 20000, 30000];
+  for (let attempt = 0; generation === paymentState.pollGeneration; attempt += 1) {
+    await new Promise(resolve => window.setTimeout(resolve, delays[Math.min(attempt, delays.length - 1)]));
+    if (generation !== paymentState.pollGeneration) return;
+    try {
+      const order = await paymentRequest(`orders/${encodeURIComponent(orderId)}?device_code=${encodeURIComponent(paymentState.deviceCode)}`);
+      paymentState.order = { ...paymentState.order, ...order };
+      if (order.status === "fulfilled") {
+        paymentFeedback.textContent = order.productType === "subscription"
+          ? `Thanh toán thành công. Đã gia hạn thêm ${order.durationDays} ngày.`
+          : `Thanh toán thành công. Đã cộng ${new Intl.NumberFormat("vi-VN").format(order.creditAmount)} Credits.`; return;
+      }
+      if (order.status === "expired") { paymentFeedback.textContent = "Đơn thanh toán đã hết hạn. Hãy tạo đơn mới."; return; }
+      if (order.status === "cancelled") { paymentFeedback.textContent = "Đơn thanh toán đã được hủy."; return; }
+      if (order.status === "review_required") { paymentFeedback.textContent = "Thanh toán cần kiểm tra. Không chuyển thêm tiền cho đơn này."; return; }
+      paymentFeedback.textContent = "Đang chờ thanh toán. Trạng thái sẽ được cập nhật tự động.";
+    } catch { paymentFeedback.textContent = "Không thể cập nhật trạng thái. Hệ thống sẽ thử lại."; }
+  }
+}
+
+document.querySelector("[data-payment-copy]")?.addEventListener("click", async () => {
+  if (paymentState.order?.paymentContent) await navigator.clipboard.writeText(paymentState.order.paymentContent);
+});
+document.querySelector("[data-payment-cancel]")?.addEventListener("click", async () => {
+  if (!paymentState.order) return;
+  try {
+    await paymentRequest(`orders/${paymentState.order.orderId}?device_code=${encodeURIComponent(paymentState.deviceCode)}`, { method: "DELETE" });
+    paymentState.pollGeneration += 1; paymentFeedback.textContent = "Đơn thanh toán đã được hủy.";
+  } catch { paymentFeedback.textContent = "Không thể hủy đơn lúc này."; }
+});
+document.querySelector("[data-payment-close]")?.addEventListener("click", () => paymentDialog?.close());
+paymentDialog?.addEventListener("close", () => { paymentState.pollGeneration += 1; });
+loadPaymentCatalog();

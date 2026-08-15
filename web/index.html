@@ -39,6 +39,7 @@
         <a href="#giao-dien">Giao diện</a>
         <a href="#bang-gia">Bảng giá</a>
         <a class="nav-status" href="#phat-hanh"><span></span>Trạng thái</a>
+        <button class="account-nav-button" type="button" data-auth-open>Tài khoản</button>
       </nav>
     </div>
   </header>
@@ -207,35 +208,36 @@
     <section id="bang-gia" class="section pricing" aria-labelledby="pricing-title">
       <div class="pricing-heading reveal">
         <div><span class="section-number">06</span><p class="section-kicker">Bảng giá</p></div>
-        <div><h2 id="pricing-title">Thuê ứng dụng theo thời gian, nạp Credits khi cần dùng AI.</h2><p>Các mức giá chính thức chưa được cấu hình trên hệ thống. Bảng dưới đây thể hiện đầy đủ cấu trúc gói để bạn theo dõi trước khi mở bán.</p></div>
+        <div><h2 id="pricing-title">Thuê ứng dụng theo thời gian, nạp Credits khi cần dùng AI.</h2><p>Giá và giá trị gói được tải trực tiếp từ catalog thương mại phía server.</p></div>
       </div>
 
       <div class="pricing-block reveal">
         <div class="pricing-block-head"><div><span>01</span><h3>Thời hạn sử dụng ứng dụng</h3></div><p>Mỗi gói mở quyền sử dụng ứng dụng trong thời hạn tương ứng. Credits AI được quản lý riêng.</p></div>
-        <div class="rental-grid">
-          <article class="price-card" data-price-card><span class="price-label">7 ngày</span><h4>Gói tuần</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
-          <article class="price-card price-featured" data-price-card><span class="price-badge">Phổ biến</span><span class="price-label">30 ngày</span><h4>Gói tháng</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
-          <article class="price-card" data-price-card><span class="price-label">365 ngày</span><h4>Gói năm</h4><p class="price-value">Chưa công bố</p><ul><li>Toàn bộ công cụ chỉnh texture</li><li>Build archive .ab/.acv</li><li>Cập nhật trong thời hạn</li></ul><span class="price-state">Chưa mở bán</span></article>
-        </div>
+        <div class="rental-grid" data-subscription-products><p class="catalog-state">Đang tải bảng giá…</p></div>
       </div>
 
       <div class="pricing-block credit-pricing reveal">
         <div class="pricing-block-head"><div><span>02</span><h3>Gói nạp Credits</h3></div><p>Credits dùng cho Generate, Edit, Inpaint, Outpaint, Remove, Replace và Upscale. Chi phí từng tác vụ do server báo trước khi chạy.</p></div>
-        <div class="credit-grid">
-          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>100 Credits</h4><p>Gói dùng thử các tác vụ AI.</p><strong>Chưa công bố giá</strong></article>
-          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>500 Credits</h4><p>Phù hợp với nhu cầu chỉnh sửa thường xuyên.</p><strong>Chưa công bố giá</strong></article>
-          <article class="credit-card" data-price-card><div class="credit-coin"><i></i><b>C</b></div><h4>1.000 Credits</h4><p>Dành cho nhiều tác vụ hoặc ảnh độ phân giải cao.</p><strong>Chưa công bố giá</strong></article>
+        <div class="credit-grid" data-credit-products>
+          <p class="catalog-state">Đang tải bảng giá…</p>
           <article class="credit-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z"/></svg><div><h4>Cách tính an toàn</h4><p>Server giữ Credits trước khi xử lý, chốt chi phí khi tác vụ hoàn tất và hoàn lại phần giữ nếu tác vụ thất bại theo chính sách hệ thống.</p></div></article>
         </div>
-        <p class="pricing-disclaimer">Giá hiển thị trên website chỉ được cập nhật sau khi Product Owner phê duyệt catalog thương mại. Website không tự tạo giao dịch hoặc cấp Credits.</p>
+        <p class="pricing-disclaimer">Thanh toán được đối soát tự động qua SePay. Website không thể tự đổi số tiền, thời hạn hoặc Credits của đơn.</p>
       </div>
     </section>
 
     <section id="phat-hanh" class="release" aria-labelledby="release-title">
       <div class="release-pattern" aria-hidden="true"></div>
       <div class="release-inner reveal">
-        <div><p class="section-kicker">Trạng thái hiện tại</p><h2 id="release-title">Bản public đang được chuẩn bị.</h2><p>Website này giới thiệu sản phẩm và giao diện thử nghiệm. File cài đặt chưa được phát hành công khai.</p></div>
-        <div class="release-card"><span><i></i>Đang hoàn thiện</span><dl><div><dt>Nền tảng</dt><dd>Windows x64</dd></div><div><dt>Hình thức</dt><dd>Portable</dd></div><div><dt>Tải xuống</dt><dd>Chưa mở</dd></div></dl></div>
+        <div><p class="section-kicker">Tài khoản ứng dụng</p><h2 id="release-title">Đăng ký một lần, sử dụng trên ứng dụng.</h2><p>Tạo tài khoản bằng Gmail, xác minh email rồi tải Audition AI Mod Studio. Khi mở ứng dụng, đăng nhập để máy được đăng ký tự động.</p></div>
+        <div class="release-card account-release-card">
+          <span data-release-state><i></i>Yêu cầu tài khoản</span>
+          <dl><div><dt>Nền tảng</dt><dd>Windows x64</dd></div><div><dt>Hình thức</dt><dd>Portable</dd></div><div><dt>Tài khoản</dt><dd data-account-state>Chưa đăng nhập</dd></div></dl>
+          <button class="button button-primary release-auth-button" type="button" data-auth-open>Đăng ký để tải ứng dụng</button>
+          <button class="button button-primary release-download-button" type="button" data-release-download hidden>Tải Audition AI Mod Studio</button>
+          <button class="release-signout-button" type="button" data-auth-signout hidden>Đăng xuất</button>
+          <p class="release-message" role="status" aria-live="polite" data-release-message></p>
+        </div>
       </div>
     </section>
 
@@ -295,6 +297,40 @@
       <div class="footer-bottom"><span>© <span data-year>2026</span> Audition AI</span><span class="footer-signal"><i></i>SECURE LOCAL PIPELINE</span><button type="button" data-window="status">Xem trạng thái <b>↗</b></button></div>
     </div>
   </footer>
+
+  <dialog class="auth-dialog" data-auth-dialog aria-labelledby="auth-dialog-title">
+    <div class="auth-frame">
+      <header><div class="brand"><span class="brand-icon"><img src="/assets/brand/brand-mark.svg" width="34" height="34" alt=""></span><span><strong>Audition AI</strong><small>TÀI KHOẢN ỨNG DỤNG</small></span></div><button type="button" data-auth-close aria-label="Đóng">×</button></header>
+      <div class="auth-layout">
+        <aside><p>SECURE ACCESS</p><h2 id="auth-dialog-title">Bắt đầu với Mod Studio.</h2><ul><li>Xác minh Gmail trước khi tải</li><li>Mật khẩu do Supabase Auth bảo vệ</li><li>Máy được đăng ký khi đăng nhập ứng dụng</li></ul></aside>
+        <section>
+          <div class="auth-tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-auth-tab="signup">Đăng ký</button><button type="button" role="tab" aria-selected="false" data-auth-tab="signin">Đăng nhập</button></div>
+          <form data-signup-form novalidate>
+            <label>Tên người dùng<input name="displayName" autocomplete="name" minlength="2" maxlength="128" required placeholder="Tên hiển thị"></label>
+            <label>Gmail<input name="email" type="email" autocomplete="email" required placeholder="tenban@gmail.com"></label>
+            <label>Mật khẩu<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+            <label>Xác nhận mật khẩu<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+            <button class="button button-primary" type="submit">Tạo tài khoản</button>
+          </form>
+          <form data-signin-form novalidate hidden>
+            <label>Gmail<input name="email" type="email" autocomplete="username" required placeholder="tenban@gmail.com"></label>
+            <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label>
+            <button class="button button-primary" type="submit">Đăng nhập</button>
+          </form>
+          <p class="auth-feedback" role="alert" aria-live="polite" data-auth-feedback></p>
+        </section>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="payment-dialog" data-payment-dialog aria-labelledby="payment-dialog-title">
+    <div class="payment-dialog-shell">
+      <header><div><p>SEPAY · BANK TRANSFER</p><h2 id="payment-dialog-title" data-payment-title>Thanh toán</h2></div><button type="button" aria-label="Đóng thanh toán" data-payment-close>×</button></header>
+      <form data-payment-form><label>Mã thiết bị<input name="deviceCode" inputmode="text" autocomplete="off" maxlength="18" pattern="AMS-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{4}" placeholder="AMS-XXXX-XXXX-XXXX" required></label><p>Nhập mã hiển thị trong trang Tài khoản của ứng dụng.</p><button class="button button-primary" type="submit">Tạo đơn thanh toán</button></form>
+      <section class="payment-order" data-payment-order hidden><img data-payment-qr width="280" height="280" alt="Mã QR thanh toán SePay"><dl><div><dt>Sản phẩm</dt><dd data-payment-product></dd></div><div><dt>Tổng thanh toán</dt><dd data-payment-amount></dd></div><div><dt>Ngân hàng</dt><dd data-payment-bank></dd></div><div><dt>Tài khoản</dt><dd data-payment-account></dd></div><div><dt>Nội dung chuyển khoản</dt><dd data-payment-content></dd></div><div><dt>Đơn hết hạn</dt><dd data-payment-expiry></dd></div></dl><button class="button" type="button" data-payment-copy>Sao chép nội dung</button><button class="button" type="button" data-payment-cancel>Hủy đơn</button></section>
+      <p class="payment-feedback" role="status" aria-live="polite" data-payment-feedback></p>
+    </div>
+  </dialog>
 
   <dialog class="app-dialog" data-app-dialog aria-labelledby="dialog-title" aria-describedby="dialog-description">
     <div class="dialog-frame">
