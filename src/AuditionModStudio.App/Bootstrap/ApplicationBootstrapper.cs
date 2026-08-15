@@ -238,23 +238,15 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         });
         builder.Services.AddSingleton<IAiStudioService>(services =>
         {
-            var url = Environment.GetEnvironmentVariable("AUDITION_GATEWAY_URL");
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var gatewayUri))
+            var (url, _) = ProductionSupabaseConfiguration.Resolve();
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri))
             {
                 return new UnavailableAiStudioService();
             }
-            var deviceSessionsEnabled = bool.TryParse(
-                Environment.GetEnvironmentVariable("AUDITION_DEVICE_SESSIONS_ENABLED"), out var enabled) && enabled;
-            var gatewayOptions = new GatewayAiStudioOptions(gatewayUri, deviceSessionsEnabled);
-            return gatewayOptions.IsValid
-                ? new GatewayAiStudioService(
-                    services.GetRequiredService<HttpClient>(),
-                    services.GetRequiredService<ISecureSessionStore>(),
-                    services.GetRequiredService<IAuthenticationService>(),
-                    gatewayOptions,
-                    services.GetRequiredService<IAiTransportImageEncoder>(),
-                    services.GetRequiredService<IImageImportService>(),
-                    services.GetRequiredService<IDeviceSessionBindingStore>())
+            return projectUri.Scheme == Uri.UriSchemeHttps
+                ? new SupabaseAiStudioService(services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(), services.GetRequiredService<IAuthenticationService>(),
+                    projectUri, services.GetRequiredService<IImageImportService>())
                 : new UnavailableAiStudioService();
         });
         builder.Services.AddSingleton<IProductCatalogService>(services =>

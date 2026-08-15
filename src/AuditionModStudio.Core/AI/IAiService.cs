@@ -169,6 +169,17 @@ public sealed record AiStudioJobSummary(
 public sealed record AiStudioHistoryResult(
     bool Succeeded, string DiagnosticCode, IReadOnlyList<AiStudioJobSummary> Jobs);
 
+public sealed record AiStudioModelOption(
+    string Id,
+    string Name,
+    IReadOnlyList<string> Qualities,
+    IReadOnlyList<string> AspectRatios,
+    IReadOnlyList<string> Resolutions,
+    IReadOnlyList<long> CreditCosts);
+
+public sealed record AiStudioModelsResult(
+    bool Succeeded, string DiagnosticCode, IReadOnlyList<AiStudioModelOption> Models);
+
 public sealed record AiStudioExecutionRequest(
     AiStudioOperation Operation,
     InternalImage Source,
@@ -189,6 +200,9 @@ public interface IAiTransportImageEncoder
 
 public interface IAiStudioService
 {
+    Task<AiStudioModelsResult> GetModelsAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(new AiStudioModelsResult(false, "AI_MODELS_UNAVAILABLE", []));
+
     Task<AiStudioQuoteResult> GetQuoteAsync(
         AiStudioOperation operation,
         CancellationToken cancellationToken = default);
