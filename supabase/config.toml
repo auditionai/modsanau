@@ -3,3 +3,12 @@ project_id = "plvuutsjwsawkkrmvigz"
 
 [functions.ai-proxy]
 verify_jwt = true
+
+[functions.tst-image]
+verify_jwt = true
+
+[functions.payments]
+verify_jwt = true
+
+[functions.sepay-webhook]
+verify_jwt = false
