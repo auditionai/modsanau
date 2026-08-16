@@ -20,6 +20,7 @@
     "web/admin/index.html",
     "web/admin/robots.txt",
     "web/admin/script.js",
+    "web/admin/vertex-admin.js",
     "web/admin/styles.css"
   ],
   "repositoryFiles": [
@@ -28,7 +29,6 @@
     "CHANGELOG.md",
     "README.md",
     "docs/DEPLOYMENT.md",
-    "docs/PLAN106_DEPLOYMENT.md",
     "docs/RELEASE_STATUS.json",
     "netlify.toml",
     "netlify/functions/admin-config.mjs",
@@ -57,6 +57,7 @@
     "web/admin/index.html",
     "web/admin/robots.txt",
     "web/admin/script.js",
+    "web/admin/vertex-admin.js",
     "web/admin/styles.css"
   ]
 }
