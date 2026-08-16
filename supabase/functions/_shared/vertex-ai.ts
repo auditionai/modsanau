@@ -7,11 +7,23 @@ type VertexCredentials = {
 };
 
 type VertexConfiguration = {
+  credentialId: string;
   credentialsJson: string;
   projectId: string;
   region: string;
   modelId: string;
 };
+
+export type VertexCredentialOutcome = "success" | "quota" | "transient" | "auth";
+
+export class VertexCompositionError extends Error {
+  constructor(
+    readonly outcome: Exclude<VertexCredentialOutcome, "success">,
+    code: string,
+  ) {
+    super(code);
+  }
+}
 
 const encoder = new TextEncoder();
 const VERTEX_MODEL_FALLBACK = "gemini-3.1-flash";
@@ -48,7 +60,10 @@ async function accessToken(credentials: VertexCredentials) {
     body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }),
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok || typeof body.access_token !== "string") throw new Error("VERTEX_TOKEN_FAILED");
+  if (!response.ok || typeof body.access_token !== "string") {
+    const outcome = response.status === 401 || response.status === 403 ? "auth" : "transient";
+    throw new VertexCompositionError(outcome, "VERTEX_TOKEN_FAILED");
+  }
   return body.access_token;
 }
 
@@ -59,7 +74,9 @@ export async function composeWithVertex(
 ) {
   const credentials = JSON.parse(configuration.credentialsJson) as VertexCredentials;
   if (credentials.type !== "service_account" || credentials.project_id !== configuration.projectId
-    || !credentials.client_email || !credentials.private_key) throw new Error("VERTEX_CREDENTIALS_INVALID");
+    || !credentials.client_email || !credentials.private_key) {
+    throw new VertexCompositionError("auth", "VERTEX_CREDENTIALS_INVALID");
+  }
   const token = await accessToken(credentials);
   const parts: Array<Record<string, unknown>> = [{ text: brief }];
   for (const dataUrl of referenceImages) {
@@ -67,6 +84,7 @@ export async function composeWithVertex(
     parts.push({ inlineData: { mimeType: "image/png", data: base64 } });
   }
   const modelIds = [...new Set([configuration.modelId, VERTEX_MODEL_FALLBACK])];
+  let lastStatus = 0;
   for (const modelId of modelIds) {
     const response = await fetch(
       `https://${configuration.region}-aiplatform.googleapis.com/v1/projects/${encodeURIComponent(configuration.projectId)}/locations/${encodeURIComponent(configuration.region)}/publishers/google/models/${encodeURIComponent(modelId)}:generateContent`,
@@ -80,11 +98,15 @@ export async function composeWithVertex(
         }),
       },
     );
+    lastStatus = response.status;
     const body = await response.json().catch(() => ({}));
     const prompt = body?.candidates?.[0]?.content?.parts?.map((part: { text?: unknown }) => part.text)
       .filter((text: unknown): text is string => typeof text === "string").join(" ").trim();
     if (response.ok && prompt && prompt.length <= 16000) return prompt;
     if (response.status !== 404 || modelId === VERTEX_MODEL_FALLBACK) break;
   }
-  throw new Error("VERTEX_COMPOSITION_FAILED");
+  const outcome = lastStatus === 429 ? "quota"
+    : lastStatus === 401 || lastStatus === 403 ? "auth"
+    : "transient";
+  throw new VertexCompositionError(outcome, "VERTEX_COMPOSITION_FAILED");
 }

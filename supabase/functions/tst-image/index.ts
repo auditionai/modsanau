@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { composeWithVertex, VertexCompositionError, type VertexCredentialOutcome } from "../_shared/vertex-ai.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -105,10 +106,74 @@ function requestHash(value: unknown) {
     .then((buffer) => Array.from(new Uint8Array(buffer)).map((x) => x.toString(16).padStart(2, "0")).join("").toUpperCase());
 }
 
-async function rpc(admin: ReturnType<typeof createClient>, action: string, payload: AnyMap) {
+function readReferenceImages(value: unknown): string[] {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value) || value.length > 5) throw new Error("AI_REFERENCE_INVALID");
+  return value.map((item) => {
+    if (typeof item !== "string" || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(item)) {
+      throw new Error("AI_REFERENCE_INVALID");
+    }
+    if (item.length > 11_200_000) throw new Error("AI_REFERENCE_TOO_LARGE");
+    return item;
+  });
+}
+
+async function rpc(admin: any, action: string, payload: AnyMap) {
   const { data, error: rpcError } = await admin.rpc("ai_image_api", { action, payload });
   if (rpcError) throw new Error(rpcError.message || "AI_DATABASE_ERROR");
   return data as AnyMap;
+}
+
+type VertexConfiguration = {
+  credentialId: string;
+  credentialsJson: string;
+  projectId: string;
+  region: string;
+  modelId: string;
+};
+
+async function acquireVertexCredential(admin: any): Promise<VertexConfiguration> {
+  const { data, error: rpcError } = await admin.rpc("ai_vertex_credential_acquire_api");
+  if (rpcError || !data || typeof data !== "object") throw new Error("VERTEX_POOL_UNAVAILABLE");
+  const value = data as AnyMap;
+  if (typeof value.credentialId !== "string" || typeof value.credentialsJson !== "string"
+    || typeof value.projectId !== "string" || typeof value.region !== "string" || typeof value.modelId !== "string") {
+    throw new Error("VERTEX_POOL_UNAVAILABLE");
+  }
+  return value as VertexConfiguration;
+}
+
+async function reportVertexCredential(
+  admin: any, credentialId: string, outcome: VertexCredentialOutcome, errorCode?: string,
+) {
+  const { error: rpcError } = await admin.rpc("ai_vertex_credential_report_api", {
+    input_credential_id: credentialId,
+    input_outcome: outcome,
+    input_error_code: errorCode ?? null,
+  });
+  if (rpcError) throw new Error("VERTEX_POOL_REPORT_FAILED");
+}
+
+async function composeWithCredentialPool(
+  admin: any, brief: string, referenceImages: string[],
+) {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const configuration = await acquireVertexCredential(admin);
+    try {
+      const prompt = await composeWithVertex(configuration, brief, referenceImages);
+      await reportVertexCredential(admin, configuration.credentialId, "success");
+      return prompt;
+    } catch (caught) {
+      const typed = caught instanceof VertexCompositionError ? caught : null;
+      const outcome: VertexCredentialOutcome = typed?.outcome ?? "transient";
+      const code = typed?.message ?? "VERTEX_COMPOSITION_FAILED";
+      await reportVertexCredential(admin, configuration.credentialId, outcome, code);
+      lastError = new Error(code);
+      if (outcome === "quota" || outcome === "transient" || outcome === "auth") continue;
+    }
+  }
+  throw lastError ?? new Error("VERTEX_POOL_UNAVAILABLE");
 }
 
 Deno.serve(async (req) => {
@@ -128,6 +193,13 @@ Deno.serve(async (req) => {
   try {
     if (action === "models") return json({ models: await models() });
     if (action === "history") return json(await rpc(admin, "history", { userId: userData.user.id }));
+    if (action === "compose") {
+      if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
+      const body = await req.json() as AnyMap;
+      const brief = String(body.prompt ?? "").trim();
+      if (!brief || brief.length > 16_000) return error("AI_PROMPT_INVALID", 400);
+      return json({ prompt: await composeWithCredentialPool(admin, brief, readReferenceImages(body.reference_images)) });
+    }
     if (action === "generate") {
       if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
       const body = await req.json() as AnyMap;
@@ -137,9 +209,10 @@ Deno.serve(async (req) => {
       if (!model) return error("AI_MODEL_NOT_ALLOWED", 400);
       const prompt = String(body.prompt ?? "").trim();
       if (!prompt || prompt.length > 16_000) return error("AI_PROMPT_INVALID", 400);
+      const referenceImages = readReferenceImages(body.reference_images);
       const settings = pickSettings(model, (body.settings as AnyMap) ?? {});
       const idempotencyKey = String(body.idempotency_key ?? crypto.randomUUID());
-      const request = { model: modelId, prompt, settings };
+      const request = { model: modelId, prompt, settings, referenceCount: referenceImages.length };
       const hash = await requestHash(request);
       const creditCost = pricingCost(model, settings);
       const prepared = await rpc(admin, "prepare", {
@@ -149,7 +222,8 @@ Deno.serve(async (req) => {
       if (prepared.replayed && prepared.providerJobId) return json({ job_id: prepared.jobId });
       const submitted = await provider("/image/generate", {
         method: "POST",
-        body: JSON.stringify({ model: modelId, prompt, ...settings }),
+        body: JSON.stringify({ model: modelId, prompt, ...settings,
+          ...(referenceImages.length ? { reference_images: referenceImages } : {}) }),
       });
       const providerJobId = String(submitted.job_id ?? submitted.id ?? "");
       const directResult = typeof submitted.result === "string" ? submitted.result : null;
@@ -171,7 +245,7 @@ Deno.serve(async (req) => {
         job_id: jobId, status: String(current.status).toLowerCase(), result: current.resultUrl ?? null,
       });
       if (!current.providerJobId) return json({ job_id: jobId, status: "queued" });
-      const remote = await provider(`/jobs/${encodeURIComponent(current.providerJobId)}`);
+      const remote = await provider(`/jobs/${encodeURIComponent(String(current.providerJobId))}`);
       const state = String(remote.status ?? remote.state ?? "processing").toLowerCase();
       const result = typeof remote.result === "string" ? remote.result : typeof remote.output === "string" ? remote.output : null;
       if (result && /^https:\/\/[^\s]+$/.test(result)) {
