@@ -12,7 +12,9 @@
   pane.innerHTML = `<div class="section-heading"><div><p class="eyebrow">AI ORCHESTRATION</p><h2>Vertex AI</h2><p>Gemini tong hop prompt, TST tao anh. Dan JSON service account; he thong tu lay project va dung model Gemini moi nhat.</p></div></div><article class="panel"><div class="panel-head"><div><p class="eyebrow">CREDENTIAL STATUS</p><h3 data-vertex-status>Dang tai...</h3></div><button class="secondary-button" data-vertex-refresh>Lam moi</button></div><dl class="detail-list"><div><dt>Project</dt><dd data-vertex-project>--</dd></div><div><dt>Region</dt><dd data-vertex-region>--</dd></div><div><dt>Model tu dong</dt><dd data-vertex-model>Gemini 3.6 / 3.1</dd></div><div><dt>Updated</dt><dd data-vertex-updated>--</dd></div></dl></article><article class="panel owner-only"><div class="panel-head"><div><p class="eyebrow">ROTATE CREDENTIAL</p><h3>Cap nhat service account</h3></div></div><form data-vertex-form><div class="form-grid"><label class="span-2">JSON service account<textarea name="credentialsJson" rows="10" required minlength="200" maxlength="20000" spellcheck="false" autocomplete="off" placeholder="Dan noi dung JSON service account tai day..."></textarea><small class="field-hint">Key chi duoc gui mot lan qua ket noi bao mat va luu trong Vault. Khong luu trong trinh duyet.</small></label></div><div class="modal-actions"><button class="primary-button" type="submit">Luu va kiem tra key</button></div></form></article>`;
   document.querySelector("main.content").append(pane);
   const nav = document.createElement("button");
-  nav.className = "nav-item owner-only";
+  // The RPC remains owner-only; keep the route discoverable so the role-aware
+  // pane can show the correct access state after the session is loaded.
+  nav.className = "nav-item";
   nav.dataset.view = "aiProvider";
   nav.innerHTML = "<i>AI</i>Vertex AI";
   document.querySelector(".main-nav").append(nav);
