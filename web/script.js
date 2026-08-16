@@ -478,11 +478,17 @@ async function paymentRequest(route, options = {}) {
 
 function formatVnd(value) { return `${new Intl.NumberFormat("vi-VN").format(Number(value) || 0)} đ`; }
 
-function productCard(product) {
+function productCard(product, featured = false) {
   const isSubscription = product.type === "subscription";
   const card = document.createElement("article");
-  card.className = isSubscription ? "price-card" : "credit-card";
+  card.className = `catalog-card ${isSubscription ? "price-card" : "credit-card"}${featured ? " is-featured" : ""}`;
   card.dataset.priceCard = "";
+  if (featured) {
+    const badge = document.createElement("span");
+    badge.className = "catalog-badge";
+    badge.textContent = isSubscription ? "Nhiều thời hạn" : "Nhiều Credits";
+    card.append(badge);
+  }
   if (!isSubscription) {
     const coin = document.createElement("div"); coin.className = "credit-coin";
     coin.append(document.createElement("i")); const mark = document.createElement("b"); mark.textContent = "C"; coin.append(mark); card.append(coin);
@@ -492,9 +498,13 @@ function productCard(product) {
   const title = document.createElement("h4"); title.textContent = product.displayName;
   const price = document.createElement(isSubscription ? "p" : "strong");
   price.className = isSubscription ? "price-value" : ""; price.textContent = formatVnd(product.priceVnd);
+  const detail = document.createElement("p"); detail.className = "catalog-detail";
+  detail.textContent = isSubscription
+    ? `Mở quyền sử dụng trong ${product.durationDays} ngày.`
+    : `Dùng cho các tác vụ AI trong ứng dụng.`;
   const buy = document.createElement("button"); buy.type = "button"; buy.className = "price-state";
   buy.textContent = isSubscription ? "Gia hạn" : "Mua Credits"; buy.addEventListener("click", () => openPurchase(product));
-  card.append(label, title, price, buy);
+  card.append(label, title, price, detail, buy);
   return card;
 }
 
@@ -506,8 +516,13 @@ async function loadPaymentCatalog() {
   try {
     const result = await paymentRequest("catalog");
     const products = Array.isArray(result?.products) ? result.products : [];
-    const subscriptionCards = products.filter(item => item?.type === "subscription").map(productCard);
-    const creditCards = products.filter(item => item?.type === "credits").map(productCard);
+    const bySortOrder = (left, right) => Number(left?.sortOrder ?? 0) - Number(right?.sortOrder ?? 0);
+    const cardsFor = (type) => {
+      const group = products.filter(item => item?.type === type).sort(bySortOrder);
+      return group.map((product, index) => productCard(product, group.length > 1 && index === group.length - 1));
+    };
+    const subscriptionCards = cardsFor("subscription");
+    const creditCards = cardsFor("credits");
     subscriptions.replaceChildren(...(subscriptionCards.length ? subscriptionCards : [catalogEmpty()]));
     credits.replaceChildren(...(creditCards.length ? creditCards : [catalogEmpty()]));
     if (creditNote) credits.append(creditNote);
