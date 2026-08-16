@@ -478,8 +478,22 @@ async function paymentRequest(route, options = {}) {
 
 function formatVnd(value) { return `${new Intl.NumberFormat("vi-VN").format(Number(value) || 0)} đ`; }
 
+function packageDurationDays(product) {
+  const durationDays = Number(product?.durationDays);
+  if (Number.isInteger(durationDays) && durationDays > 0) return durationDays;
+  const productIdMatch = /^(\d+)APP$/i.exec(String(product?.productId ?? ""));
+  return productIdMatch ? Number(productIdMatch[1]) : null;
+}
+
+function packageHashtag(product, durationDays) {
+  if (product?.type === "subscription") return durationDays ? `#${durationDays}ngay` : "#goiungdung";
+  const credits = Number(product?.creditAmount);
+  return Number.isInteger(credits) && credits > 0 ? `#${credits}credits` : "#credits";
+}
+
 function productCard(product, featured = false) {
   const isSubscription = product.type === "subscription";
+  const durationDays = isSubscription ? packageDurationDays(product) : null;
   const card = document.createElement("article");
   card.className = `catalog-card ${isSubscription ? "price-card" : "credit-card"}${featured ? " is-featured" : ""}`;
   card.dataset.priceCard = "";
@@ -494,17 +508,21 @@ function productCard(product, featured = false) {
     coin.append(document.createElement("i")); const mark = document.createElement("b"); mark.textContent = "C"; coin.append(mark); card.append(coin);
   }
   const label = document.createElement("span"); label.className = "price-label";
-  label.textContent = isSubscription ? `${product.durationDays} ngày` : `${new Intl.NumberFormat("vi-VN").format(product.creditAmount)} Credits`;
+  label.textContent = isSubscription
+    ? durationDays ? `${durationDays} ngày` : "Gói ứng dụng"
+    : `${new Intl.NumberFormat("vi-VN").format(product.creditAmount)} Credits`;
+  const hashtag = document.createElement("span"); hashtag.className = "catalog-hashtag";
+  hashtag.textContent = packageHashtag(product, durationDays);
   const title = document.createElement("h4"); title.textContent = product.displayName;
   const price = document.createElement(isSubscription ? "p" : "strong");
   price.className = isSubscription ? "price-value" : ""; price.textContent = formatVnd(product.priceVnd);
   const detail = document.createElement("p"); detail.className = "catalog-detail";
   detail.textContent = isSubscription
-    ? `Mở quyền sử dụng trong ${product.durationDays} ngày.`
+    ? durationDays ? `Mở quyền sử dụng trong ${durationDays} ngày.` : "Mở quyền sử dụng ứng dụng theo thời hạn gói."
     : `Dùng cho các tác vụ AI trong ứng dụng.`;
   const buy = document.createElement("button"); buy.type = "button"; buy.className = "price-state";
   buy.textContent = isSubscription ? "Gia hạn" : "Mua Credits"; buy.addEventListener("click", () => openPurchase(product));
-  card.append(label, title, price, detail, buy);
+  card.append(label, hashtag, title, price, detail, buy);
   return card;
 }
 
