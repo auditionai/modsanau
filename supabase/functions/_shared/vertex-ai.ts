@@ -86,8 +86,11 @@ export async function composeWithVertex(
   const modelIds = [...new Set([configuration.modelId, VERTEX_MODEL_FALLBACK])];
   let lastStatus = 0;
   for (const modelId of modelIds) {
+    const endpoint = configuration.region === "global"
+      ? "https://aiplatform.googleapis.com"
+      : `https://${configuration.region}-aiplatform.googleapis.com`;
     const response = await fetch(
-      `https://${configuration.region}-aiplatform.googleapis.com/v1/projects/${encodeURIComponent(configuration.projectId)}/locations/${encodeURIComponent(configuration.region)}/publishers/google/models/${encodeURIComponent(modelId)}:generateContent`,
+      `${endpoint}/v1/projects/${encodeURIComponent(configuration.projectId)}/locations/${encodeURIComponent(configuration.region)}/publishers/google/models/${encodeURIComponent(modelId)}:generateContent`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
