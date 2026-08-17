@@ -18,7 +18,7 @@ function headers(req: Request) {
   const origin = allowedOrigin(req);
   return {
     ...(origin ? { "Access-Control-Allow-Origin": origin, "Vary": "Origin" } : {}),
-    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-idempotency-key",
+    "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-csrf-token, x-idempotency-key",
     "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
     "Content-Type": "application/json",
     "Cache-Control": "no-store",
