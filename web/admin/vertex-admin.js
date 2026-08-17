@@ -15,12 +15,12 @@
   pane.className = "view";
   pane.dataset.pane = "aiProvider";
   pane.innerHTML = `
-    <div class="section-heading"><div><p class="eyebrow">AI ORCHESTRATION</p><h2>Vertex AI credential pool</h2><p>Pool server-side tu dong chia tai va dua credential vao cooldown khi Google bao quota. JSON chi luu trong Vault.</p></div></div>
+    <div class="section-heading"><div><p class="eyebrow">TÍCH HỢP AI</p><h2>Pool credential Vertex AI</h2><p>Pool phía server tự động chia tải và đưa credential vào cooldown khi Google báo quota. JSON chỉ lưu trong Vault.</p></div></div>
     <div class="ai-provider-layout">
-      <article class="panel credential-hero"><div><p class="eyebrow">POOL STATUS</p><h3><span class="provider-status-dot" data-vertex-dot></span><span data-vertex-status>Dang tai trang thai...</span></h3></div><button class="secondary-button" type="button" data-vertex-refresh>Lam moi trang thai</button></article>
-      <article class="panel credential-panel"><div class="panel-head"><div><p class="eyebrow">ROTATION POLICY</p><h3>Phan bo thong minh</h3></div></div><dl class="detail-list"><div><dt>Chien luoc</dt><dd>Least recently used + health</dd></div><div><dt>Quota response</dt><dd>Cooldown exponential, toi da 60 phut</dd></div><div><dt>Gemini policy</dt><dd data-vertex-model>Gemini 3.6 / 3.1</dd></div><div><dt>Pool capacity</dt><dd data-vertex-capacity>--</dd></div></dl></article>
-      <article class="panel credential-form owner-only"><div class="panel-head"><div><p class="eyebrow">ADD CREDENTIAL</p><h3>Them JSON vao pool</h3></div></div><form data-vertex-form><div class="form-grid"><label>JSON service account<textarea name="credentialsJson" rows="11" required minlength="200" maxlength="20000" spellcheck="false" autocomplete="off" placeholder="Dan toan bo JSON service account tai day..."></textarea><small class="field-hint">Credential duoc ma hoa va luu tai Vault. Ban se khong the xem lai JSON sau khi luu.</small></label></div><div class="modal-actions"><button class="primary-button" type="submit">Them credential</button></div></form></article>
-      <article class="panel vertex-pool-panel"><div class="panel-head"><div><p class="eyebrow">CREDENTIAL INVENTORY</p><h3>Pool credentials</h3></div><span class="badge" data-vertex-count>0 key</span></div><div class="vertex-credential-list" data-vertex-list></div></article>
+      <article class="panel credential-hero"><div><p class="eyebrow">TRẠNG THÁI POOL</p><h3><span class="provider-status-dot" data-vertex-dot></span><span data-vertex-status>Đang tải trạng thái...</span></h3></div><button class="secondary-button" type="button" data-vertex-refresh>Làm mới trạng thái</button></article>
+      <article class="panel credential-panel"><div class="panel-head"><div><p class="eyebrow">CHÍNH SÁCH XOAY VÒNG</p><h3>Phân bổ thông minh</h3></div></div><dl class="detail-list"><div><dt>Chiến lược</dt><dd>Ít dùng gần đây nhất + tình trạng hoạt động</dd></div><div><dt>Phản hồi quota</dt><dd>Cooldown lũy tiến, tối đa 60 phút</dd></div><div><dt>Chính sách Gemini</dt><dd data-vertex-model>Gemini 3.6 / 3.1</dd></div><div><dt>Dung lượng pool</dt><dd data-vertex-capacity>--</dd></div></dl></article>
+      <article class="panel credential-form owner-only"><div class="panel-head"><div><p class="eyebrow">THÊM CREDENTIAL</p><h3>Thêm JSON vào pool</h3></div></div><form data-vertex-form><div class="form-grid"><label>JSON service account<textarea name="credentialsJson" rows="11" required minlength="200" maxlength="20000" spellcheck="false" autocomplete="off" placeholder="Dán toàn bộ JSON service account tại đây..."></textarea><small class="field-hint">Credential được mã hóa và lưu tại Vault. Bạn sẽ không thể xem lại JSON sau khi lưu.</small></label></div><div class="modal-actions"><button class="primary-button" type="submit">Thêm credential</button></div></form></article>
+      <article class="panel vertex-pool-panel"><div class="panel-head"><div><p class="eyebrow">DANH SÁCH CREDENTIAL</p><h3>Pool credentials</h3></div><span class="badge" data-vertex-count>0 key</span></div><div class="vertex-credential-list" data-vertex-list></div></article>
     </div>`;
   document.querySelector("main.content").append(pane);
 
@@ -43,20 +43,20 @@
   }
 
   function stateLabel(item) {
-    if (item.retiredAt) return ["retired", "Da ngung"];
-    if (!item.enabled) return ["disabled", "Da tat"];
-    if (item.cooldownUntil && new Date(item.cooldownUntil) > new Date()) return ["pending", "Dang cooldown"];
-    return ["active", "San sang"];
+    if (item.retiredAt) return ["retired", "Đã ngừng"];
+    if (!item.enabled) return ["disabled", "Đã tắt"];
+    if (item.cooldownUntil && new Date(item.cooldownUntil) > new Date()) return ["pending", "Đang cooldown"];
+    return ["active", "Sẵn sàng"];
   }
 
   function renderPool(items) {
     $("[data-vertex-count]").textContent = `${items.length} key`;
-    $("[data-vertex-capacity]").textContent = `${items.filter((item) => item.enabled && !item.retiredAt).length} key dang bat`;
+    $("[data-vertex-capacity]").textContent = `${items.filter((item) => item.enabled && !item.retiredAt).length} key đang bật`;
     $("[data-vertex-list]").innerHTML = items.length ? items.map((item) => {
       const [kind, label] = stateLabel(item);
-      const action = item.retiredAt ? "" : `<div class="vertex-card-actions owner-only">${item.enabled ? `<button class="ghost-button" data-vertex-disable="${item.credentialId}">Tat</button>` : `<button class="secondary-button" data-vertex-enable="${item.credentialId}">Bat</button>`}${item.cooldownUntil && item.enabled ? `<button class="secondary-button" data-vertex-reset="${item.credentialId}">Reset cooldown</button>` : ""}<button class="ghost-button" data-vertex-retire="${item.credentialId}">Ngung su dung</button></div>`;
-      return `<article class="vertex-credential-card"><div class="vertex-card-head"><div><strong>${item.projectId}</strong><small class="mono">${item.credentialId}</small></div>${badge(kind, label)}</div><dl><div><dt>Luong dung gan nhat</dt><dd>${date(item.lastSelectedAt)}</dd></div><div><dt>Lan thanh cong</dt><dd>${date(item.lastSuccessAt)}</dd></div><div><dt>Cooldown den</dt><dd>${date(item.cooldownUntil)}</dd></div><div><dt>Loi lien tiep</dt><dd>${Number(item.failureStreak || 0)}</dd></div></dl>${action}</article>`;
-    }).join("") : '<div class="empty-state">Chua co credential trong pool.</div>';
+      const action = item.retiredAt ? "" : `<div class="vertex-card-actions owner-only">${item.enabled ? `<button class="ghost-button" data-vertex-disable="${item.credentialId}">Tắt</button>` : `<button class="secondary-button" data-vertex-enable="${item.credentialId}">Bật</button>`}${item.cooldownUntil && item.enabled ? `<button class="secondary-button" data-vertex-reset="${item.credentialId}">Đặt lại cooldown</button>` : ""}<button class="ghost-button" data-vertex-retire="${item.credentialId}">Ngừng sử dụng</button></div>`;
+      return `<article class="vertex-credential-card"><div class="vertex-card-head"><div><strong>${item.projectId}</strong><small class="mono">${item.credentialId}</small></div>${badge(kind, label)}</div><dl><div><dt>Lượng dùng gần nhất</dt><dd>${date(item.lastSelectedAt)}</dd></div><div><dt>Lần thành công</dt><dd>${date(item.lastSuccessAt)}</dd></div><div><dt>Cooldown đến</dt><dd>${date(item.cooldownUntil)}</dd></div><div><dt>Lỗi liên tiếp</dt><dd>${Number(item.failureStreak || 0)}</dd></div></dl>${action}</article>`;
+    }).join("") : '<div class="empty-state">Chưa có credential trong pool.</div>';
     applyRoleVisibility();
   }
 
@@ -66,7 +66,7 @@
     const value = await providerRpc("status");
     const items = Array.isArray(value.credentials) ? value.credentials : [];
     const available = items.filter((item) => item.enabled && !item.retiredAt && (!item.cooldownUntil || new Date(item.cooldownUntil) <= new Date()));
-    $("[data-vertex-status]").textContent = available.length ? `${available.length} credential san sang phuc vu` : "Khong co credential san sang";
+    $("[data-vertex-status]").textContent = available.length ? `${available.length} credential sẵn sàng phục vụ` : "Không có credential sẵn sàng";
     $("[data-vertex-dot]").classList.toggle("is-ready", available.length > 0);
     $("[data-vertex-model]").textContent = value.modelPolicy || "Gemini 3.6 / 3.1";
     renderPool(items);
@@ -88,14 +88,14 @@
     event.preventDefault();
     const form = event.currentTarget;
     const credentialsJson = form.credentialsJson.value.trim();
-    if (credentialsJson.length < 200 || credentialsJson.length > 20_000) return toast("JSON key khong hop le.", "error");
+    if (credentialsJson.length < 200 || credentialsJson.length > 20_000) return toast("JSON key không hợp lệ.", "error");
     try {
       const parsed = JSON.parse(credentialsJson);
       if (parsed?.type !== "service_account" || typeof parsed?.project_id !== "string") throw new Error("VERTEX_CREDENTIALS_INVALID");
       await providerRpc("add_vertex_credential", { credentialsJson, correlationId: crypto.randomUUID() });
       form.reset();
-      toast("Da them credential vao pool.");
+      toast("Đã thêm credential vào pool.");
       await loadProvider();
-    } catch { toast("Khong the them credential. Kiem tra JSON va quyen owner.", "error"); }
+    } catch { toast("Không thể thêm credential. Kiểm tra JSON và quyền owner.", "error"); }
   });
 })();
