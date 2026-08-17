@@ -14,7 +14,6 @@ using AuditionModStudio.Core.Images;
 using AuditionModStudio.Core.Games;
 using AuditionModStudio.Core.Mods;
 using AuditionModStudio.Core.Paths;
-using AuditionModStudio.Core.Payments;
 using AuditionModStudio.Core.Projects;
 using AuditionModStudio.Core.Startup;
 using AuditionModStudio.Core.Settings;
@@ -239,15 +238,24 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         });
         builder.Services.AddSingleton<IAiStudioService>(services =>
         {
-            var (url, _) = ProductionSupabaseConfiguration.Resolve();
+            var (url, publishableKey) = ProductionSupabaseConfiguration.Resolve();
             if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri))
             {
                 return new UnavailableAiStudioService();
             }
-            return projectUri.Scheme == Uri.UriSchemeHttps
-                ? new SupabaseAiStudioService(services.GetRequiredService<HttpClient>(),
-                    services.GetRequiredService<ISecureSessionStore>(), services.GetRequiredService<IAuthenticationService>(),
-                    projectUri, services.GetRequiredService<IImageImportService>())
+
+            // Edge Function URL: {supabase_url}/functions/v1/ai-proxy
+            var edgeFunctionUri = new Uri(projectUri, "functions/v1/ai-proxy");
+            var options = new EdgeFunctionOptions(edgeFunctionUri);
+
+            return options.IsValid
+                ? new EdgeFunctionAiStudioService(
+                    services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(),
+                    services.GetRequiredService<IAuthenticationService>(),
+                    options,
+                    services.GetRequiredService<IAiTransportImageEncoder>(),
+                    services.GetRequiredService<IImageImportService>())
                 : new UnavailableAiStudioService();
         });
         builder.Services.AddSingleton<IProductCatalogService>(services =>
@@ -279,15 +287,6 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
                     services.GetRequiredService<ISecureSessionStore>(),
                     services.GetRequiredService<IAuthenticationService>(), accountOptions)
                 : new UnavailableAccountOverviewService();
-        });
-        builder.Services.AddSingleton<IPaymentService>(services =>
-        {
-            var (url, _) = ProductionSupabaseConfiguration.Resolve();
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri) || projectUri.Scheme != Uri.UriSchemeHttps)
-                return new UnavailablePaymentService();
-            return new SupabasePaymentService(services.GetRequiredService<HttpClient>(),
-                services.GetRequiredService<ISecureSessionStore>(),
-                services.GetRequiredService<IAuthenticationService>(), projectUri);
         });
         builder.Services.AddSingleton<IDeviceEntitlementService>(services =>
         {

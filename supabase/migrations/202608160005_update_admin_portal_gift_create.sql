@@ -253,12 +253,19 @@ BEGIN
     IF action = 'gift_create' THEN
         IF actor_role='auditor' THEN RAISE EXCEPTION 'ADMIN_MUTATION_FORBIDDEN' USING ERRCODE='42501'; END IF;
         correlation := (payload->>'correlationId')::uuid; reason := left(btrim(COALESCE(payload->>'reason','')),500);
-        IF reason='' OR payload->>'kind' NOT IN ('duration','credits') THEN RAISE EXCEPTION 'ADMIN_MUTATION_INVALID'; END IF;
+        -- Lấy giá trị duration và credits (cho phép cả 2 hoặc chỉ 1, hoặc 0 để bỏ qua)
+        DECLARE gift_duration integer := COALESCE((payload->>'durationDays')::integer, 0);
+        DECLARE gift_credits bigint := COALESCE((payload->>'creditAmount')::bigint, 0);
+        DECLARE gift_kind text;
+        IF reason='' OR (gift_duration <= 0 AND gift_credits <= 0) THEN RAISE EXCEPTION 'ADMIN_MUTATION_INVALID'; END IF;
+        -- Xác định kind dựa trên giá trị
+        IF gift_duration > 0 AND gift_credits > 0 THEN gift_kind := 'hybrid';
+        ELSIF gift_duration > 0 THEN gift_kind := 'duration';
+        ELSE gift_kind := 'credits'; END IF;
         generated_code := 'GFT-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4))||'-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4))||'-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4))||'-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4));
         INSERT INTO private.gift_codes(code_prefix,code_sha256,kind,duration_days,credit_amount,maximum_redemptions,expires_at)
-        VALUES(left(generated_code,12),digest(upper(generated_code),'sha256'),(payload->>'kind')::private.gift_code_kind,
-            CASE WHEN payload->>'kind'='duration' THEN (payload->>'durationDays')::integer END,
-            CASE WHEN payload->>'kind'='credits' THEN (payload->>'creditAmount')::bigint END,
+        VALUES(left(generated_code,12),digest(upper(generated_code),'sha256'),gift_kind::private.gift_code_kind,
+            NULLIF(gift_duration, 0), NULLIF(gift_credits, 0),
             (payload->>'maximumRedemptions')::integer,NULLIF(payload->>'expiresAt','')::timestamptz)
         RETURNING gift_code_id INTO target_id;
         PERFORM private.admin_audit_record(actor_id,'GIFT_CODE_CREATED','GIFT_CODE',target_id,correlation,jsonb_build_object('reason',reason,'codePrefix',left(generated_code,12)));

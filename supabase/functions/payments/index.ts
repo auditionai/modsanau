@@ -107,6 +107,17 @@ Deno.serve(async (req) => {
   if (await rateLimited(req)) return fail(req, "PAYMENT_RATE_LIMITED", 429);
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const url = new URL(req.url);
+  const segments = url.pathname.split("/").filter(Boolean);
+  const afterFunction = segments.slice(segments.lastIndexOf("payments") + 1);
+
+  // Catalog is public, skip auth validation
+  if (req.method === "GET" && afterFunction[0] === "catalog") {
+    const { data, error } = await admin.rpc("payment_api", { action: "catalog", payload: {} });
+    if (error) throw new Error(error.message || "PAYMENT_DATABASE_ERROR");
+    return json(req, { products: data }, 200);
+  }
+
   const token = bearer(req);
   let userId = "";
   let recentlyAuthenticated = false;
@@ -121,10 +132,6 @@ Deno.serve(async (req) => {
     recentlyAuthenticated = Number.isFinite(lastSignInAt)
       && Date.now() - lastSignInAt <= 15 * 60_000;
   }
-
-  const url = new URL(req.url);
-  const segments = url.pathname.split("/").filter(Boolean);
-  const afterFunction = segments.slice(segments.lastIndexOf("payments") + 1);
   const rpc = async (action: string, payload: AnyMap) => {
     const { data, error } = await admin.rpc("payment_api", { action, payload });
     if (error) throw new Error(error.message || "PAYMENT_DATABASE_ERROR");
@@ -132,10 +139,6 @@ Deno.serve(async (req) => {
   };
 
   try {
-    if (req.method === "GET" && afterFunction[0] === "catalog") {
-      const products = await rpc("catalog", {});
-      return json(req, { products }, 200);
-    }
     if (req.method === "POST" && afterFunction[0] === "orders" && afterFunction.length === 1) {
       const body = await readJson(req);
       const deviceCode = String(body.device_code ?? "").toUpperCase();

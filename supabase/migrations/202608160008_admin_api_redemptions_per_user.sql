@@ -1,7 +1,6 @@
 BEGIN;
 
--- Admin Portal chạy trực tiếp trên Supabase Data API. Hàm duy nhất này là
--- security boundary: user id luôn lấy từ JWT, không nhận từ frontend.
+-- Cập nhật admin_portal_api để nhận redemptionsPerUser khi tạo gift code
 CREATE OR REPLACE FUNCTION public.admin_portal_api(action text, payload jsonb DEFAULT '{}'::jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -23,6 +22,9 @@ DECLARE
     page_offset integer;
     search_query text;
     status_filter text;
+    gift_duration integer;
+    gift_credits bigint;
+    gift_kind text;
 BEGIN
     IF actor_id IS NULL THEN
         RAISE EXCEPTION 'ADMIN_AUTH_REQUIRED' USING ERRCODE = '42501';
@@ -30,7 +32,6 @@ BEGIN
 
     SELECT lower(email) INTO actor_email FROM auth.users WHERE id = actor_id;
 
-    -- Bootstrap chỉ được phép đúng một lần và chỉ cho owner đã phê duyệt.
     IF NOT EXISTS (SELECT 1 FROM private.admin_users) THEN
         IF actor_email <> 'codycn2804@gmail.com' THEN
             RAISE EXCEPTION 'ADMIN_ACCESS_REQUIRED' USING ERRCODE = '42501';
@@ -245,7 +246,7 @@ BEGIN
         SELECT jsonb_build_object('totalCount',count(*),'items',COALESCE(jsonb_agg(jsonb_build_object(
             'giftCodeId',gift_code_id,'codePrefix',code_prefix,'kind',kind::text,'durationDays',duration_days,
             'creditAmount',credit_amount,'maximumRedemptions',maximum_redemptions,'redemptionCount',redemption_count,
-            'expiresAt',expires_at,'disabledAt',disabled_at,'createdAt',created_at) ORDER BY created_at DESC),'[]'::jsonb))
+            'redemptionsPerUser',redemptions_per_user,'expiresAt',expires_at,'disabledAt',disabled_at,'createdAt',created_at) ORDER BY created_at DESC),'[]'::jsonb))
         INTO result FROM (SELECT * FROM private.gift_codes ORDER BY created_at DESC LIMIT page_limit OFFSET page_offset) g;
         RETURN result;
     END IF;
@@ -253,13 +254,19 @@ BEGIN
     IF action = 'gift_create' THEN
         IF actor_role='auditor' THEN RAISE EXCEPTION 'ADMIN_MUTATION_FORBIDDEN' USING ERRCODE='42501'; END IF;
         correlation := (payload->>'correlationId')::uuid; reason := left(btrim(COALESCE(payload->>'reason','')),500);
-        IF reason='' OR payload->>'kind' NOT IN ('duration','credits') THEN RAISE EXCEPTION 'ADMIN_MUTATION_INVALID'; END IF;
+        gift_duration := COALESCE((payload->>'durationDays')::integer, 0);
+        gift_credits := COALESCE((payload->>'creditAmount')::bigint, 0);
+        IF reason='' OR (gift_duration <= 0 AND gift_credits <= 0) THEN RAISE EXCEPTION 'ADMIN_MUTATION_INVALID'; END IF;
+        IF gift_duration > 0 AND gift_credits > 0 THEN gift_kind := 'hybrid';
+        ELSIF gift_duration > 0 THEN gift_kind := 'duration';
+        ELSE gift_kind := 'credits'; END IF;
         generated_code := 'GFT-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4))||'-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4))||'-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4))||'-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,4));
-        INSERT INTO private.gift_codes(code_prefix,code_sha256,kind,duration_days,credit_amount,maximum_redemptions,expires_at)
-        VALUES(left(generated_code,12),digest(upper(generated_code),'sha256'),(payload->>'kind')::private.gift_code_kind,
-            CASE WHEN payload->>'kind'='duration' THEN (payload->>'durationDays')::integer END,
-            CASE WHEN payload->>'kind'='credits' THEN (payload->>'creditAmount')::bigint END,
-            (payload->>'maximumRedemptions')::integer,NULLIF(payload->>'expiresAt','')::timestamptz)
+        INSERT INTO private.gift_codes(code_prefix,code_sha256,kind,duration_days,credit_amount,maximum_redemptions,redemptions_per_user,expires_at)
+        VALUES(left(generated_code,12),digest(upper(generated_code),'sha256'),gift_kind::private.gift_code_kind,
+            NULLIF(gift_duration, 0), NULLIF(gift_credits, 0),
+            (payload->>'maximumRedemptions')::integer,
+            COALESCE((payload->>'redemptionsPerUser')::integer, 1),
+            NULLIF(payload->>'expiresAt','')::timestamptz)
         RETURNING gift_code_id INTO target_id;
         PERFORM private.admin_audit_record(actor_id,'GIFT_CODE_CREATED','GIFT_CODE',target_id,correlation,jsonb_build_object('reason',reason,'codePrefix',left(generated_code,12)));
         RETURN jsonb_build_object('code','ADMIN_GIFT_CODE_CREATED','oneTimeCode',generated_code);
