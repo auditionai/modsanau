@@ -66,7 +66,8 @@ SELECT
 FROM private.commercial_packages AS package
 WHERE package.is_active
   AND package.archived_at IS NULL
-  AND upper(package.product_id) ~ '^[0-9]+(CRE|APP)$';
+  AND upper(package.product_id) ~ '^[0-9]+(CRE|APP)$'
+ON CONFLICT (product_id, version) DO NOTHING;
 
 -- Keep the legacy admin screen and the public payment catalog aligned while
 -- those nine products continue to be managed from "Gói nạp".
