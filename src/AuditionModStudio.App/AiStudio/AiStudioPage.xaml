@@ -107,11 +107,16 @@
                                         <StackPanel Spacing="2"><TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ModelPriceText, Mode=OneWay}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ModelDescription, Mode=OneWay}" TextWrapping="Wrap" /></StackPanel>
                                     </Border>
                                     <ItemsControl ItemsSource="{x:Bind ViewModel.ModelSettings, Mode=OneWay}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" HorizontalAlignment="Stretch" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <StackPanel Spacing="6" Margin="0,0,0,10">
+                                                <StackPanel Spacing="4" Margin="0,0,10,8" Width="150">
                                                     <TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="{Binding Label}" />
-                                                    <ComboBox ItemsSource="{Binding Options}" DisplayMemberPath="Label" SelectedItem="{Binding Selected, Mode=TwoWay}" MinHeight="44" />
+                                                    <ComboBox ItemsSource="{Binding Options}" DisplayMemberPath="Label" SelectedItem="{Binding Selected, Mode=TwoWay}" MinHeight="40" />
                                                 </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

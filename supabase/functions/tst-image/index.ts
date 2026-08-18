@@ -132,13 +132,18 @@ function modelParams(item: AnyMap): AnyMap {
 async function detailedModel(item: AnyMap) {
   const id = String(item.id ?? item.slug ?? item.model ?? "");
   if (!id) return item;
-  try {
-    const source = await provider(`/models/${encodeURIComponent(id)}`);
-    const detail = source.model && typeof source.model === "object" ? source.model as AnyMap : source;
-    return { ...item, ...detail, params: { ...modelParams(item), ...modelParams(detail) } };
-  } catch {
-    return item;
+  let merged: AnyMap = { ...item };
+  const encoded = encodeURIComponent(id);
+  for (const path of [`/models/${encoded}`, `/models/${encoded}/schema`, `/models/${encoded}/settings`, `/models/${encoded}/parameters`]) {
+    try {
+      const source = await provider(path);
+      const detail = source.model && typeof source.model === "object" ? source.model as AnyMap : source;
+      merged = { ...merged, ...detail, params: { ...modelParams(merged), ...modelParams(detail) } };
+    } catch {
+      // Providers may not implement all metadata endpoints.
+    }
   }
+  return merged;
 }
 
 async function models(admin: any) {
