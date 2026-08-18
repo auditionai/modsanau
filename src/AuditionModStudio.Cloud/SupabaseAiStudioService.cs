@@ -29,7 +29,7 @@ public sealed class SupabaseAiStudioService(
             using var request = new HttpRequestMessage(HttpMethod.Get, Endpoint("models"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode) return new(false, "AI_MODELS_UNAVAILABLE", []);
+            if (!response.IsSuccessStatusCode) return new(true, "AI_MODELS_FALLBACK", KnownGpti2Models());
             using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
             if (!document.RootElement.TryGetProperty("models", out var source) || source.ValueKind != JsonValueKind.Array)
                 return new(false, "AI_MODELS_INVALID", []);
@@ -43,12 +43,18 @@ public sealed class SupabaseAiStudioService(
                     ReadOptionValues(parameters, "resolution").Count > 0 ? ReadOptionValues(parameters, "resolution") : ReadOptionValues(parameters, "size"),
                     ReadCreditCosts(item)) { Settings = ReadSettings(parameters, item) };
             }).Where(item => item is not null && IsAllowedModel(item.Id, item.Name)).Cast<AiStudioModelOption>().ToArray();
-            return result.Length == 0 ? new(false, "AI_MODELS_EMPTY", []) : new(true, "AI_MODELS_LOADED", result);
+            return result.Length == 0 ? new(true, "AI_MODELS_FALLBACK", KnownGpti2Models()) : new(true, "AI_MODELS_LOADED", result);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch (HttpRequestException) { return new(false, "AI_MODELS_OFFLINE", []); }
-        catch (JsonException) { return new(false, "AI_MODELS_INVALID", []); }
+        catch (HttpRequestException) { return new(true, "AI_MODELS_FALLBACK", KnownGpti2Models()); }
+        catch (JsonException) { return new(true, "AI_MODELS_FALLBACK", KnownGpti2Models()); }
     }
+
+    private static IReadOnlyList<AiStudioModelOption> KnownGpti2Models() =>
+    [
+        new("gpt-image-2", "GPT Image 2", ["low", "medium", "high"], [], ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], [50]) { Settings = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase) { ["size"] = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], ["quality"] = ["low", "medium", "high"], ["n"] = ["1", "2", "3", "4"] } },
+        new("nano-banana-pro", "Nano Banana PRO", ["low", "medium", "high"], [], ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], [50]) { Settings = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase) { ["size"] = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], ["quality"] = ["low", "medium", "high"], ["n"] = ["1", "2", "3", "4"] } },
+    ];
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private Uri Endpoint(string action) => new(projectUri, $"functions/v1/gpti2-image?action={action}");
 
@@ -258,8 +264,6 @@ public sealed class SupabaseAiStudioService(
     {
         var value = $"{id} {name}".ToLowerInvariant().Replace('.', ' ').Replace('_', ' ');
         return System.Text.RegularExpressions.Regex.IsMatch(value, @"\bgpt(?:[- ]?image)?[- ]?2\b")
-            || System.Text.RegularExpressions.Regex.IsMatch(value, @"\bnano[- ]?banana[- ]?pro\b")
-            || System.Text.RegularExpressions.Regex.IsMatch(value, @"\b(?:image|imagen)[- ]?4\b")
-            || System.Text.RegularExpressions.Regex.IsMatch(value, @"\bflux[- ]?2[- ]?pro\b");
+            || System.Text.RegularExpressions.Regex.IsMatch(value, @"\bnano[- ]?banana[- ]?pro\b");
     }
 }

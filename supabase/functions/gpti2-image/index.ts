@@ -177,31 +177,10 @@ async function detailedModel(item: AnyMap) {
 
 async function models(admin: any) {
   if (modelCache && modelCache.expires > Date.now()) return modelCache.models;
-  const source = await provider("/models");
-  const nanoSource = await provider("/images/nano/models").catch(() => ({}));
-  const rows = [
-    ...(Array.isArray(source) ? source : Array.isArray(source.models) ? source.models : []),
-    ...(Array.isArray(nanoSource) ? nanoSource : Array.isArray((nanoSource as AnyMap).models) ? (nanoSource as AnyMap).models as unknown[] : []),
+  const imageRows = [
+    { id: "gpt-image-2", name: "GPT Image 2", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { size: GPTI2_SIZES, quality: ["low", "medium", "high"], n: ["1", "2", "3", "4"] }, notes: null },
+    { id: "nano-banana-pro", name: "Nano Banana PRO", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { size: GPTI2_SIZES, quality: ["low", "medium", "high"], n: ["1", "2", "3", "4"] }, notes: null },
   ];
-  const allowedRows = rows.filter((row) => {
-    const item = row as AnyMap;
-    const type = String(item.type ?? item.category ?? "").toLowerCase();
-    const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
-    return isAllowedImageModel(identity);
-  });
-  const imageRows = await Promise.all(allowedRows.map(async (row) => {
-    const item = await detailedModel(row as AnyMap) as AnyMap;
-    return {
-      id: normalizeModelId(`${item.id ?? item.slug ?? item.model} ${item.name ?? item.title ?? ""}`),
-      name: normalizeModelId(`${item.id ?? item.slug ?? item.model} ${item.name ?? item.title ?? ""}`) === "gpt-image-2" ? "GPT Image 2" : "Nano Banana PRO",
-      type: "image",
-      servers: item.servers ?? [],
-      pricing: Array.isArray(item.pricing) && item.pricing.length ? item.pricing : gpti2Pricing(),
-      modes: item.modes ?? [],
-      params: { ...pricingParams(item), ...modelParams(item) },
-      notes: item.notes ?? null,
-    };
-  }));
   const { data, error: syncError } = await adminRpc(admin, "sync", { models: imageRows });
   if (syncError) throw new Error(syncError);
   const catalog = Array.isArray(data) ? data as AnyMap[] : [];
