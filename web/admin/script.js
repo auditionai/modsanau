@@ -959,6 +959,23 @@ function confirmAction(title, message) {
     d.showModal();
   });
 }
+async function loadAiModels() {
+  const result = await aiModelApi();
+  state.aiModels = (result.models || []).filter(isAllowedAiModel);
+  $("[data-ai-models-count]").textContent = `${number(state.aiModels.length)} cấu hình`;
+  $("[data-ai-models-body]").innerHTML = state.aiModels.length
+    ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.modelId)}">
+        <td><strong>${escapeHtml(model.modelName)}</strong><small class="mono">${escapeHtml(model.modelId)}</small></td>
+        <td>50 đ/ảnh</td><td>1.500 token</td><td>29 đ / 1.000 token vượt mức · nhân n</td>
+        <td><input data-ai-model-cost type="number" min="1" max="1000000" step="1" value="${escapeHtml(String(model.creditCost))}" aria-label="Giá Credits ${escapeHtml(model.modelName)}" /></td>
+        <td><label class="check-label"><input data-ai-model-active type="checkbox" ${model.active ? "checked" : ""} /> Đang phát hành</label></td>
+        <td>v${number(model.pricingVersion)}</td>
+        <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.modelId)}">Lưu</button></td>
+      </tr>`).join("")
+    : empty(8, "Chưa tải được chính sách giá GPTi2.");
+  applyRoleVisibility();
+}
+
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("button");
   if (!b) return;
