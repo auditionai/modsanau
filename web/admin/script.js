@@ -751,12 +751,12 @@ async function loadAiModels() {
   state.aiModels = (result.models || []).filter(isAllowedAiModel);
   $("[data-ai-models-count]").textContent = `${number(state.aiModels.length)} cấu hình`;
   $("[data-ai-models-body]").innerHTML = state.aiModels.length
-    ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.pricingId)}">
+    ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.modelId)}">
         <td><strong>${escapeHtml(model.modelName)}</strong><small class="mono">${escapeHtml(model.modelId)}</small></td>
-        <td class="quality-cell">${escapeHtml(qualityText(model.settings))}</td>
+        <td>50 đ/ảnh</td>
         <td><input data-ai-model-cost type="number" min="1" max="1000000" step="1" value="${escapeHtml(String(model.creditCost))}" aria-label="Giá Credits ${escapeHtml(model.name)}" /></td>
         <td>${model.tstCost == null ? "—" : escapeHtml(String(model.tstCost))}</td>
-        <td class="mono setting-cell">${escapeHtml(settingText(model.settings))}</td>
+        <td>29 đ/1.000 token vượt mức · n ×</td>
         <td><label class="check-label"><input data-ai-model-active type="checkbox" ${model.active ? "checked" : ""} /> Đang phát hành</label></td>
         <td>v${number(model.pricingVersion)}</td>
         <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.pricingId)}">Lưu</button></td>
@@ -992,14 +992,14 @@ document.addEventListener("click", async (e) => {
   if (b.dataset.editUser) openUser(b.dataset.editUser);
   if (b.dataset.saveAiModel) {
     const row = b.closest("tr");
-    const current = state.aiModels.find((model) => model.pricingId === b.dataset.saveAiModel);
+    const current = state.aiModels.find((model) => model.modelId === b.dataset.saveAiModel || model.pricingId === b.dataset.saveAiModel);
     if (!row || !current) return;
     b.disabled = true;
     try {
       await aiModelApi({
         method: "POST",
         body: JSON.stringify({
-          pricingId: current.pricingId,
+          modelId: current.modelId,
           creditCost: Number($("[data-ai-model-cost]", row).value),
           active: $("[data-ai-model-active]", row).checked,
           sortOrder: Number(current.sortOrder || 0),

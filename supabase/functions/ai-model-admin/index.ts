@@ -111,19 +111,12 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
     const body = req.method === "POST" ? await readJson(req) : {};
     const action = req.method === "GET" ? "admin_list" : "admin_save";
-    if (req.method === "GET") {
-      const models = await providerModels();
-      const synced = await admin.rpc("ai_model_catalog_api", { action: "sync", payload: { models } });
-      if (synced.error) throw new Error(synced.error.message || "AI_MODEL_DATABASE_ERROR");
-    }
-    const { data, error } = await admin.rpc("ai_model_catalog_api", {
-      action,
+    const { data, error } = await admin.rpc("gpti2_pricing_admin_api", {
+      action: req.method === "GET" ? "list" : "save",
       payload: { ...body, adminUserId: user.user.id, recentAuth },
     });
     if (error) throw new Error(error.message || "AI_MODEL_DATABASE_ERROR");
-    const models = Array.isArray(data) ? data.filter((item: AnyMap) =>
-      isAllowedImageModel(`${item.modelId ?? item.id ?? ""} ${item.modelName ?? item.name ?? ""}`)) : data;
-    return respond(req, req.method === "GET" ? { models } : data);
+    return respond(req, req.method === "GET" ? { models: data } : data);
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "AI_MODEL_REQUEST_FAILED";
     const known = message.match(/AI_MODEL_[A-Z_]+|ADMIN_[A-Z_]+/)?.[0] ?? "AI_MODEL_REQUEST_FAILED";
