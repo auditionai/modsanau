@@ -126,6 +126,9 @@ function modelParams(item: AnyMap): AnyMap {
     params.quality ??= ["low", "medium", "high"];
     params.resolution ??= ["1k", "2k", "4k"];
   }
+  if (/(?:flux[- ]?2[- ]?pro|nano[- ]?banana[- ]?pro|(?:image|imagen)[- ]?4)/.test(identity)) {
+    params.aspect_ratio ??= ["1:1", "16:9", "9:16", "4:3", "3:4"];
+  }
   return params;
 }
 
