@@ -129,6 +129,31 @@ function modelParams(item: AnyMap): AnyMap {
   return params;
 }
 
+function pricingParams(item: AnyMap): AnyMap {
+  const result: AnyMap = {};
+  const pricing = Array.isArray(item.pricing) ? item.pricing : [];
+  const add = (key: string, value: unknown) => {
+    if (value === undefined || value === null || value === "") return;
+    const values = result[key] instanceof Set ? result[key] as Set<string> : new Set<string>();
+    values.add(String(value).toLowerCase());
+    result[key] = values;
+  };
+  for (const row of pricing) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+    const entry = row as AnyMap;
+    const rawResolution = entry.resolution ?? entry.size;
+    const normalizedResolution = String(rawResolution ?? "").toLowerCase();
+    if (["low", "medium", "high"].includes(normalizedResolution)) add("quality", normalizedResolution);
+    else if (rawResolution !== undefined) add("resolution", rawResolution);
+    for (const key of ["quality", "aspect_ratio", "speed", "processing_speed", "count", "quantity"]) add(key, entry[key]);
+    const config = String(entry.config_key ?? entry.key ?? "").toLowerCase();
+    for (const value of ["1k", "2k", "4k"]) if (config.includes(value)) add("resolution", value);
+    for (const value of ["low", "medium", "high"]) if (config.includes(value)) add("quality", value);
+    for (const value of ["fast", "slow"]) if (config.includes(value)) add("speed", value);
+  }
+  return Object.fromEntries(Object.entries(result).map(([key, value]) => [key, [...(value as Set<string>)]]));
+}
+
 async function detailedModel(item: AnyMap) {
   const id = String(item.id ?? item.slug ?? item.model ?? "");
   if (!id) return item;
@@ -165,7 +190,7 @@ async function models(admin: any) {
       servers: item.servers ?? [],
       pricing: item.pricing ?? [],
       modes: item.modes ?? [],
-      params: modelParams(item),
+      params: { ...pricingParams(item), ...modelParams(item) },
       notes: item.notes ?? null,
     };
   }));
