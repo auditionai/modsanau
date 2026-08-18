@@ -1017,6 +1017,8 @@ document.addEventListener("click", async (e) => {
         method: "POST",
         body: JSON.stringify({
           modelId: current.modelId,
+          size: current.settings?.size,
+          quality: current.settings?.quality,
           creditCost: Number($("[data-ai-model-cost]", row).value),
           active: $("[data-ai-model-active]", row).checked,
           sortOrder: Number(current.sortOrder || 0),
@@ -1397,6 +1399,24 @@ window.AdminPortal = {
   showError,
   loadView,
 };
+// GPTi2 matrix renderer: one row per model, size and quality configuration.
+async function loadAiModels() {
+  const result = await aiModelApi();
+  state.aiModels = (result.models || []).filter(isAllowedAiModel);
+  $("[data-ai-models-count]").textContent = `${number(state.aiModels.length)} configurations`;
+  $("[data-ai-models-body]").innerHTML = state.aiModels.length ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.pricingId || `${model.modelId}:${model.settings?.size}:${model.settings?.quality}`)}">
+    <td><strong>${escapeHtml(model.modelName)}</strong><small class="mono">${escapeHtml(model.modelId)}</small></td>
+    <td>${escapeHtml(model.settings?.size || "-")}</td>
+    <td>${escapeHtml(String(model.settings?.quality || "").toUpperCase())}</td>
+    <td>${number(model.gpti2PriceVnd || 0)} đ/ảnh</td>
+    <td>1.500 token; +29 đ/1.000 token vượt mức x n</td>
+    <td><input data-ai-model-cost type="number" min="1" max="1000000" value="${escapeHtml(String(model.creditCost || 10))}" /></td>
+    <td><label class="check-label"><input data-ai-model-active type="checkbox" ${model.active !== false ? "checked" : ""} /> Đang phát hành</label></td>
+    <td>v${number(model.pricingVersion || 1)}</td>
+    <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.pricingId || model.modelId)}">Lưu</button></td>
+  </tr>`).join("") : empty(9, "Chưa tải được ma trận giá GPTi2.");
+  applyRoleVisibility();
+}
 installCommerceTabs();
 restoreSession();
 document.addEventListener("click", async (event) => {
