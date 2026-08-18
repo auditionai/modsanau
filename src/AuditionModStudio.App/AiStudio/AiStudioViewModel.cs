@@ -596,8 +596,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         {
             _activity?.Publish("ERROR", "Tác vụ hình ảnh không hoàn tất; dự án chưa bị thay đổi.", "AI / hình ảnh", "Kết thúc", ProgressPercentage, "Error", operationId, DateTimeOffset.UtcNow - operationStarted);
             StatusMessage = aiResult?.FailureReason == AiServiceFailureReason.Unavailable
-                ? "Dịch vụ AI đang ngoại tuyến. Bạn vẫn có thể chỉnh sửa trên máy."
-                : "Không thể xử lý yêu cầu AI. Nội dung dự án không bị thay đổi.";
+                ? "Dịch vụ AI đang ngoại tuyến. Hãy thử tạo lại khi dịch vụ hoạt động."
+                : "Tạo ảnh thất bại. Hãy thử tạo lại ảnh; hệ thống không tự động tạo lại.";
         }
         await RefreshHistoryAsync(cancellationToken);
     }
