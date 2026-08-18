@@ -58,6 +58,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private string _theme = string.Empty;
     private string _visualStyle = string.Empty;
     private string _composition = string.Empty;
+    private string _colorPalette = string.Empty;
     private string _selectedPromptIdea = string.Empty;
 
     private static readonly IReadOnlyList<string> PromptIdeas =
@@ -86,6 +87,13 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private static readonly IReadOnlyList<string> ThemeIdeas = ["Neon", "Fantasy", "Khoa học viễn tưởng", "Tối giản", "Anime", "Hoạt hình 3D", "Steampunk", "Horror", "Retro", "Thiên nhiên", "Vũ trụ", "Đô thị", "Dệt may", "Cẩm thạch", "Băng tuyết", "Dung nham", "Quân sự", "Biển sâu", "Cổ điển", "Game cao cấp"];
     private static readonly IReadOnlyList<string> StyleIdeas = ["Cyberpunk", "Điện ảnh", "Anime", "Minh họa", "3D PBR", "Pixel art", "Low poly", "Tả thực", "Sơn dầu", "Màu nước", "Baroque", "Art deco", "Vaporwave", "Dark fantasy", "Sci-fi", "Retro", "Tối giản", "Thủ công", "Hoạt hình", "Concept art"];
     private static readonly IReadOnlyList<string> CompositionIdeas = ["Cân đối trung tâm", "Toàn cảnh", "Cận cảnh", "Góc thấp", "Góc cao", "Đối xứng", "Đường dẫn thị giác", "Tiền cảnh rõ", "Hậu cảnh mờ", "Chéo năng động", "Khung trong khung", "Quy tắc một phần ba", "Hình học", "Nhiều lớp chiều sâu", "Không gian âm", "Nhân vật chính giữa", "Nhóm đối tượng", "Vật thể nổi bật", "Bố cục dọc", "Bố cục ngang"];
+
+    private static readonly IReadOnlyList<string> ColorPalettes = [
+        "ÄÆ¡n sáº¯c xanh dÆ°Æ¡ng", "ÄÆ¡n sáº¯c Ä‘á»", "ÄÆ¡n sáº¯c xanh lÃ¡", "ÄÆ¡n sáº¯c tím", "Äen tráº¯ng",
+        "Äá» Ä‘en", "Xanh navy vÃ  vÃ ng", "Xanh cyan vÃ  tím", "Há»“ng pastel vÃ  xanh mint", "Cam vÃ  xanh teal",
+        "Tím vÃ  vÃ ng", "Äá» Ä‘Ã´ vÃ  kem", "Xanh rÆ°á»«ng vÃ  nÃ¢u", "HoÃ ng hÃ´n cam h»“ng", "Äáº¡i dÆ°Æ¡ng xanh cyan",
+        "Neon cyberpunk", "Pastel cáº§u vá»“ng", "Kim loáº¡i báº¡c vÃ  xanh", "VÃ ng gold vÃ  Ä‘en", "MÃ u Ä‘áº¥t tá»± nhiÃªn"
+    ];
 
     public AiStudioViewModel(
         IAiService aiService,
@@ -204,6 +212,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public string Theme { get => _theme; set { if (Set(ref _theme, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
     public string VisualStyle { get => _visualStyle; set { if (Set(ref _visualStyle, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
     public string Composition { get => _composition; set { if (Set(ref _composition, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
+    public string ColorPalette { get => _colorPalette; set { if (Set(ref _colorPalette, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
     public int AdditionalReferenceCount => _additionalReferences.Count;
     public bool HasAdditionalReferences => AdditionalReferenceCount > 0;
     public string AdditionalReferencesMessage => AdditionalReferenceCount == 0
@@ -214,6 +223,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public IReadOnlyList<string> ThemeIdeasList => ThemeIdeas;
     public IReadOnlyList<string> StyleIdeasList => StyleIdeas;
     public IReadOnlyList<string> CompositionIdeasList => CompositionIdeas;
+    public IReadOnlyList<string> ColorPalettesList => ColorPalettes;
     public string SelectedPromptIdea
     {
         get => _selectedPromptIdea;
@@ -362,7 +372,9 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private void ApplyModelSettings(string modelId)
     {
         if (!_modelCatalog.TryGetValue(modelId, out var model)) return;
-        ModelSettings = model.Settings.Select(item => new AiModelSettingViewModel(
+        ModelSettings = model.Settings.Where(item => !item.Key.Equals("n", StringComparison.OrdinalIgnoreCase)
+                && !item.Key.Equals("count", StringComparison.OrdinalIgnoreCase)
+                && !item.Key.Equals("quantity", StringComparison.OrdinalIgnoreCase)).Select(item => new AiModelSettingViewModel(
             item.Key, GetSettingLabel(item.Key), item.Value.Select(value => new AiStudioOption(value, value)).ToArray(),
             () => _ = RefreshQuoteAsync())).ToArray();
         var qualities = model.Qualities.Select(value => new AiStudioOption(value, value.ToUpperInvariant())).ToArray();
@@ -535,8 +547,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                         SelectedModel.Value,
                         $"desktop-{Guid.NewGuid():N}",
                         _additionalReferences,
-                        ModelSettings.ToDictionary(item => item.Key, item => item.Selected.Value,
-                            StringComparer.OrdinalIgnoreCase)), progress, token).ConfigureAwait(false);
+                        WithSingleImage(ModelSettings.ToDictionary(item => item.Key, item => item.Selected.Value,
+                            StringComparer.OrdinalIgnoreCase))), progress, token).ConfigureAwait(false);
                     aiResult = execution.Succeeded && execution.Preview is not null
                         ? AiImageResult.Success(execution.Preview)
                         : execution.Cancelled ? AiImageResult.CancelledResult()
@@ -716,9 +728,16 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         if (!string.IsNullOrWhiteSpace(Theme)) parts.Add($"Theme: {Theme.Trim()}.");
         if (!string.IsNullOrWhiteSpace(VisualStyle)) parts.Add($"Design style: {VisualStyle.Trim()}.");
         if (!string.IsNullOrWhiteSpace(Composition)) parts.Add($"Composition: {Composition.Trim()}.");
+        if (!string.IsNullOrWhiteSpace(ColorPalette)) parts.Add($"Color palette: {ColorPalette.Trim()}.");
         if (!string.IsNullOrWhiteSpace(Prompt)) parts.Add($"User requirements: {Prompt.Trim()}.");
         if (_additionalReferences.Count > 0) parts.Add("Use the uploaded reference images only for their requested visual details.");
         return string.Join(" ", parts);
+    }
+
+    private static IReadOnlyDictionary<string, string> WithSingleImage(Dictionary<string, string> settings)
+    {
+        settings["n"] = "1";
+        return settings;
     }
 
     private static InternalImage CreateBlankSource() => new(

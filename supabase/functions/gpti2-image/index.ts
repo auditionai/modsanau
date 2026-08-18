@@ -178,8 +178,8 @@ async function detailedModel(item: AnyMap) {
 async function models(admin: any) {
   if (modelCache && modelCache.expires > Date.now()) return modelCache.models;
   const imageRows = [
-    { id: "gpt-image-2", name: "GPT Image 2", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { size: GPTI2_SIZES, quality: ["low", "medium", "high"], n: ["1", "2", "3", "4"] }, notes: null },
-    { id: "nano-banana-pro", name: "Nano Banana PRO", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { size: GPTI2_SIZES, quality: ["low", "medium", "high"], n: ["1", "2", "3", "4"] }, notes: null },
+    { id: "gpt-image-2", name: "GPT Image 2", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { size: GPTI2_SIZES, quality: ["low", "medium", "high"] }, notes: null },
+    { id: "nano-banana-pro", name: "Nano Banana PRO", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { size: GPTI2_SIZES, quality: ["low", "medium", "high"] }, notes: null },
   ];
   const { data, error: syncError } = await adminRpc(admin, "sync", { models: imageRows });
   if (syncError) throw new Error(syncError);
@@ -224,14 +224,17 @@ function fallbackPricing(model: AnyMap, settings: AnyMap) {
     const config = String(row.config_key ?? row.key ?? "").toLowerCase();
     return actual === expected || config.includes(expected);
   }));
-  const row = matches.sort((a, b) => Number(a.credits ?? a.cost ?? a.price ?? 0) - Number(b.credits ?? b.cost ?? b.price ?? 0))[0];
-  const cost = Number(row?.credits ?? row?.cost ?? row?.price ?? model.creditCost ?? 0);
+  const row = matches.sort((a, b) => Number(a.internalCredits ?? a.creditCost ?? 0) - Number(b.internalCredits ?? b.creditCost ?? 0))[0];
+  const cost = Number(row?.internalCredits ?? row?.creditCost ?? 0);
   return Number.isSafeInteger(cost) && cost > 0 ? { creditCost: cost, pricingVersion: 1 } : null;
 }
 
 async function currentModelPricing(admin: any, modelId: string, settings: AnyMap) {
-  const { data, error: catalogError } = await adminRpc(admin, "quote", { modelId, settings });
-  if (catalogError) throw new Error(catalogError);
+  const { data, error: quoteError } = await admin.rpc("gpti2_internal_quote", {
+    model_id_value: modelId,
+    requested_settings: settings,
+  });
+  if (quoteError) throw new Error(quoteError.message || "AI_MODEL_PRICING_UNAVAILABLE");
   const row = data as AnyMap | null;
   return row ? { creditCost: pricingCost(row), pricingVersion: Number(row.pricingVersion ?? 1) } : null;
 }
@@ -366,7 +369,7 @@ Deno.serve(async (req) => {
       const settings = pickSettings(model, (body.settings as AnyMap) ?? {});
       let currentPricing: { creditCost: number; pricingVersion: number } | null = null;
       try { currentPricing = await currentModelPricing(admin, modelId, settings); } catch { currentPricing = null; }
-      currentPricing ??= fallbackPricing(model, settings);
+      currentPricing ??= null;
       if (!currentPricing?.creditCost) return error("AI_MODEL_PRICING_UNAVAILABLE", 409);
       return json({ creditCost: currentPricing.creditCost, pricingVersion: `internal-${currentPricing.pricingVersion ?? 1}`, settings });
     }
@@ -397,6 +400,7 @@ Deno.serve(async (req) => {
       const currentPricing = await currentModelPricing(admin, modelId, settings);
       const creditCost = currentPricing?.creditCost ?? 0;
       if (!creditCost) return error("AI_MODEL_PRICING_UNAVAILABLE", 409);
+      settings.n = 1;
       const prepared = await rpc(admin, "prepare", {
         userId: userData.user.id, model: modelId, settings, requestHash: hash,
         idempotencyKey, creditCost, pricingVersion: `internal-${currentPricing?.pricingVersion ?? 1}`,
@@ -407,7 +411,7 @@ Deno.serve(async (req) => {
         const submitted = await provider(providerPath, {
           method: "POST",
           headers: { "Idempotency-Key": idempotencyKey, "Prefer": "respond-async" },
-          body: JSON.stringify({ model: modelId, prompt, n: Number(settings.n ?? 1), ...settings,
+          body: JSON.stringify({ model: modelId, prompt, n: 1, ...settings,
             ...(referenceImages.length ? { reference_images: referenceImages } : {}) }),
         });
         const rawProviderJobId = String(submitted.job_id ?? submitted.id ?? "");
