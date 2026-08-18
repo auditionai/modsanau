@@ -40,8 +40,9 @@ public sealed class SupabaseAiStudioService(
                 var parameters = item.TryGetProperty("params", out var raw) && raw.ValueKind == JsonValueKind.Object ? raw : default;
                 return string.IsNullOrWhiteSpace(id) ? null : new AiStudioModelOption(
                     id!, name ?? id!, ReadOptionValues(parameters, "quality"), ReadOptionValues(parameters, "aspect_ratio"),
-                    ReadOptionValues(parameters, "size"), ReadCreditCosts(item));
-            }).Where(item => item is not null).Cast<AiStudioModelOption>().ToArray();
+                    ReadOptionValues(parameters, "resolution").Count > 0 ? ReadOptionValues(parameters, "resolution") : ReadOptionValues(parameters, "size"),
+                    ReadCreditCosts(item));
+            }).Where(item => item is not null && IsAllowedModel(item.Id, item.Name)).Cast<AiStudioModelOption>().ToArray();
             return result.Length == 0 ? new(false, "AI_MODELS_EMPTY", []) : new(true, "AI_MODELS_LOADED", result);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
@@ -174,5 +175,14 @@ public sealed class SupabaseAiStudioService(
                     && value.TryGetInt64(out var amount) && amount > 0) values.Add(amount);
         }
         return values.Distinct().Order().Take(10).ToArray();
+    }
+
+    private static bool IsAllowedModel(string id, string name)
+    {
+        var value = $"{id} {name}".ToLowerInvariant().Replace('.', ' ').Replace('_', ' ');
+        return System.Text.RegularExpressions.Regex.IsMatch(value, @"\bgpt(?:[- ]?image)?[- ]?2\b")
+            || System.Text.RegularExpressions.Regex.IsMatch(value, @"\bnano[- ]?banana[- ]?pro\b")
+            || System.Text.RegularExpressions.Regex.IsMatch(value, @"\b(?:image|imagen)[- ]?4\b")
+            || System.Text.RegularExpressions.Regex.IsMatch(value, @"\bflux[- ]?2[- ]?pro\b");
     }
 }
