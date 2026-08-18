@@ -14,6 +14,14 @@ let modelCache: { expires: number; models: unknown[] } | null = null;
 
 type AnyMap = Record<string, unknown>;
 
+function isAllowedImageModel(identity: string) {
+  const value = identity.toLowerCase().replace(/[._]/g, " ");
+  return /\bgpt(?:[- ]?image)?[- ]?2\b/.test(value)
+    || /\bnano[- ]?banana[- ]?pro\b/.test(value)
+    || /\b(?:image|imagen)[- ]?4\b/.test(value)
+    || /\bflux[- ]?2[- ]?pro\b/.test(value);
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: cors });
 }
@@ -53,7 +61,7 @@ async function models(admin: any) {
     const item = row as AnyMap;
     const type = String(item.type ?? item.category ?? "").toLowerCase();
     const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
-    return (type === "image" || type.includes("image")) && /gpt|banana|flux|imagen?[- _]?4|image[- _]?4/.test(identity);
+    return (type === "image" || type.includes("image")) && isAllowedImageModel(identity);
   }).map((row) => {
     const item = row as AnyMap;
     return {

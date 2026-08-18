@@ -20,6 +20,14 @@ function headers(req: Request) {
   };
 }
 
+function isAllowedImageModel(identity: string) {
+  const value = identity.toLowerCase().replace(/[._]/g, " ");
+  return /\bgpt(?:[- ]?image)?[- ]?2\b/.test(value)
+    || /\bnano[- ]?banana[- ]?pro\b/.test(value)
+    || /\b(?:image|imagen)[- ]?4\b/.test(value)
+    || /\bflux[- ]?2[- ]?pro\b/.test(value);
+}
+
 function respond(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: headers(req) });
 }
@@ -52,7 +60,7 @@ async function providerModels() {
     const item = row as AnyMap;
     const type = String(item.type ?? item.category ?? "").toLowerCase();
     const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
-    return (type === "image" || type.includes("image")) && /gpt|banana|flux|imagen?[- _]?4|image[- _]?4/.test(identity);
+    return (type === "image" || type.includes("image")) && isAllowedImageModel(identity);
   }).map((row: unknown) => {
     const item = row as AnyMap;
     return {
@@ -94,7 +102,7 @@ Deno.serve(async (req) => {
     });
     if (error) throw new Error(error.message || "AI_MODEL_DATABASE_ERROR");
     const models = Array.isArray(data) ? data.filter((item: AnyMap) =>
-      /gpt|banana|flux|imagen?[- _]?4|image[- _]?4/.test(`${item.modelId ?? item.id ?? ""} ${item.modelName ?? item.name ?? ""}`.toLowerCase())) : data;
+      isAllowedImageModel(`${item.modelId ?? item.id ?? ""} ${item.modelName ?? item.name ?? ""}`)) : data;
     return respond(req, req.method === "GET" ? { models } : data);
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "AI_MODEL_REQUEST_FAILED";
