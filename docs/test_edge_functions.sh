@@ -80,16 +80,16 @@ test_endpoint_verbose() {
     return 0
 }
 
-echo "1. Testing Edge Function: tst-image"
+echo "1. Testing Edge Function: gpti2-image"
 echo "----------------------------------------"
-test_endpoint "tst-image (OPTIONS)" \
-    "$SUPABASE_URL/functions/v1/tst-image" \
+test_endpoint "gpti2-image (OPTIONS)" \
+    "$SUPABASE_URL/functions/v1/gpti2-image" \
     "OPTIONS" \
     "204"
 
 # Note: GET without auth should return 401
-test_endpoint "tst-image (GET without valid auth)" \
-    "$SUPABASE_URL/functions/v1/tst-image" \
+test_endpoint "gpti2-image (GET without valid auth)" \
+    "$SUPABASE_URL/functions/v1/gpti2-image" \
     "GET" \
     "401"
 
@@ -130,7 +130,7 @@ echo "Edge Functions Verification Complete"
 echo "=================================================="
 echo ""
 echo "NOTES:"
-echo "- tst-image requires authenticated user JWT"
+echo "- gpti2-image requires authenticated user JWT"
 echo "- payments/catalog works with anon key"
 echo "- payments/orders requires authenticated user JWT"
 echo "- sepay-webhook requires SePay signature"

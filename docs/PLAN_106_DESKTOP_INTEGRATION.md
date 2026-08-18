@@ -64,7 +64,7 @@ Response:
 {
   "id": "c250bab3-ca00-42ff-89e0-48ab041555fc",
   "status": "completed",
-  "result_url": "https://cdn.tramsangtao.com/outputs/.../result.png"
+  "result_url": "https://provider.example/outputs/.../result.png"
 }
 ```
 
@@ -215,7 +215,7 @@ Edge Function returns standard HTTP status codes:
 
 - **API Key Storage:** NEVER store Trạm Sáng Tạo API key in Desktop App, source code, or config files
 - **JWT Token:** Desktop App sends user JWT, Edge Function validates it
-- **Supabase Secrets:** API key lives in `TRAM_SANG_TAO_API_KEY` environment variable server-side only
+- **Supabase Secrets:** API key lives in `GPTI2_API_KEY` environment variable server-side only
 - **CDN URLs:** Public, no authentication required (signed URLs from Trạm Sáng Tạo)
 
 ## Reference Implementation

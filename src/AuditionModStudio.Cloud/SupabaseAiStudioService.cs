@@ -50,7 +50,7 @@ public sealed class SupabaseAiStudioService(
         catch (JsonException) { return new(false, "AI_MODELS_INVALID", []); }
     }
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private Uri Endpoint(string action) => new(projectUri, $"functions/v1/tst-image?action={action}");
+    private Uri Endpoint(string action) => new(projectUri, $"functions/v1/gpti2-image?action={action}");
 
     public Task<AiStudioQuoteResult> GetQuoteAsync(AiStudioOperation operation, CancellationToken cancellationToken = default) =>
         Task.FromResult(new AiStudioQuoteResult(false, "AI_QUOTE_FROM_LIVE_MODEL_REQUIRED", null));

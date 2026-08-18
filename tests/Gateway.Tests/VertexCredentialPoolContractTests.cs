@@ -28,7 +28,7 @@ public sealed class VertexCredentialPoolContractTests
     public void Edge_function_retries_only_through_the_credential_pool_and_reports_health()
     {
         var root = FindRepositoryRoot();
-        var edge = File.ReadAllText(Path.Combine(root, "supabase", "functions", "tst-image", "index.ts"));
+        var edge = File.ReadAllText(Path.Combine(root, "supabase", "functions", "gpti2-image", "index.ts"));
         var vertex = File.ReadAllText(Path.Combine(root, "supabase", "functions", "_shared", "vertex-ai.ts"));
 
         Assert.Contains("ai_vertex_credential_acquire_api", edge, StringComparison.Ordinal);
@@ -38,7 +38,7 @@ public sealed class VertexCredentialPoolContractTests
         Assert.Contains("VertexCompositionError", edge, StringComparison.Ordinal);
         Assert.Contains("lastStatus === 429", vertex, StringComparison.Ordinal);
         Assert.Contains("VERTEX_MODEL_FALLBACK", vertex, StringComparison.Ordinal);
-        Assert.DoesNotContain("TST_API_KEY", vertex, StringComparison.Ordinal);
+        Assert.DoesNotContain("TRAM_SANG_TAO_API_KEY", vertex, StringComparison.Ordinal);
     }
 
     [Fact]

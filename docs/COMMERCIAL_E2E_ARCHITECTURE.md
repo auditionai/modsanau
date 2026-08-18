@@ -241,7 +241,7 @@ Submit → credit_reserve() → Failed → credit_release()
 
 **Technology:** Supabase Edge Function + Trạm Sáng Tạo API + PostgreSQL RPC
 
-**Edge Function:** `functions/tst-image`
+**Edge Function:** `functions/gpti2-image`
 
 **RPC:** `public.ai_image_api(action, payload)`
 
@@ -255,12 +255,12 @@ Submit → credit_reserve() → Failed → credit_release()
 
 **Flow:**
 1. Desktop checks `CanUseAi` capability
-2. Desktop calls Edge Function `/tst-image?action=generate`
+2. Desktop calls Edge Function `/gpti2-image?action=generate`
 3. Edge Function validates auth
 4. Edge Function calls RPC `ai_image_api('prepare')` → reserves credits
 5. Edge Function submits to Trạm Sáng Tạo API
 6. Edge Function calls RPC `ai_image_api('submitted')` with provider_job_id
-7. Desktop polls Edge Function `/tst-image?action=status`
+7. Desktop polls Edge Function `/gpti2-image?action=status`
 8. Edge Function polls Trạm Sáng Tạo job status
 9. When complete, Edge Function calls RPC `ai_image_api('complete')` → captures credits
 10. Desktop downloads result image
@@ -392,7 +392,7 @@ Submit → credit_reserve() → Failed → credit_release()
 1. User opens AI Studio
 2. Desktop checks capability: CanUseAi = true
 3. User enters prompt, selects model
-4. Desktop calls Edge Function /tst-image?action=generate
+4. Desktop calls Edge Function /gpti2-image?action=generate
    - Headers: Authorization: Bearer <user-jwt>
    - Body: { prompt, model, idempotency_key }
 5. Edge Function validates JWT
@@ -404,7 +404,7 @@ Submit → credit_reserve() → Failed → credit_release()
 8. Trạm Sáng Tạo returns job_id
 9. Edge Function calls ai_image_api('submitted')
 10. Edge Function returns { job_id, status: queued }
-11. Desktop starts polling /tst-image?action=status
+11. Desktop starts polling /gpti2-image?action=status
 12. Trạm Sáng Tạo processes job (30-60s)
 13. Desktop poll: Edge Function polls Trạm Sáng Tạo
 14. Trạm Sáng Tạo returns result URL
