@@ -141,6 +141,7 @@ function pricingParams(item: AnyMap): AnyMap {
   for (const row of pricing) {
     if (!row || typeof row !== "object" || Array.isArray(row)) continue;
     const entry = row as AnyMap;
+    add("server", entry.server);
     const rawResolution = entry.resolution ?? entry.size;
     const normalizedResolution = String(rawResolution ?? "").toLowerCase();
     if (["low", "medium", "high"].includes(normalizedResolution)) add("quality", normalizedResolution);
@@ -226,6 +227,19 @@ function pickSettings(model: AnyMap, requested: AnyMap) {
 function pricingCost(model: AnyMap): number {
   const value = Number(model.creditCost ?? 0);
   return Number.isSafeInteger(value) && value > 0 ? value : 0;
+}
+
+function fallbackPricing(model: AnyMap, settings: AnyMap) {
+  const rows = Array.isArray(model.pricing) ? model.pricing.filter((row): row is AnyMap => !!row && typeof row === "object" && !Array.isArray(row)) : [];
+  const matches = rows.filter((row) => Object.entries(settings).every(([key, value]) => {
+    const expected = String(value).toLowerCase();
+    const actual = String(row[key] ?? "").toLowerCase();
+    const config = String(row.config_key ?? row.key ?? "").toLowerCase();
+    return actual === expected || config.includes(expected);
+  }));
+  const row = matches.sort((a, b) => Number(a.credits ?? a.cost ?? a.price ?? 0) - Number(b.credits ?? b.cost ?? b.price ?? 0))[0];
+  const cost = Number(row?.credits ?? row?.cost ?? row?.price ?? model.creditCost ?? 0);
+  return Number.isSafeInteger(cost) && cost > 0 ? { creditCost: cost, pricingVersion: 1 } : null;
 }
 
 async function currentModelPricing(admin: any, modelId: string, settings: AnyMap) {
@@ -340,7 +354,9 @@ Deno.serve(async (req) => {
       const model = modelById(catalog, modelId);
       if (!model) return error("AI_MODEL_NOT_ALLOWED", 400);
       const settings = pickSettings(model, (body.settings as AnyMap) ?? {});
-      const currentPricing = await currentModelPricing(admin, modelId, settings);
+      let currentPricing: { creditCost: number; pricingVersion: number } | null = null;
+      try { currentPricing = await currentModelPricing(admin, modelId, settings); } catch { currentPricing = null; }
+      currentPricing ??= fallbackPricing(model, settings);
       if (!currentPricing?.creditCost) return error("AI_MODEL_PRICING_UNAVAILABLE", 409);
       return json({ creditCost: currentPricing.creditCost, pricingVersion: `internal-${currentPricing.pricingVersion ?? 1}`, settings });
     }
