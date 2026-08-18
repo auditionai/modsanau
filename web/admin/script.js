@@ -90,8 +90,20 @@ function providerPrice(value) {
 }
 function settingText(value) {
   if (!value || typeof value !== "object") return "Mặc định";
-  const entries = Object.entries(value);
+  const entries = Object.entries(value).filter(([key]) => !isQualitySetting(key));
   return entries.length ? entries.map(([key, item]) => `${key}=${item}`).join(" · ") : "Mặc định";
+}
+function isQualitySetting(key) {
+  return /^(quality|resolution|image_size|imageSize|output_resolution|outputResolution|size|dimensions?)$/i.test(String(key));
+}
+function qualityText(value) {
+  if (!value || typeof value !== "object") return "Mặc định";
+  const entries = Object.entries(value).filter(([key]) => isQualitySetting(key));
+  if (!entries.length) return "Mặc định";
+  return entries.map(([key, item]) => {
+    const label = /resolution|size|dimension/i.test(key) ? "Độ phân giải" : "Chất lượng";
+    return `${label}: ${item}`;
+  }).join(" · ");
 }
 function money(v, currency = "vnd") {
   return new Intl.NumberFormat("vi-VN", {
@@ -730,6 +742,7 @@ async function loadAiModels() {
   $("[data-ai-models-body]").innerHTML = state.aiModels.length
     ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.pricingId)}">
         <td><strong>${escapeHtml(model.modelName)}</strong><small class="mono">${escapeHtml(model.modelId)}</small></td>
+        <td class="quality-cell">${escapeHtml(qualityText(model.settings))}</td>
         <td><input data-ai-model-cost type="number" min="1" max="1000000" step="1" value="${escapeHtml(String(model.creditCost))}" aria-label="Giá Credits ${escapeHtml(model.name)}" /></td>
         <td>${model.tstCost == null ? "—" : escapeHtml(String(model.tstCost))}</td>
         <td class="mono setting-cell">${escapeHtml(settingText(model.settings))}</td>
@@ -738,7 +751,7 @@ async function loadAiModels() {
         <td><input data-ai-model-reason maxlength="500" minlength="8" placeholder="Lý do thay đổi" aria-label="Lý do thay đổi ${escapeHtml(model.name)}" /></td>
         <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.pricingId)}">Lưu</button></td>
       </tr>`).join("")
-    : empty(8, "Chưa đồng bộ cấu hình giá model ảnh từ TST.");
+    : empty(9, "Chưa đồng bộ cấu hình giá model ảnh từ TST.");
   applyRoleVisibility();
 }
 async function showPaymentDetail(orderId) {
