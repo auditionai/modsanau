@@ -24,6 +24,46 @@ public sealed class EdgeFunctionAiStudioService(
 {
     private const int MaximumResponseBytes = 256 * 1_024;
 
+    public bool SupportsGenerationWithReferences => true;
+
+    public async Task<AiStudioModelsResult> GetModelsAsync(CancellationToken cancellationToken = default)
+    {
+        if (!options.IsValid) return new(false, "AI_MODELS_UNAVAILABLE", []);
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, Endpoint("models"));
+            if (!await AuthorizeAsync(request, cancellationToken).ConfigureAwait(false))
+                return new(false, "AI_STUDIO_AUTH_REQUIRED", []);
+            using var response = await httpClient.SendAsync(request,
+                HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return new(false, "AI_MODELS_UNAVAILABLE", []);
+            using var document = await ReadJsonAsync(response, cancellationToken).ConfigureAwait(false);
+            if (!document.RootElement.TryGetProperty("models", out var models)
+                || models.ValueKind != JsonValueKind.Array) return new(false, "AI_MODELS_INVALID", []);
+
+            var result = new List<AiStudioModelOption>();
+            foreach (var item in models.EnumerateArray().Take(40))
+            {
+                if (!TryGetBoundedString(item, "id", 64, out var id)) continue;
+                var name = TryGetBoundedString(item, "name", 160, out var display) ? display! : id!;
+                var parameters = item.TryGetProperty("params", out var rawParameters)
+                    && rawParameters.ValueKind == JsonValueKind.Object ? rawParameters : default;
+                var qualities = ReadOptionValues(parameters, "quality");
+                var aspects = ReadOptionValues(parameters, "aspect_ratio");
+                var resolutions = ReadOptionValues(parameters, "size");
+                var prices = ReadCreditCosts(item);
+                result.Add(new(id!, name, qualities, aspects, resolutions, prices));
+            }
+            return result.Count == 0
+                ? new(false, "AI_MODELS_EMPTY", [])
+                : new(true, "AI_MODELS_LOADED", result);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (HttpRequestException) { return new(false, "AI_STUDIO_OFFLINE", []); }
+        catch (InvalidDataException) { return new(false, "AI_MODELS_INVALID", []); }
+        catch (JsonException) { return new(false, "AI_MODELS_INVALID", []); }
+    }
+
     public async Task<AiStudioQuoteResult> GetQuoteAsync(
         AiStudioOperation operation,
         CancellationToken cancellationToken = default)
@@ -46,7 +86,7 @@ public sealed class EdgeFunctionAiStudioService(
             _ => 35L
         };
 
-        return new(true, "AI_PRICE_QUOTED", new(estimatedCost, "tramsangtao-v1"));
+        return new(true, "AI_PRICE_QUOTED", new(estimatedCost, "audition-ai-v1"));
     }
 
     public async Task<AiStudioHistoryResult> GetHistoryAsync(CancellationToken cancellationToken = default)
@@ -90,21 +130,25 @@ public sealed class EdgeFunctionAiStudioService(
             progress?.Report(new(AiOperationPhase.Submitting, 15, "AI_JOB_SUBMITTING"));
 
             // Build request based on operation
+            var hasSourceImage = request.Source.Width > 1 || request.Source.Height > 1;
             var body = request.Operation switch
             {
                 AiStudioOperation.Upscale => JsonSerializer.Serialize(new
                 {
                     image = sourceBase64,
-                    scale = CalculateUpscaleScale(request)
+                    scale = CalculateUpscaleScale(request),
+                    model = request.PublicOptionId,
                 }),
                 _ => JsonSerializer.Serialize(new
                 {
                     prompt = request.Prompt?.Value ?? "",
-                    image = sourceBase64,
+                    model = request.PublicOptionId,
+                    image = hasSourceImage ? sourceBase64 : null,
                     mask = maskBase64,
                     width = request.TargetSize?.Width,
                     height = request.TargetSize?.Height,
-                    num_outputs = 1
+                    num_outputs = 1,
+                    settings = request.ModelSettings,
                 })
             };
 
@@ -151,7 +195,9 @@ public sealed class EdgeFunctionAiStudioService(
 
                 if (status == "completed")
                 {
-                    if (!TryGetBoundedString(pollDocument.RootElement, "result_url", 512, out var resultUrl))
+                    if (!TryGetBoundedString(pollDocument.RootElement, "result_url", 512, out var resultUrl)
+                        && !TryGetBoundedString(pollDocument.RootElement, "result", 512, out resultUrl)
+                        && !TryGetBoundedString(pollDocument.RootElement, "output", 512, out resultUrl))
                         return new(false, false, "AI_STUDIO_RESPONSE_INVALID", null);
 
                     return await DownloadFromUrlAsync(resultUrl!, progress, cancellationToken).ConfigureAwait(false);
@@ -245,6 +291,8 @@ public sealed class EdgeFunctionAiStudioService(
                 && expandsSource,
             AiStudioOperation.Upscale => request.Mask is null && request.Prompt is null
                 && expandsSource,
+            AiStudioOperation.Generate => request.Mask is null && request.Prompt is { IsValid: true },
+            AiStudioOperation.Edit => request.Mask is null && request.Prompt is { IsValid: true },
             _ => false,
         };
     }
@@ -309,5 +357,31 @@ public sealed class EdgeFunctionAiStudioService(
         return await JsonDocument.ParseAsync(buffer, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    private Uri Endpoint(string relativePath) => new(options.BaseUri, relativePath);
+    private static IReadOnlyList<string> ReadOptionValues(JsonElement parameters, string key)
+    {
+        if (parameters.ValueKind != JsonValueKind.Object || !parameters.TryGetProperty(key, out var parameter)) return [];
+        var source = parameter.ValueKind == JsonValueKind.Array ? parameter
+            : parameter.ValueKind == JsonValueKind.Object && parameter.TryGetProperty("values", out var values)
+                && values.ValueKind == JsonValueKind.Array ? values : default;
+        return source.ValueKind != JsonValueKind.Array ? [] : source.EnumerateArray()
+            .Where(value => value.ValueKind is JsonValueKind.String or JsonValueKind.Number)
+            .Select(value => value.ToString()).Where(value => value.Length is > 0 and <= 64).Take(20).ToArray();
+    }
+
+    private static IReadOnlyList<long> ReadCreditCosts(JsonElement model)
+    {
+        if (!model.TryGetProperty("pricing", out var pricing) || pricing.ValueKind != JsonValueKind.Array) return [];
+        var values = new List<long>();
+        foreach (var row in pricing.EnumerateArray().Take(100))
+        {
+            if (row.ValueKind != JsonValueKind.Object) continue;
+            if (row.TryGetProperty("credits", out var credit) && credit.TryGetInt64(out var amount) && amount > 0)
+                values.Add(amount);
+            else if (row.TryGetProperty("cost", out var cost) && cost.TryGetInt64(out amount) && amount > 0)
+                values.Add(amount);
+        }
+        return values.Distinct().Order().Take(10).ToArray();
+    }
+
+    private Uri Endpoint(string relativePath) => new($"{options.BaseUri.AbsoluteUri.TrimEnd('/')}/{relativePath.TrimStart('/')}");
 }
