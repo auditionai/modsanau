@@ -53,23 +53,49 @@ async function provider(path: string, init: RequestInit = {}) {
   return body as AnyMap;
 }
 
+function modelParams(item: AnyMap): AnyMap {
+  const source = item.params ?? item.settings ?? item.options ?? item.parameters ?? item.input_schema;
+  const params = source && typeof source === "object" && !Array.isArray(source) ? { ...(source as AnyMap) } : {};
+  const properties = params.properties;
+  if (properties && typeof properties === "object" && !Array.isArray(properties)) {
+    for (const [key, definition] of Object.entries(properties as AnyMap)) {
+      if (!params[key] && definition && typeof definition === "object") {
+        const option = definition as AnyMap;
+        params[key] = option.enum ?? option.values ?? option.options ?? option.choices;
+      }
+    }
+    delete params.properties;
+  }
+  for (const key of ["quality", "aspect_ratio", "resolution", "size", "speed", "processing_speed", "count", "quantity"]) {
+    if (item[key] !== undefined && params[key] === undefined) params[key] = item[key];
+  }
+  return params;
+}
+
+async function detailedModel(item: AnyMap) {
+  const id = String(item.id ?? item.slug ?? item.model ?? "");
+  if (!id) return item;
+  try {
+    const source = await provider(`/models/${encodeURIComponent(id)}`);
+    const detail = source.model && typeof source.model === "object" ? source.model as AnyMap : source;
+    return { ...item, ...detail, params: { ...modelParams(item), ...modelParams(detail) } };
+  } catch {
+    return item;
+  }
+}
+
 async function models(admin: any) {
   if (modelCache && modelCache.expires > Date.now()) return modelCache.models;
   const source = await provider("/models");
   const rows = Array.isArray(source) ? source : Array.isArray(source.models) ? source.models : [];
-  const imageRows = rows.filter((row) => {
+  const allowedRows = rows.filter((row) => {
     const item = row as AnyMap;
     const type = String(item.type ?? item.category ?? "").toLowerCase();
     const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
     return (type === "image" || type.includes("image")) && isAllowedImageModel(identity);
-  }).map((row) => {
-    const item = row as AnyMap;
-    const rawParams = item.params ?? item.settings ?? item.options ?? {};
-    const params = rawParams && typeof rawParams === "object" && !Array.isArray(rawParams)
-      ? { ...(rawParams as AnyMap) } : {};
-    for (const key of ["quality", "aspect_ratio", "resolution", "size", "speed", "processing_speed", "count", "quantity"]) {
-      if (item[key] !== undefined && params[key] === undefined) params[key] = item[key];
-    }
+  });
+  const imageRows = await Promise.all(allowedRows.map(async (row) => {
+    const item = await detailedModel(row as AnyMap);
     return {
       id: String(item.id ?? item.slug ?? item.model),
       name: item.name ?? item.title ?? item.id,
@@ -77,10 +103,10 @@ async function models(admin: any) {
       servers: item.servers ?? [],
       pricing: item.pricing ?? [],
       modes: item.modes ?? [],
-      params,
+      params: modelParams(item),
       notes: item.notes ?? null,
     };
-  });
+  }));
   const { data, error: syncError } = await adminRpc(admin, "sync", { models: imageRows });
   if (syncError) throw new Error(syncError);
   const catalog = Array.isArray(data) ? data as AnyMap[] : [];
