@@ -1,33 +1,1019 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="dark"><title>Audition AI — Trung tâm quản trị</title><link rel="stylesheet" href="/admin/styles.css"></head>
-<body>
-<a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-<section class="login-shell" data-login-screen>
-  <div class="login-visual" aria-hidden="true"><div class="brand-orbit"><span></span><span></span><span></span></div><div class="login-copy"><p class="eyebrow">AUDITION AI · CONTROL CENTER</p><h1>Dữ liệu vận hành.<br><span>Trong một nhịp nhìn.</span></h1><p>Quản trị người dùng, doanh thu, thiết bị và quyền thương mại trên một bề mặt bảo mật duy nhất.</p></div><div class="trust-row"><span>Session mã hóa</span><span>Phân quyền server</span><span>Audit mọi thay đổi</span></div></div>
-  <div class="login-panel"><form class="login-card" data-login-form novalidate><div class="brand-lockup"><span class="brand-mark">A</span><div><strong>Audition AI</strong><small>Admin Console</small></div></div><div class="login-heading"><p class="eyebrow">TRUY CẬP NỘI BỘ</p><h2>Đăng nhập quản trị</h2><p>Dùng tài khoản owner hoặc operator đã được cấp quyền.</p></div><label>Email quản trị<input name="email" type="email" autocomplete="username" inputmode="email" required placeholder="admin@example.com"></label><label>Mật khẩu<span class="password-field"><input name="password" type="password" autocomplete="current-password" minlength="8" required><button type="button" class="icon-button" data-toggle-password>Hiện</button></span></label><p class="form-error" role="alert" data-login-error hidden></p><button class="primary-button login-button" type="submit"><span>Đăng nhập an toàn</span><span class="button-loader"></span></button><p class="security-note">Không bao giờ dán token hoặc khóa hệ thống vào trang này.</p></form></div>
-</section>
-<div class="app-shell" data-app hidden>
- <aside class="sidebar" data-sidebar><div class="sidebar-brand"><span class="brand-mark">A</span><div><strong>Audition AI</strong><small>Control Center</small></div></div><nav class="main-nav" aria-label="Chức năng quản trị"><p>ĐIỀU HÀNH</p><button class="nav-item is-active" data-view="dashboard"><i>⌂</i>Tổng quan</button><button class="nav-item" data-view="revenue"><i>↗</i>Nạp tiền</button><p>QUẢN LÝ</p><button class="nav-item" data-view="users"><i>◉</i>Người dùng</button><button class="nav-item" data-view="devices"><i>▣</i>Thiết bị</button><button class="nav-item" data-view="payments"><i>₫</i>Thanh toán</button><button class="nav-item" data-view="transactions"><i>⇄</i>Giao dịch</button><button class="nav-item" data-view="packages"><i>◇</i>Gói nạp</button><button class="nav-item" data-view="giftcodes"><i>✦</i>Gift code</button><p>HỆ THỐNG</p><button class="nav-item owner-only" data-view="admins"><i>♙</i>Tài khoản admin</button><button class="nav-item" data-view="audit"><i>≡</i>Nhật ký bảo mật</button></nav><div class="sidebar-footer"><span class="health-dot"></span><div><strong>Gateway</strong><small data-api-status>Đang kiểm tra…</small></div></div></aside>
- <div class="workspace"><header class="topbar"><button class="icon-button menu-button" data-menu-toggle>☰</button><div><p class="breadcrumb">ADMIN / <span data-breadcrumb>TỔNG QUAN</span></p><p class="page-title" data-page-title>Tổng quan vận hành</p></div><div class="topbar-actions"><button class="icon-button" data-refresh>↻</button><div class="admin-menu"><button data-admin-menu><span class="avatar" data-avatar>C</span><span><strong data-admin-name>Admin</strong><small data-admin-role>owner</small></span><span>⌄</span></button><div class="admin-popover" data-admin-popover hidden><p data-admin-email></p><button data-logout>Đăng xuất</button></div></div></div></header>
- <main id="main-content" class="content" tabindex="-1"><div class="global-state" data-global-state hidden><span></span><p></p><button data-retry>Thử lại</button></div>
-  <section class="view is-active" data-pane="dashboard"><div class="section-heading"><div><p class="eyebrow">LIVE OPERATIONS</p><h2>Bức tranh kinh doanh hôm nay</h2><p>Dữ liệu được tổng hợp trực tiếp từ nguồn tin cậy phía server.</p></div><div class="range-switch" data-range><button data-days="7">7 ngày</button><button class="is-active" data-days="30">30 ngày</button><button data-days="90">90 ngày</button></div></div><div class="kpi-grid" data-kpis></div><div class="dashboard-grid"><article class="panel chart-panel span-2"><div class="panel-head"><div><p class="eyebrow">DOANH THU</p><h3>Xu hướng nạp tiền</h3></div><strong data-revenue-total>—</strong></div><div class="chart" data-revenue-chart></div></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">NGƯỜI DÙNG</p><h3>Trạng thái thiết bị</h3></div></div><div class="donut-layout"><div class="donut" data-device-donut><span></span></div><div class="legend" data-device-legend></div></div></article><article class="panel span-2"><div class="panel-head"><div><p class="eyebrow">HOẠT ĐỘNG MỚI</p><h3>Nhật ký gần nhất</h3></div><button class="text-button" data-go="audit">Xem tất cả</button></div><div class="activity-list" data-recent-audit></div></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">SẮP HẾT HẠN</p><h3>Subscription cần chú ý</h3></div></div><div class="attention-card"><strong data-expiring>—</strong><span>gói hết hạn trong 7 ngày</span><button class="secondary-button" data-go="users">Kiểm tra người dùng</button></div></article></div></section>
-  <section class="view" data-pane="revenue"><div class="section-heading"><div><p class="eyebrow">REVENUE ANALYTICS</p><h2>Thống kê nạp tiền</h2><p>Doanh thu đã xác minh, credits bán ra và biến động theo ngày.</p></div></div><div class="kpi-grid compact" data-revenue-kpis></div><article class="panel chart-panel"><div class="panel-head"><h3>Doanh thu và giao dịch theo ngày</h3></div><div class="chart chart-large" data-topup-chart></div></article></section>
-  <section class="view" data-pane="users"><div class="section-heading"><div><p class="eyebrow">CUSTOMER OPERATIONS</p><h2>Quản lý người dùng</h2><p>Tra cứu hồ sơ, số dư, subscription và trạng thái thương mại.</p></div></div><div class="toolbar"><label class="search-box"><span>⌕</span><input data-user-search type="search" placeholder="Email, User ID hoặc mã máy…"></label><select data-user-status><option value="">Mọi trạng thái</option><option value="active">Đang hoạt động</option><option value="suspended">Tạm khóa</option><option value="deactivated">Đã vô hiệu hóa</option></select><button class="secondary-button" data-user-submit>Tìm kiếm</button></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Người dùng</th><th>Mã máy</th><th>Số dư</th><th>Subscription</th><th>Trạng thái</th><th></th></tr></thead><tbody data-users-body></tbody></table></div><div class="table-footer"><span data-users-count>0 người dùng</span></div></article></section>
-  <section class="view" data-pane="devices"><div class="section-heading"><div><p class="eyebrow">DEVICE AUTHORITY</p><h2>Quản lý thiết bị</h2><p>Tra cứu mã máy, người dùng, phiên bản và trạng thái hoạt động.</p></div></div><div class="toolbar"><label class="search-box"><span>⌕</span><input data-device-search type="search" placeholder="Gmail, tên, Device ID, mã máy…"></label><select data-device-status><option value="">Mọi trạng thái</option><option value="active">Active</option><option value="blocked">Blocked</option><option value="revoked">Revoked</option></select><button class="secondary-button" data-device-submit>Tìm kiếm</button></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Người dùng</th><th>Mã máy / Device ID</th><th>Ứng dụng</th><th>Hoạt động</th><th>Trạng thái</th><th></th></tr></thead><tbody data-devices-body></tbody></table></div><div class="table-footer"><span data-devices-count>0 thiết bị</span></div></article></section>
-  <section class="view" data-pane="payments"><div class="section-heading"><div><p class="eyebrow">SEPAY OPERATIONS</p><h2>Quản lý thanh toán</h2><p>Đơn, đối soát và fulfillment từ nguồn dữ liệu server. Đây là góc nhìn vận hành, không phải hệ thống kế toán.</p></div></div><div class="kpi-grid compact" data-payment-kpis></div><div class="toolbar"><select data-payment-status><option value="">Mọi trạng thái</option><option value="waiting_payment">Đang chờ</option><option value="fulfilled">Đã hoàn tất</option><option value="review_required">Cần kiểm tra</option><option value="expired">Hết hạn</option></select><button class="secondary-button" data-payment-submit>Tải đơn</button></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>Thiết bị</th><th>Sản phẩm</th><th>Số tiền</th><th>Trạng thái</th><th>Tạo lúc</th><th></th></tr></thead><tbody data-payments-body></tbody></table></div><div class="table-footer"><span data-payments-count>0 đơn</span></div></article><div class="section-heading payment-product-heading"><div><p class="eyebrow">PRODUCT AUTHORITY</p><h2>Sản phẩm thanh toán</h2><p>Mỗi lần đổi giá tạo một version mới; đơn cũ giữ nguyên snapshot.</p></div><button class="primary-button operator-only" data-new-payment-product>+ Tạo version sản phẩm</button></div><div class="package-grid" data-payment-products></div></section>
-  <section class="view" data-pane="transactions"><div class="section-heading"><div><p class="eyebrow">PAYMENT LEDGER</p><h2>Tra cứu giao dịch</h2><p>Tìm theo mã giao dịch, mã nhà cung cấp, User ID hoặc email.</p></div></div><div class="toolbar"><label class="search-box"><span>⌕</span><input data-transaction-search type="search" placeholder="Transaction ID, payment ID, email…"></label><input data-provider-filter placeholder="Provider"><button class="secondary-button" data-transaction-submit>Tìm kiếm</button></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Giao dịch</th><th>Người dùng</th><th>Gói</th><th>Giá trị</th><th>Credits</th><th>Thời gian</th></tr></thead><tbody data-transactions-body></tbody></table></div><div class="table-footer"><span data-transactions-count>0 giao dịch</span></div></article></section>
-  <section class="view" data-pane="packages"><div class="section-heading"><div><p class="eyebrow">PRODUCT CATALOG</p><h2>Quản lý gói nạp</h2><p>Giá bán, credits và trạng thái phát hành của từng sản phẩm.</p></div><button class="primary-button operator-only" data-new-package>+ Tạo gói nạp</button></div><div class="package-grid" data-packages-grid></div></section>
-  <section class="view" data-pane="giftcodes"><div class="section-heading"><div><p class="eyebrow">PROMOTION CONTROL</p><h2>Quản lý gift code</h2><p>Tạo, theo dõi lượt sử dụng và thu hồi mã khuyến mại.</p></div><button class="primary-button operator-only" data-new-gift>+ Tạo gift code</button></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Mã</th><th>Loại</th><th>Giá trị</th><th>Lượt dùng</th><th>Hết hạn</th><th>Trạng thái</th><th></th></tr></thead><tbody data-gifts-body></tbody></table></div></article></section>
-  <section class="view" data-pane="admins"><div class="section-heading"><div><p class="eyebrow">ACCESS CONTROL</p><h2>Tài khoản quản trị</h2><p>Phân quyền owner, operator, auditor và theo dõi MFA.</p></div></div><div class="admin-cards" data-admins-grid></div></section>
-  <section class="view" data-pane="audit"><div class="section-heading"><div><p class="eyebrow">IMMUTABLE AUDIT</p><h2>Nhật ký bảo mật</h2><p>Mọi thay đổi đều có người thực hiện, mục tiêu và correlation ID.</p></div></div><article class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Thời gian</th><th>Sự kiện</th><th>Người thực hiện</th><th>Đối tượng</th><th>Correlation ID</th></tr></thead><tbody data-audit-body></tbody></table></div></article></section>
- </main></div>
-</div>
-<dialog class="modal" data-user-dialog><form method="dialog" data-user-form><div class="modal-head"><div><p class="eyebrow">USER PROFILE</p><h2>Chỉnh sửa người dùng</h2></div><button class="icon-button" value="cancel" formnovalidate>×</button></div><input name="userId" type="hidden"><div class="form-grid"><label>Tên hiển thị<input name="displayName" maxlength="128"></label><label>Email liên hệ<input name="contactEmail" type="email"></label><label>Trạng thái<select name="status"><option value="active">Hoạt động</option><option value="suspended">Tạm khóa</option><option value="deactivated">Vô hiệu hóa</option></select></label><label class="span-2">Ghi chú nội bộ<textarea name="internalNote" maxlength="1000"></textarea></label><label class="span-2">Lý do thay đổi<input name="reason" required maxlength="500"></label></div><div class="modal-actions"><button class="ghost-button" value="cancel" formnovalidate>Hủy</button><button class="primary-button" value="default">Lưu thay đổi</button></div></form></dialog>
-<dialog class="modal" data-package-dialog><form method="dialog" data-package-form><div class="modal-head"><div><p class="eyebrow">PACKAGE EDITOR</p><h2 data-package-title>Tạo gói nạp</h2></div><button class="icon-button" value="cancel" formnovalidate>×</button></div><input name="packageId" type="hidden"><div class="form-grid"><label>Loại gói<select name="kind" data-package-kind><option value="credits">Credits</option><option value="subscription">Subscription (theo ngày)</option></select></label><label>Mã sản phẩm<input name="productId" required pattern="[A-Za-z0-9_.-]+"></label><label>Tên hiển thị<input name="displayName" required></label><label>Giá (đơn vị nhỏ nhất)<input name="amountMinor" type="number" min="1" required></label><label data-credits-field>Credits<input name="credits" type="number" min="1" required></label><label data-days-field hidden>Số ngày<input name="durationDays" type="number" min="1" required></label><label>Tiền tệ<input name="currency" value="vnd" maxlength="3" required></label><label>Thứ tự<input name="sortOrder" type="number" value="0"></label><label class="span-2">Mô tả<textarea name="description"></textarea></label><label class="check-label"><input name="isActive" type="checkbox" checked> Đang phát hành</label><label class="span-2">Lý do<input name="reason" required></label></div><div class="modal-actions"><button class="ghost-button" value="cancel" formnovalidate>Hủy</button><button class="primary-button" value="default">Lưu gói nạp</button></div></form></dialog>
-<dialog class="modal modal-small" data-gift-dialog><form method="dialog" data-gift-form><div class="modal-head"><div><p class="eyebrow">GIFT CODE</p><h2>Tạo gift code</h2></div><button class="icon-button" value="cancel" formnovalidate>×</button></div><div class="form-grid"><label>Số credits<input name="creditAmount" type="number" min="0" value="0"></label><label>Số ngày<input name="durationDays" type="number" min="0" value="0"></label><label>Số lượng phát hành<input name="maximumRedemptions" type="number" min="1" value="100" placeholder="Tổng số lần có thể dùng"></label><label>Giới hạn per tài khoản<input name="redemptionsPerUser" type="number" min="1" value="1" placeholder="Mỗi user dùng tối đa"></label><label>Hết hạn<input name="expiresAt" type="datetime-local"></label><label class="span-2">Lý do<input name="reason" required></label></div><div class="modal-actions"><button class="ghost-button" value="cancel" formnovalidate>Hủy</button><button class="primary-button" value="default">Tạo mã</button></div></form></dialog>
-<dialog class="modal modal-small" data-confirm-dialog><form method="dialog"><div class="confirm-icon">!</div><h2 data-confirm-title>Xác nhận thao tác</h2><p data-confirm-message></p><label>Lý do xác nhận<input data-confirm-reason maxlength="500" required></label><div class="modal-actions"><button class="ghost-button" value="cancel">Hủy</button><button class="danger-button" value="confirm">Xác nhận</button></div></form></dialog>
-<dialog class="modal" data-payment-product-dialog><form data-payment-product-form><div class="modal-head"><div><p class="eyebrow">PAYMENT PRODUCT</p><h2>Tạo version sản phẩm</h2></div><button class="icon-button" type="button" data-payment-product-close>×</button></div><div class="form-grid"><label>Mã sản phẩm<input name="productId" required pattern="[A-Za-z0-9_.-]+"></label><label>Tên hiển thị<input name="displayName" required maxlength="160"></label><label>Loại<select name="productType"><option value="subscription">Thời hạn</option><option value="credits">Credits</option></select></label><label>Giá VND<input name="priceVnd" type="number" min="1000" step="1000" required></label><label>Số ngày<input name="durationDays" type="number" min="1" max="3650"></label><label>Credits<input name="creditAmount" type="number" min="1"></label><label>Thứ tự<input name="sortOrder" type="number" value="0"></label><label class="check-label"><input name="active" type="checkbox" checked> Đang phát hành</label><label class="span-2">Lý do thay đổi<input name="reason" required minlength="8" maxlength="500"></label></div><div class="modal-actions"><button class="ghost-button" type="button" data-payment-product-close>Hủy</button><button class="primary-button" type="submit">Lưu version mới</button></div></form></dialog>
-<dialog class="modal" data-payment-detail-dialog><div class="modal-head"><div><p class="eyebrow">PAYMENT DETAIL</p><h2>Chi tiết thanh toán</h2></div><button class="icon-button" type="button" data-payment-detail-close>×</button></div><div data-payment-detail-content></div><div class="modal-actions"><button class="ghost-button" type="button" data-payment-detail-close>Đóng</button><button class="primary-button owner-only" type="button" data-payment-retry hidden>Retry fulfillment</button></div></dialog>
-<div class="toast-region" aria-live="polite" data-toasts></div><script src="/admin/script.js" defer></script>
-<script src="/admin/vertex-admin.js" defer></script>
-</body></html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="color-scheme" content="dark" />
+    <title>Audition AI — Trung tâm quản trị</title>
+    <link rel="stylesheet" href="/admin/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
+    <section class="login-shell" data-login-screen>
+      <div class="login-visual" aria-hidden="true">
+        <div class="brand-orbit"><span></span><span></span><span></span></div>
+        <div class="login-copy">
+          <p class="eyebrow">AUDITION AI · CONTROL CENTER</p>
+          <h1>Dữ liệu vận hành.<br /><span>Trong một nhịp nhìn.</span></h1>
+          <p>
+            Quản trị người dùng, doanh thu, thiết bị và quyền thương mại trên
+            một bề mặt bảo mật duy nhất.
+          </p>
+        </div>
+        <div class="trust-row">
+          <span>Session mã hóa</span><span>Phân quyền server</span
+          ><span>Audit mọi thay đổi</span>
+        </div>
+      </div>
+      <div class="login-panel">
+        <form class="login-card" data-login-form novalidate>
+          <div class="brand-lockup">
+            <span class="brand-mark">A</span>
+            <div><strong>Audition AI</strong><small>Admin Console</small></div>
+          </div>
+          <div class="login-heading">
+            <p class="eyebrow">TRUY CẬP NỘI BỘ</p>
+            <h2>Đăng nhập quản trị</h2>
+            <p>Dùng tài khoản owner hoặc operator đã được cấp quyền.</p>
+          </div>
+          <label
+            >Email quản trị<input
+              name="email"
+              type="email"
+              autocomplete="username"
+              inputmode="email"
+              required
+              placeholder="admin@example.com" /></label
+          ><label
+            >Mật khẩu<span class="password-field"
+              ><input
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                minlength="8"
+                required
+              /><button type="button" class="icon-button" data-toggle-password>
+                Hiện
+              </button></span
+            ></label
+          >
+          <p class="form-error" role="alert" data-login-error hidden></p>
+          <button class="primary-button login-button" type="submit">
+            <span>Đăng nhập an toàn</span><span class="button-loader"></span>
+          </button>
+          <p class="security-note">
+            Không bao giờ dán token hoặc khóa hệ thống vào trang này.
+          </p>
+        </form>
+      </div>
+    </section>
+    <div class="app-shell" data-app hidden>
+      <aside class="sidebar" data-sidebar>
+        <div class="sidebar-brand">
+          <span class="brand-mark">A</span>
+          <div>
+            <strong>Audition AI</strong><small>Trung tâm quản trị</small>
+          </div>
+        </div>
+        <nav class="main-nav" aria-label="Chức năng quản trị">
+          <p>ĐIỀU HÀNH</p>
+          <button class="nav-item is-active" data-view="dashboard">
+            <i>O</i>Tổng quan
+          </button>
+          <button class="nav-item" data-view="commerce">
+            <i>$</i>Doanh thu
+          </button>
+          <button class="nav-item" data-view="ai-models">
+            <i>AI</i>Model AI &amp; giá
+          </button>
+          <p>QUẢN LÝ</p>
+          <button class="nav-item" data-view="users"><i>◉</i>Người dùng</button
+          ><button class="nav-item" data-view="devices"><i>▣</i>Thiết bị</button
+          ><button class="nav-item" data-view="packages"><i>+</i>Gói nạp</button
+          ><button class="nav-item" data-view="mods"><i>M</i>Mod</button
+          ><button class="nav-item" data-view="giftcodes">
+            <i>✦</i>Gift code
+          </button>
+          <p>HỆ THỐNG</p>
+          <button class="nav-item owner-only" data-view="admins">
+            <i>♙</i>Tài khoản admin</button
+          ><button class="nav-item" data-view="audit">
+            <i>≡</i>Nhật ký bảo mật
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <span class="health-dot"></span>
+          <div>
+            <strong>Dịch vụ</strong
+            ><small data-api-status>Đang kiểm tra…</small>
+          </div>
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <button class="icon-button menu-button" data-menu-toggle>☰</button>
+          <div>
+            <p class="breadcrumb">
+              ADMIN / <span data-breadcrumb>TỔNG QUAN</span>
+            </p>
+            <p class="page-title" data-page-title>Tổng quan vận hành</p>
+          </div>
+          <div class="topbar-actions">
+            <button class="icon-button" data-refresh>↻</button>
+            <div class="admin-menu">
+              <button data-admin-menu>
+                <span class="avatar" data-avatar>C</span
+                ><span
+                  ><strong data-admin-name>Admin</strong
+                  ><small data-admin-role>owner</small></span
+                ><span>⌄</span>
+              </button>
+              <div class="admin-popover" data-admin-popover hidden>
+                <p data-admin-email></p>
+                <button data-logout>Đăng xuất</button>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main id="main-content" class="content" tabindex="-1">
+          <div class="global-state" data-global-state hidden>
+            <span></span>
+            <p></p>
+            <button data-retry>Thử lại</button>
+          </div>
+          <section class="view is-active" data-pane="dashboard">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">VẬN HÀNH TRỰC TIẾP</p>
+                <h2>Bức tranh kinh doanh hôm nay</h2>
+                <p>
+                  Dữ liệu được tổng hợp trực tiếp từ nguồn tin cậy phía server.
+                </p>
+              </div>
+              <div class="range-switch" data-range>
+                <button data-days="7">7 ngày</button
+                ><button class="is-active" data-days="30">30 ngày</button
+                ><button data-days="90">90 ngày</button>
+              </div>
+            </div>
+            <div class="kpi-grid" data-kpis></div>
+            <div class="dashboard-grid">
+              <article class="panel chart-panel span-2">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">DOANH THU</p>
+                    <h3>Xu hướng nạp tiền</h3>
+                  </div>
+                  <strong data-revenue-total>—</strong>
+                </div>
+                <div class="chart" data-revenue-chart></div>
+              </article>
+              <article class="panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">NGƯỜI DÙNG</p>
+                    <h3>Trạng thái thiết bị</h3>
+                  </div>
+                </div>
+                <div class="donut-layout">
+                  <div class="donut" data-device-donut><span></span></div>
+                  <div class="legend" data-device-legend></div>
+                </div>
+              </article>
+              <article class="panel span-2">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">HOẠT ĐỘNG MỚI</p>
+                    <h3>Nhật ký gần nhất</h3>
+                  </div>
+                  <button class="text-button" data-go="audit">
+                    Xem tất cả
+                  </button>
+                </div>
+                <div class="activity-list" data-recent-audit></div>
+              </article>
+              <article class="panel">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">SẮP HẾT HẠN</p>
+                    <h3>Subscription cần chú ý</h3>
+                  </div>
+                </div>
+                <div class="attention-card">
+                  <strong data-expiring>—</strong
+                  ><span>gói hết hạn trong 7 ngày</span
+                  ><button class="secondary-button" data-go="users">
+                    Kiểm tra người dùng
+                  </button>
+                </div>
+              </article>
+            </div>
+          </section>
+          <section
+            class="view commerce-panel"
+            data-pane="commerce"
+            data-commerce-tab="analytics"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">PHÂN TÍCH DOANH THU</p>
+                <h2>Thống kê nạp tiền</h2>
+                <p>
+                  Doanh thu đã xác minh, credits bán ra và biến động theo ngày.
+                </p>
+              </div>
+            </div>
+            <div class="kpi-grid compact" data-revenue-kpis></div>
+            <article class="panel chart-panel">
+              <div class="panel-head">
+                <h3>Doanh thu và giao dịch theo ngày</h3>
+              </div>
+              <div class="chart chart-large" data-topup-chart></div>
+            </article>
+          </section>
+          <section class="view" data-pane="ai-models">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">AI PRICING AUTHORITY</p>
+                <h2>Model AI &amp; bảng giá</h2>
+                <p>Giá Credits tại đây là nguồn quyết định khi tạo ảnh; giá từ TST không được dùng để trừ Credits.</p>
+              </div>
+            </div>
+            <article class="panel table-panel">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Model</th><th>Giá Credits / ảnh</th><th>Trạng thái</th><th>Version</th><th>Lý do thay đổi</th><th></th></tr></thead>
+                  <tbody data-ai-models-body></tbody>
+                </table>
+              </div>
+              <div class="table-footer"><span data-ai-models-count>0 model</span></div>
+            </article>
+          </section>
+          <section class="view" data-pane="users">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">CUSTOMER OPERATIONS</p>
+                <h2>Quản lý người dùng</h2>
+                <p>
+                  Tra cứu hồ sơ, số dư, subscription và trạng thái thương mại.
+                </p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <label class="search-box"
+                ><span>⌕</span
+                ><input
+                  data-user-search
+                  type="search"
+                  placeholder="Email, User ID hoặc mã máy…" /></label
+              ><select data-user-status>
+                <option value="">Mọi trạng thái</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="suspended">Tạm khóa</option>
+                <option value="deactivated">Đã vô hiệu hóa</option></select
+              ><button class="secondary-button" data-user-submit>
+                Tìm kiếm
+              </button>
+            </div>
+            <article class="panel table-panel">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Người dùng</th>
+                      <th>Mã máy</th>
+                      <th>Số dư</th>
+                      <th>Subscription</th>
+                      <th>Trạng thái</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody data-users-body></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span data-users-count>0 người dùng</span>
+              </div>
+            </article>
+          </section>
+          <section class="view" data-pane="devices">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">DEVICE AUTHORITY</p>
+                <h2>Quản lý thiết bị</h2>
+                <p>
+                  Tra cứu mã máy, người dùng, phiên bản và trạng thái hoạt động.
+                </p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <label class="search-box"
+                ><span>⌕</span
+                ><input
+                  data-device-search
+                  type="search"
+                  placeholder="Gmail, tên, Device ID, mã máy…" /></label
+              ><select data-device-status>
+                <option value="">Mọi trạng thái</option>
+                <option value="active">Đang hoạt động</option>
+                <option value="blocked">Đã khóa</option>
+                <option value="revoked">Đã thu hồi</option></select
+              ><button class="secondary-button" data-device-submit>
+                Tìm kiếm
+              </button>
+            </div>
+            <article class="panel table-panel">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Người dùng</th>
+                      <th>Mã máy / Device ID</th>
+                      <th>Ứng dụng</th>
+                      <th>Hoạt động</th>
+                      <th>Trạng thái</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody data-devices-body></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span data-devices-count>0 thiết bị</span>
+              </div>
+            </article>
+          </section>
+          <section
+            class="view commerce-panel"
+            data-pane="commerce"
+            data-commerce-tab="orders"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">SEPAY OPERATIONS</p>
+                <h2>Quản lý thanh toán</h2>
+                <p>
+                  Đơn, đối soát và fulfillment từ nguồn dữ liệu server. Đây là
+                  góc nhìn vận hành, không phải hệ thống kế toán.
+                </p>
+              </div>
+            </div>
+            <div class="kpi-grid compact" data-payment-kpis></div>
+            <div class="toolbar">
+              <select data-payment-status>
+                <option value="">Mọi trạng thái</option>
+                <option value="waiting_payment">Đang chờ</option>
+                <option value="fulfilled">Đã hoàn tất</option>
+                <option value="review_required">Cần kiểm tra</option>
+                <option value="expired">Hết hạn</option></select
+              ><button class="secondary-button" data-payment-submit>
+                Tải đơn
+              </button>
+            </div>
+            <article class="panel table-panel">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Mã đơn</th>
+                      <th>Thiết bị</th>
+                      <th>Sản phẩm</th>
+                      <th>Số tiền</th>
+                      <th>Trạng thái</th>
+                      <th>Tạo lúc</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody data-payments-body></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span data-payments-count>0 đơn</span>
+              </div>
+            </article>
+            <div class="section-heading payment-product-heading">
+              <div>
+                <p class="eyebrow">PRODUCT AUTHORITY</p>
+                <h2>Sản phẩm thanh toán</h2>
+                <p>
+                  Mỗi lần đổi giá tạo một version mới; đơn cũ giữ nguyên
+                  snapshot.
+                </p>
+              </div>
+              <button
+                class="primary-button operator-only"
+                data-new-payment-product
+              >
+                + Tạo version sản phẩm
+              </button>
+            </div>
+            <div class="package-grid" data-payment-products></div>
+          </section>
+          <section
+            class="view commerce-panel"
+            data-pane="commerce"
+            data-commerce-tab="transactions"
+          >
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">PAYMENT LEDGER</p>
+                <h2>Tra cứu giao dịch</h2>
+                <p>
+                  Tìm theo mã giao dịch, mã nhà cung cấp, User ID hoặc email.
+                </p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <label class="search-box"
+                ><span>⌕</span
+                ><input
+                  data-transaction-search
+                  type="search"
+                  placeholder="Transaction ID, payment ID, email…" /></label
+              ><input data-provider-filter placeholder="Provider" /><button
+                class="secondary-button"
+                data-transaction-submit
+              >
+                Tìm kiếm
+              </button>
+            </div>
+            <article class="panel table-panel">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Giao dịch</th>
+                      <th>Người dùng</th>
+                      <th>Gói</th>
+                      <th>Giá trị</th>
+                      <th>Credits</th>
+                      <th>Thời gian</th>
+                    </tr>
+                  </thead>
+                  <tbody data-transactions-body></tbody>
+                </table>
+              </div>
+              <div class="table-footer">
+                <span data-transactions-count>0 giao dịch</span>
+              </div>
+            </article>
+          </section>
+          <section class="view" data-pane="packages">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">PRODUCT CATALOG</p>
+                <h2>Quản lý gói nạp</h2>
+                <p>
+                  Giá bán, credits và trạng thái phát hành của từng sản phẩm.
+                </p>
+              </div>
+              <button class="primary-button operator-only" data-new-package>
+                + Tạo gói nạp
+              </button>
+            </div>
+            <div class="package-grid" data-packages-grid></div>
+          </section>
+          <section class="view" data-pane="mods">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">DANH MỤC MOD</p>
+                <h2>Quản lý Mod</h2>
+                <p>
+                  Tên và mô tả tại đây sẽ đồng bộ với danh sách Mod trong ứng
+                  dụng.
+                </p>
+              </div>
+              <button class="primary-button operator-only" data-new-mod>
+                Tải lên Mod mới
+              </button>
+            </div>
+            <div class="package-grid" data-mods-grid></div>
+          </section>
+          <section class="view" data-pane="giftcodes">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">PROMOTION CONTROL</p>
+                <h2>Quản lý gift code</h2>
+                <p>Tạo, theo dõi lượt sử dụng và thu hồi mã khuyến mại.</p>
+              </div>
+              <button class="primary-button operator-only" data-new-gift>
+                + Tạo gift code
+              </button>
+            </div>
+            <article class="panel table-panel">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Mã</th>
+                      <th>Loại</th>
+                      <th>Giá trị</th>
+                      <th>Lượt dùng</th>
+                      <th>Hết hạn</th>
+                      <th>Trạng thái</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody data-gifts-body></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+          <section class="view" data-pane="admins">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">ACCESS CONTROL</p>
+                <h2>Tài khoản quản trị</h2>
+                <p>Phân quyền owner, operator, auditor và theo dõi MFA.</p>
+              </div>
+            </div>
+            <div class="admin-cards" data-admins-grid></div>
+          </section>
+          <section class="view" data-pane="audit">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">IMMUTABLE AUDIT</p>
+                <h2>Nhật ký bảo mật</h2>
+                <p>
+                  Mọi thay đổi đều có người thực hiện, mục tiêu và correlation
+                  ID.
+                </p>
+              </div>
+            </div>
+            <article class="panel table-panel">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Thời gian</th>
+                      <th>Sự kiện</th>
+                      <th>Người thực hiện</th>
+                      <th>Đối tượng</th>
+                      <th>Correlation ID</th>
+                    </tr>
+                  </thead>
+                  <tbody data-audit-body></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </main>
+      </div>
+    </div>
+    <dialog class="modal" data-user-dialog>
+      <form method="dialog" data-user-form>
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">USER PROFILE</p>
+            <h2>Chỉnh sửa người dùng</h2>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            data-dialog-close
+            aria-label="Đóng"
+          >
+            ×
+          </button>
+        </div>
+        <input name="userId" type="hidden" />
+        <div class="form-grid">
+          <label>Tên hiển thị<input name="displayName" maxlength="128" /></label
+          ><label>Email liên hệ<input name="contactEmail" type="email" /></label
+          ><label
+            >Trạng thái<select name="status">
+              <option value="active">Hoạt động</option>
+              <option value="suspended">Tạm khóa</option>
+              <option value="deactivated">Vô hiệu hóa</option>
+            </select></label
+          ><label class="span-2"
+            >Ghi chú nội bộ<textarea
+              name="internalNote"
+              maxlength="1000"
+            ></textarea></label
+          ><label class="span-2"
+            >Lý do thay đổi<input name="reason" required maxlength="500"
+          /></label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" type="button" data-dialog-close>
+            Hủy</button
+          ><button class="primary-button" value="default">Lưu thay đổi</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="modal" data-package-dialog>
+      <form method="dialog" data-package-form>
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">PACKAGE EDITOR</p>
+            <h2 data-package-title>Tạo gói nạp</h2>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            data-dialog-close
+            aria-label="Đóng"
+          >
+            ×
+          </button>
+        </div>
+        <input name="packageId" type="hidden" />
+        <div class="form-grid">
+          <label
+            >Loại gói<select name="kind" data-package-kind>
+              <option value="credits">Credits</option>
+              <option value="subscription">Subscription (theo ngày)</option>
+            </select></label
+          ><label
+            >Mã sản phẩm<input
+              name="productId"
+              required
+              pattern="[A-Za-z0-9_.-]+" /></label
+          ><label>Tên hiển thị<input name="displayName" required /></label
+          ><label
+            >Giá (đơn vị nhỏ nhất)<input
+              name="amountMinor"
+              type="number"
+              min="1"
+              required /></label
+          ><label data-credits-field
+            >Credits<input
+              name="credits"
+              type="number"
+              min="1"
+              required /></label
+          ><label data-days-field hidden
+            >Số ngày<input
+              name="durationDays"
+              type="number"
+              min="1"
+              required /></label
+          ><label
+            >Tiền tệ<input
+              name="currency"
+              value="vnd"
+              maxlength="3"
+              required /></label
+          ><label
+            >Thứ tự<input name="sortOrder" type="number" value="0" /></label
+          ><label class="span-2"
+            >Mô tả<textarea name="description"></textarea></label
+          ><label class="check-label"
+            ><input name="isActive" type="checkbox" checked /> Đang phát
+            hành</label
+          ><label class="span-2">Lý do<input name="reason" required /></label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" type="button" data-dialog-close>
+            Hủy</button
+          ><button class="primary-button" value="default">Lưu gói nạp</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="modal" data-mod-dialog>
+      <form method="dialog" data-mod-form>
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">DANH MỤC MOD</p>
+            <h2>Chinh sua Mod</h2>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            data-dialog-close
+            aria-label="Đóng"
+          >
+            x
+          </button>
+        </div>
+        <input name="gameId" type="hidden" /><input
+          name="modId"
+          type="hidden"
+        />
+        <div class="form-grid">
+          <label
+            >Tên Mod<input name="displayName" required maxlength="128" /></label
+          ><label class="span-2"
+            >Mô tả<textarea
+              name="description"
+              maxlength="2048"
+            ></textarea></label
+          ><label class="span-2"
+            >Tương thích<input
+              name="compatibilityInformation"
+              maxlength="1024" /></label
+          ><label class="check-label"
+            ><input name="isActive" type="checkbox" /> Hiển thị trong ứng
+            dung</label
+          >
+          <p class="span-2" data-mod-archive></p>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" type="button" data-dialog-close>
+            Hủy</button
+          ><button class="primary-button" value="default">Lưu thay đổi</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="modal modal-upload" data-mod-upload-dialog>
+      <form data-mod-upload-form novalidate>
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">DANH MỤC MOD</p>
+            <h2>Tải lên Mod mới</h2>
+            <p class="modal-lead">
+              Tạo một sản phẩm Mod, tải archive gốc lên kho riêng và phát hành
+              cho ứng dụng.
+            </p>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            data-dialog-close
+            aria-label="Đóng"
+          >
+            x
+          </button>
+        </div>
+        <section class="mod-form-section" aria-labelledby="mod-source-heading">
+          <div class="form-section-heading">
+            <span>1</span>
+            <div>
+              <h3 id="mod-source-heading">Archive nguồn</h3>
+              <p>
+                Chỉ nhận file .ab hoặc .acv. File gốc được lưu riêng, không bị
+                thay đổi khi người dùng tạo dự án.
+              </p>
+            </div>
+          </div>
+          <label class="mod-file-picker" data-mod-file-picker>
+            <input
+              name="archive"
+              type="file"
+              accept=".ab,.acv"
+              required
+              data-mod-file-input
+            />
+            <span class="mod-file-icon" aria-hidden="true">+</span>
+            <span class="mod-file-copy"
+              ><strong data-mod-file-title>Chọn file Mod</strong
+              ><small data-mod-file-detail
+                >Kéo thả hoặc bấm để chọn archive .ab, .acv</small
+              ></span
+            >
+            <span class="mod-file-action">Chọn file</span>
+          </label>
+        </section>
+        <section
+          class="mod-form-section"
+          aria-labelledby="mod-identity-heading"
+        >
+          <div class="form-section-heading">
+            <span>2</span>
+            <div>
+              <h3 id="mod-identity-heading">Nhận diện sản phẩm</h3>
+              <p>Mã Mod và thông tin hiển thị sẽ đồng bộ với ứng dụng.</p>
+            </div>
+          </div>
+          <div class="form-grid">
+            <label
+              >Game ID<input
+                name="gameId"
+                value="audition"
+                required
+                pattern="[a-z0-9_-]+" /></label
+            ><label
+              >Tên game<input
+                name="gameDisplayName"
+                value="Audition"
+                required
+                maxlength="128"
+            /></label>
+            <label
+              >Mod ID<input
+                name="modId"
+                data-mod-id-input
+                required
+                pattern="[a-z0-9_-]+"
+                placeholder="vd: original_015"
+              /><small class="field-hint"
+                >Mã nội bộ tự tạo:
+                <code data-template-id-preview>—</code></small
+              ></label
+            ><label
+              >Tên Mod<input
+                name="displayName"
+                required
+                maxlength="128"
+                placeholder="Ví dụ: Audition 015 Original"
+            /></label>
+          </div>
+        </section>
+        <section
+          class="mod-form-section"
+          aria-labelledby="mod-presentation-heading"
+        >
+          <div class="form-section-heading">
+            <span>3</span>
+            <div>
+              <h3 id="mod-presentation-heading">Thông tin hiển thị</h3>
+              <p>
+                Thông tin này xuất hiện trong danh sách Mod để người dùng nhận
+                biết phiên bản phù hợp.
+              </p>
+            </div>
+          </div>
+          <div class="form-grid">
+            <label class="span-2"
+              >Mô tả<textarea
+                name="description"
+                maxlength="2048"
+              ></textarea></label
+            ><label class="span-2"
+              >Tương thích<input
+                name="compatibilityInformation"
+                value="Tương thích với audition-vn"
+                maxlength="1024"
+            /></label>
+          </div>
+        </section>
+        <div class="modal-actions">
+          <button class="ghost-button" type="button" data-dialog-close>
+            Hủy</button
+          ><button class="primary-button" type="submit">
+            Tải lên và phát hành
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="modal modal-small" data-gift-dialog>
+      <form method="dialog" data-gift-form>
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">GIFT CODE</p>
+            <h2>Tạo gift code</h2>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            data-dialog-close
+            aria-label="Đóng"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label
+            >Số credits<input
+              name="creditAmount"
+              type="number"
+              min="0"
+              value="0" /></label
+          ><label
+            >Số ngày<input
+              name="durationDays"
+              type="number"
+              min="0"
+              value="0" /></label
+          ><label
+            >Số lượng phát hành<input
+              name="maximumRedemptions"
+              type="number"
+              min="1"
+              value="100"
+              placeholder="Tổng số lần có thể dùng" /></label
+          ><label
+            >Giới hạn per tài khoản<input
+              name="redemptionsPerUser"
+              type="number"
+              min="1"
+              value="1"
+              placeholder="Mỗi user dùng tối đa" /></label
+          ><label>Hết hạn<input name="expiresAt" type="datetime-local" /></label
+          ><label class="span-2">Lý do<input name="reason" required /></label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" type="button" data-dialog-close>
+            Hủy</button
+          ><button class="primary-button" value="default">Tạo mã</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="modal modal-small" data-confirm-dialog>
+      <form method="dialog">
+        <div class="confirm-icon">!</div>
+        <h2 data-confirm-title>Xác nhận thao tác</h2>
+        <p data-confirm-message></p>
+        <label
+          >Lý do xác nhận<input data-confirm-reason maxlength="500" required
+        /></label>
+        <div class="modal-actions">
+          <button class="ghost-button" type="button" data-dialog-close>
+            Hủy</button
+          ><button class="danger-button" value="confirm">Xác nhận</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="modal" data-payment-product-dialog>
+      <form data-payment-product-form>
+        <div class="modal-head">
+          <div>
+            <p class="eyebrow">PAYMENT PRODUCT</p>
+            <h2>Tạo version sản phẩm</h2>
+          </div>
+          <button
+            class="icon-button"
+            type="button"
+            data-payment-product-close
+            aria-label="Đóng"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <label
+            >Mã sản phẩm<input
+              name="productId"
+              required
+              pattern="[A-Za-z0-9_.-]+" /></label
+          ><label
+            >Tên hiển thị<input
+              name="displayName"
+              required
+              maxlength="160" /></label
+          ><label
+            >Loại<select name="productType">
+              <option value="subscription">Thời hạn</option>
+              <option value="credits">Credits</option>
+            </select></label
+          ><label
+            >Giá VND<input
+              name="priceVnd"
+              type="number"
+              min="1000"
+              step="1000"
+              required /></label
+          ><label
+            >Số ngày<input
+              name="durationDays"
+              type="number"
+              min="1"
+              max="3650" /></label
+          ><label
+            >Credits<input name="creditAmount" type="number" min="1" /></label
+          ><label
+            >Thứ tự<input name="sortOrder" type="number" value="0" /></label
+          ><label class="check-label"
+            ><input name="active" type="checkbox" checked /> Đang phát
+            hành</label
+          ><label class="span-2"
+            >Lý do thay đổi<input
+              name="reason"
+              required
+              minlength="8"
+              maxlength="500"
+          /></label>
+        </div>
+        <div class="modal-actions">
+          <button class="ghost-button" type="button" data-payment-product-close>
+            Hủy</button
+          ><button class="primary-button" type="submit">Lưu version mới</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="modal" data-payment-detail-dialog>
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">PAYMENT DETAIL</p>
+          <h2>Chi tiết thanh toán</h2>
+        </div>
+        <button
+          class="icon-button"
+          type="button"
+          data-payment-detail-close
+          aria-label="Đóng"
+        >
+          ×
+        </button>
+      </div>
+      <div data-payment-detail-content></div>
+      <div class="modal-actions">
+        <button class="ghost-button" type="button" data-payment-detail-close>
+          Đóng</button
+        ><button
+          class="primary-button owner-only"
+          type="button"
+          data-payment-retry
+          hidden
+        >
+          Retry fulfillment
+        </button>
+      </div>
+    </dialog>
+    <div class="toast-region" aria-live="polite" data-toasts></div>
+    <script src="/admin/script.js" defer></script>
+    <script src="/admin/vertex-admin.js" defer></script>
+  </body>
+</html>

@@ -8,12 +8,6 @@ const cors = {
   "Content-Type": "application/json",
 };
 
-const IMAGE_MODELS = new Set([
-  "flux-2-pro", "grok-image", "image-4.0", "image-gpt", "image-gpt-2",
-  "imagen-4", "imagen-4-fast", "imagen-4-ultra", "kling-o1-image",
-  "nano-banana", "nano-banana-2", "nano-banana-pro", "nano-banana-pro-cheap",
-  "seedream-4.5", "seedream-5-pro",
-]);
 const TST_BASE = "https://api.tramsangtao.com/v1";
 const MODEL_CACHE_MS = 5 * 60_000;
 let modelCache: { expires: number; models: unknown[] } | null = null;
@@ -51,15 +45,14 @@ async function provider(path: string, init: RequestInit = {}) {
   return body as AnyMap;
 }
 
-async function models() {
+async function models(admin: any) {
   if (modelCache && modelCache.expires > Date.now()) return modelCache.models;
   const source = await provider("/models");
   const rows = Array.isArray(source) ? source : Array.isArray(source.models) ? source.models : [];
-  const filtered = rows.filter((row) => {
+  const imageRows = rows.filter((row) => {
     const item = row as AnyMap;
-    const id = String(item.id ?? item.slug ?? item.model ?? "");
     const type = String(item.type ?? item.category ?? "").toLowerCase();
-    return IMAGE_MODELS.has(id) && (!type || type === "image");
+    return !type || type === "image" || type.includes("image");
   }).map((row) => {
     const item = row as AnyMap;
     return {
@@ -73,8 +66,19 @@ async function models() {
       notes: item.notes ?? null,
     };
   });
-  modelCache = { expires: Date.now() + MODEL_CACHE_MS, models: filtered };
-  return filtered;
+  const { data, error: syncError } = await adminRpc(admin, "sync", { models: imageRows });
+  if (syncError) throw new Error(syncError);
+  const catalog = Array.isArray(data) ? data as AnyMap[] : [];
+  const byId = new Map(catalog.map((item) => [String(item.id), item]));
+  const merged = imageRows.map((model) => ({
+    ...model,
+    name: byId.get(String(model.id))?.name ?? model.name,
+    creditCost: Number(byId.get(String(model.id))?.creditCost ?? 10),
+    active: byId.get(String(model.id))?.active !== false,
+    pricingVersion: byId.get(String(model.id))?.pricingVersion ?? 1,
+  })).filter((model) => model.active && model.creditCost > 0);
+  modelCache = { expires: Date.now() + MODEL_CACHE_MS, models: merged };
+  return merged;
 }
 
 function modelById(catalog: unknown[], id: string): AnyMap | null {
@@ -91,14 +95,18 @@ function pickSettings(model: AnyMap, requested: AnyMap) {
   return result;
 }
 
-function pricingCost(model: AnyMap, settings: AnyMap): number {
-  const rows = Array.isArray(model.pricing) ? model.pricing as AnyMap[] : [];
-  const matches = rows.filter((row) => Object.entries(row).every(([key, value]) =>
-    ["credits", "key", "config_key"].includes(key) || value === undefined || settings[key] === undefined || String(settings[key]) === String(value)));
-  const values = (matches.length ? matches : rows)
-    .map((row) => Number(row.credits ?? row.cost ?? 0))
-    .filter((value) => Number.isFinite(value) && value > 0);
-  return values.length ? Math.min(...values) : 1;
+function pricingCost(model: AnyMap): number {
+  const value = Number(model.creditCost ?? 0);
+  return Number.isSafeInteger(value) && value > 0 ? value : 0;
+}
+
+async function currentModelPricing(admin: any, modelId: string) {
+  const { data, error: catalogError } = await adminRpc(admin, "public", {});
+  if (catalogError) throw new Error(catalogError);
+  const row = Array.isArray(data)
+    ? (data as AnyMap[]).find((item) => String(item.id) === modelId)
+    : null;
+  return row ? { creditCost: pricingCost(row), pricingVersion: Number(row.pricingVersion ?? 1) } : null;
 }
 
 function requestHash(value: unknown) {
@@ -122,6 +130,11 @@ async function rpc(admin: any, action: string, payload: AnyMap) {
   const { data, error: rpcError } = await admin.rpc("ai_image_api", { action, payload });
   if (rpcError) throw new Error(rpcError.message || "AI_DATABASE_ERROR");
   return data as AnyMap;
+}
+
+async function adminRpc(admin: any, action: string, payload: AnyMap) {
+  const { data, error: rpcError } = await admin.rpc("ai_model_catalog_api", { action, payload });
+  return { data, error: rpcError?.message ?? null };
 }
 
 type VertexConfiguration = {
@@ -191,7 +204,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const action = url.searchParams.get("action") ?? "";
   try {
-    if (action === "models") return json({ models: await models() });
+    if (action === "models") return json({ models: await models(admin) });
     if (action === "history") return json(await rpc(admin, "history", { userId: userData.user.id }));
     if (action === "compose") {
       if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
@@ -204,7 +217,7 @@ Deno.serve(async (req) => {
       if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
       const body = await req.json() as AnyMap;
       const modelId = String(body.model ?? "");
-      const catalog = await models();
+      const catalog = await models(admin);
       const model = modelById(catalog, modelId);
       if (!model) return error("AI_MODEL_NOT_ALLOWED", 400);
       const prompt = String(body.prompt ?? "").trim();
@@ -214,10 +227,12 @@ Deno.serve(async (req) => {
       const idempotencyKey = String(body.idempotency_key ?? crypto.randomUUID());
       const request = { model: modelId, prompt, settings, referenceCount: referenceImages.length };
       const hash = await requestHash(request);
-      const creditCost = pricingCost(model, settings);
+      const currentPricing = await currentModelPricing(admin, modelId);
+      const creditCost = currentPricing?.creditCost ?? 0;
+      if (!creditCost) return error("AI_MODEL_PRICING_UNAVAILABLE", 409);
       const prepared = await rpc(admin, "prepare", {
         userId: userData.user.id, model: modelId, settings, requestHash: hash,
-        idempotencyKey, creditCost, pricingVersion: "tst-live",
+        idempotencyKey, creditCost, pricingVersion: `internal-${currentPricing?.pricingVersion ?? 1}`,
       });
       if (prepared.replayed && prepared.providerJobId) return json({ job_id: prepared.jobId });
       const submitted = await provider("/image/generate", {
