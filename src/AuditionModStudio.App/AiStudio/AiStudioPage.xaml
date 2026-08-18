@@ -8,391 +8,193 @@
     Background="Transparent"
     mc:Ignorable="d">
 
-    <ScrollViewer HorizontalContentAlignment="Stretch">
-        <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="{StaticResource AmsSpace16}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+    <Grid Padding="{StaticResource AmsShellContentPadding}" RowSpacing="{StaticResource AmsSpace12}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <Border Style="{StaticResource AmsAccentCardStyle}">
-                <Grid ColumnSpacing="20">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                    <StackPanel Spacing="{StaticResource AmsSpace8}">
-                        <TextBlock x:Name="StudioHeading" x:Uid="StudioHeading" AutomationProperties.HeadingLevel="Level1" Style="{StaticResource AmsPageTitleStyle}" Text="AI Studio" />
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Biến ý tưởng thành hình ảnh xem trước, rồi chủ động chọn kết quả phù hợp." />
-                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}"><ProgressRing AutomationProperties.Name="Đang tải AI Studio" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" /><TextBlock AutomationProperties.LiveSetting="Polite" Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" /></StackPanel>
-                    </StackPanel>
-                    <Border Grid.Column="1" Width="56" Height="56" VerticalAlignment="Center" Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" FontSize="26" Glyph="&#xE945;" /></Border>
-                </Grid>
-            </Border>
-
-            <Grid
-                Grid.Row="1"
-                ColumnSpacing="{StaticResource AmsSpace16}"
-                RowSpacing="{StaticResource AmsSpace16}">
-                <VisualStateManager.VisualStateGroups>
-                    <VisualStateGroup>
-                        <VisualState x:Name="StackedStudioState">
-                            <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
-                            <VisualState.Setters>
-                                <Setter Target="ControlsColumn.Width" Value="0" />
-                                <Setter Target="StudioControls.(Grid.Column)" Value="0" />
-                                <Setter Target="StudioControls.(Grid.Row)" Value="1" />
-                            </VisualState.Setters>
-                        </VisualState>
-                        <VisualState x:Name="WideStudioState">
-                            <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1000" /></VisualState.StateTriggers>
-                        </VisualState>
-                    </VisualStateGroup>
-                </VisualStateManager.VisualStateGroups>
+        <Border Style="{StaticResource AmsAccentCardStyle}">
+            <Grid ColumnSpacing="16">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2.6*" />
-                    <ColumnDefinition x:Name="ControlsColumn" Width="420" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <Border MinHeight="620" Style="{StaticResource AmsEditorSurfaceStyle}">
-                    <Grid RowSpacing="{StaticResource AmsSpace12}">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <TextBlock
-                            AutomationProperties.HeadingLevel="Level2"
-                            Style="{StaticResource AmsSectionTitleStyle}"
-                            Text="Không gian sáng tạo" />
-                        <Grid Grid.Row="1" MinHeight="320">
-                            <StackPanel x:Name="EmptyAiCanvas" x:Load="{x:Bind ViewModel.HasPreview, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}" MaxWidth="360" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                                <Border Width="64" Height="64" HorizontalAlignment="Center" Background="{ThemeResource AmsAccentSubtleBrush}" CornerRadius="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" FontSize="28" Glyph="&#xE945;" /></Border>
-                                    <TextBlock HorizontalAlignment="Center" Style="{StaticResource AmsSectionTitleStyle}" Text="Bắt đầu ý tưởng của bạn" TextAlignment="Center" />
-                                    <TextBlock HorizontalAlignment="Center" Style="{StaticResource AmsBodyTextStyle}" Text="Mô tả hình ảnh bạn muốn tạo. Bản xem trước sẽ xuất hiện tại đây." TextAlignment="Center" />
-                            </StackPanel>
-                            <Image
-                                x:Name="PreviewImage"
-                                AutomationProperties.Name="Bản xem trước do AI tạo"
-                                MaxHeight="560"
-                                Stretch="Uniform" />
-                        </Grid>
-                        <Grid Grid.Row="2" ColumnSpacing="12">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <ProgressBar VerticalAlignment="Center" AutomationProperties.Name="Tiến trình yêu cầu AI" Maximum="100" Value="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" />
-                            <Button Grid.Column="1" AutomationProperties.HelpText="Kiểm tra DDS và áp dụng an toàn kết quả vào Texture đã chọn" AutomationProperties.Name="Dùng kết quả AI này" Click="OnApprovePreviewClicked" IsEnabled="{x:Bind ViewModel.CanApprovePreview, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsPrimaryButtonStyle}">Dùng kết quả này</Button>
-                        </Grid>
-                    </Grid>
-                </Border>
-
-                <Border
-                    x:Name="StudioControls"
-                    Grid.Column="1"
-                    Style="{StaticResource AmsGamingPanelStyle}">
-                    <StackPanel Spacing="{StaticResource AmsSpace12}">
-                        <TextBlock
-                            AutomationProperties.HeadingLevel="Level2"
-                            Style="{StaticResource AmsSectionTitleStyle}"
-                            Text="Tạo bằng AI" />
-                        <ComboBox
-                            Header="Tác vụ"
-                            DisplayMemberPath="Label"
-                            ItemsSource="{x:Bind ViewModel.Operations}"
-                            MinHeight="44"
-                            SelectedItem="{x:Bind ViewModel.SelectedOperation, Mode=TwoWay}" />
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.OperationDescription, Mode=OneWay}" />
-                        <ComboBox
-                            AutomationProperties.HelpText="Mẫu gợi ý chỉ điền trước các trường mô tả và bạn vẫn có thể chỉnh sửa"
-                            AutomationProperties.Name="Mẫu gợi ý"
-                            DisplayMemberPath="Name"
-                            Header="Mẫu gợi ý (không bắt buộc)"
-                            ItemsSource="{x:Bind ViewModel.Presets, Mode=OneWay}"
-                            MinHeight="44"
-                            PlaceholderText="Chọn mẫu trên máy hoặc mẫu đám mây của bạn"
-                            SelectedItem="{x:Bind ViewModel.SelectedPreset, Mode=TwoWay}" />
-                        <TextBox
-                            AcceptsReturn="True"
-                            Header="Bạn muốn tạo hình ảnh như thế nào?"
-                            MaxLength="4000"
-                            MinHeight="128"
-                            PlaceholderText="Mô tả chủ thể, phong cách, màu sắc và chi tiết mong muốn..."
-                            Text="{x:Bind ViewModel.Prompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                            TextWrapping="Wrap" />
-                        <TextBlock
-                            AutomationProperties.LiveSetting="Polite"
-                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                            Text="{x:Bind ViewModel.PromptValidationMessage, Mode=OneWay}" />
-                        <Expander Header="Cài đặt nâng cao">
-                            <StackPanel Padding="0,12,0,0" Spacing="{StaticResource AmsSpace12}">
-                        <TextBox
-                            AcceptsReturn="True"
-                            Header="Nội dung cần tránh (không bắt buộc)"
-                            MaxLength="4000"
-                            MinHeight="72"
-                            PlaceholderText="Mô tả những nội dung bạn không muốn xuất hiện"
-                            Text="{x:Bind ViewModel.NegativePrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                            TextWrapping="Wrap" />
-                        <TextBlock
-                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                            Text="{x:Bind ViewModel.NegativePromptValidationMessage, Mode=OneWay}" />
-                        <Grid ColumnSpacing="{StaticResource AmsSpace8}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <ComboBox
-                                Header="Mô hình ưu tiên"
-                                DisplayMemberPath="Label"
-                                ItemsSource="{x:Bind ViewModel.Models}"
-                                MinHeight="44"
-                                SelectedItem="{x:Bind ViewModel.SelectedModel, Mode=TwoWay}" />
-                            <ComboBox
-                                Grid.Column="1"
-                                Header="Chất lượng"
-                                DisplayMemberPath="Label"
-                                ItemsSource="{x:Bind ViewModel.Qualities}"
-                                MinHeight="44"
-                                SelectedItem="{x:Bind ViewModel.SelectedQuality, Mode=TwoWay}" />
-                        </Grid>
-                        <ComboBox
-                            Header="Tỷ lệ khung hình"
-                            DisplayMemberPath="Label"
-                            ItemsSource="{x:Bind ViewModel.Aspects}"
-                            MinHeight="44"
-                            SelectedItem="{x:Bind ViewModel.SelectedAspect, Mode=TwoWay}" />
-                        <Grid ColumnSpacing="{StaticResource AmsSpace8}">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                            <TextBox
-                                Header="Chiều rộng đầu ra (Outpaint/Upscale)"
-                                InputScope="Number"
-                                MaxLength="5"
-                                Text="{x:Bind ViewModel.OutputWidth, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBox
-                                Grid.Column="1"
-                                Header="Chiều cao đầu ra"
-                                InputScope="Number"
-                                MaxLength="5"
-                                Text="{x:Bind ViewModel.OutputHeight, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                        <TextBlock
-                            AutomationProperties.LiveSetting="Polite"
-                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
-                            Text="{x:Bind ViewModel.OutputValidationMessage, Mode=OneWay}" />
-                        <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind ViewModel.ReferenceMessage, Mode=OneWay}" />
-                        <Border Style="{StaticResource AmsStatusBadgeStyle}">
-                            <TextBlock
-                                AutomationProperties.LiveSetting="Polite"
-                                Style="{StaticResource AmsBodyTextStyle}"
-                                Text="{x:Bind ViewModel.QuoteText, Mode=OneWay}" />
-                        </Border>
-                            </StackPanel>
-                        </Expander>
-                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
-                            <Button
-                                AutomationProperties.Name="Gửi yêu cầu tạo bản xem trước bằng AI"
-                                Click="OnSubmitClicked"
-                                IsEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}"
-                                MinHeight="44"
-                                MinWidth="176"
-                                HorizontalContentAlignment="Center"
-                                Style="{StaticResource AmsPrimaryButtonStyle}">
-                                Tạo bản xem trước
-                            </Button>
-                            <Button
-                                AutomationProperties.Name="Hủy yêu cầu AI hiện tại"
-                                Click="OnCancelClicked"
-                                IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}"
-                                MinHeight="44"
-                                Style="{StaticResource AmsSecondaryButtonStyle}">
-                                Hủy
-                            </Button>
-                        </StackPanel>
+                <StackPanel Spacing="4">
+                    <TextBlock x:Name="StudioHeading" AutomationProperties.HeadingLevel="Level1" Style="{StaticResource AmsPageTitleStyle}" Text="AI Studio" />
+                    <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Tạo ảnh bằng AI, sau đó dùng kết quả cho Texture khi bạn cần." />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ProgressRing Width="18" Height="18" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+                        <TextBlock AutomationProperties.LiveSetting="Polite" Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}" />
                     </StackPanel>
+                </StackPanel>
+                <Border Grid.Column="1" Width="52" Height="52" VerticalAlignment="Center" Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="8">
+                    <FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource AmsFocusBrush}" FontSize="24" Glyph="&#xE945;" />
                 </Border>
             </Grid>
+        </Border>
 
-            <Border Grid.Row="2" Style="{StaticResource AmsLowPanelStyle}">
-                <StackPanel Spacing="{StaticResource AmsSpace12}">
-                    <Grid ColumnSpacing="{StaticResource AmsSpace8}">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock
-                                AutomationProperties.HeadingLevel="Level2"
-                                Style="{StaticResource AmsSectionTitleStyle}"
-                                Text="Lịch sử tạo" />
-                            <TextBlock
-                                AutomationProperties.LiveSetting="Polite"
-                                Style="{StaticResource AmsBodyTextStyle}"
-                                Text="{x:Bind ViewModel.HistoryMessage, Mode=OneWay}" />
-                        </StackPanel>
-                        <Button
-                            Grid.Column="1"
-                            AutomationProperties.Name="Làm mới lịch sử tạo bằng AI"
-                            Click="OnRefreshHistoryClicked"
-                            MinHeight="44"
-                            Style="{StaticResource AmsSecondaryButtonStyle}">
-                            Làm mới
-                        </Button>
-                    </Grid>
-                    <ListView
-                        AutomationProperties.Name="Lịch sử tác vụ AI"
-                        IsItemClickEnabled="False"
-                        ItemsSource="{x:Bind ViewModel.History, Mode=OneWay}"
-                        SelectionMode="None">
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <Grid MinHeight="52" Padding="8" ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock FontWeight="SemiBold" Text="{Binding Operation}" />
-                                        <TextBlock Text="{Binding CreatedAt}" />
-                                    </StackPanel>
-                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding State}" />
-                                    <Button
-                                        Grid.Column="2"
-                                        AutomationProperties.Name="Hủy tác vụ AI"
-                                        Click="OnCancelJobClicked"
-                                        IsEnabled="{Binding CanCancel}"
-                                        MinHeight="44"
-                                        Style="{StaticResource AmsSecondaryButtonStyle}"
-                                        Tag="{Binding JobId}">
-                                        Hủy tác vụ
-                                    </Button>
+        <TabView Grid.Row="1" IsAddTabButtonVisible="False" TabWidthMode="SizeToContent">
+            <TabViewItem Header="Tạo ảnh AI">
+                <ScrollViewer HorizontalContentAlignment="Stretch">
+                    <Grid Padding="0,12,0,24" RowSpacing="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid ColumnSpacing="16" RowSpacing="16">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup>
+                                    <VisualState x:Name="StackedStudioState">
+                                        <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="StudioControls.(Grid.Column)" Value="0" />
+                                            <Setter Target="StudioControls.(Grid.Row)" Value="1" />
+                                            <Setter Target="PreviewSurface.(Grid.Column)" Value="0" />
+                                            <Setter Target="PreviewSurface.(Grid.Row)" Value="0" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="WideStudioState">
+                                        <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1120" /></VisualState.StateTriggers>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="380" />
+                            <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Border x:Name="PreviewSurface" Grid.Column="1" MinHeight="420" Style="{StaticResource AmsEditorSurfaceStyle}">
+                                <Grid RowSpacing="12">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid>
+                                        <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Bản xem trước" />
+                                        <TextBlock HorizontalAlignment="Right" Style="{StaticResource AmsCaptionTextStyle}" Text="Kết quả chỉ được áp dụng khi bạn xác nhận" />
+                                    </Grid>
+                                    <Grid Grid.Row="1" MinHeight="260">
+                                        <StackPanel x:Name="EmptyAiCanvas" x:Load="{x:Bind ViewModel.HasPreview, Mode=OneWay, Converter={StaticResource InvertedBooleanConverter}}" MaxWidth="360" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                                            <Border Width="56" Height="56" HorizontalAlignment="Center" Background="{ThemeResource AmsAccentSubtleBrush}" CornerRadius="8"><FontIcon HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{ThemeResource AmsFocusBrush}" FontSize="24" Glyph="&#xE945;" /></Border>
+                                            <TextBlock HorizontalAlignment="Center" Style="{StaticResource AmsSectionTitleStyle}" Text="Sẵn sàng tạo ảnh" TextAlignment="Center" />
+                                            <TextBlock HorizontalAlignment="Center" Style="{StaticResource AmsBodyTextStyle}" Text="Chọn model, mô tả hình ảnh và gửi yêu cầu. Bản xem trước sẽ hiện ở đây." TextAlignment="Center" />
+                                        </StackPanel>
+                                        <Image x:Name="PreviewImage" AutomationProperties.Name="Bản xem trước do AI tạo" MaxHeight="560" Stretch="Uniform" />
+                                    </Grid>
+                                    <Grid Grid.Row="2" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <ProgressBar VerticalAlignment="Center" Maximum="100" Value="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" />
+                                        <Button Grid.Column="1" Click="OnApprovePreviewClicked" IsEnabled="{x:Bind ViewModel.CanApprovePreview, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsPrimaryButtonStyle}">Dùng cho Texture đang chọn</Button>
+                                    </Grid>
                                 </Grid>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </StackPanel>
-            </Border>
+                            </Border>
 
-            <Border Grid.Row="3" Style="{StaticResource AmsGamingPanelStyle}">
-                <Grid ColumnSpacing="{StaticResource AmsSpace16}" RowSpacing="{StaticResource AmsSpace16}">
-                    <VisualStateManager.VisualStateGroups>
-                        <VisualStateGroup>
-                            <VisualState x:Name="StackedMaskState">
-                                <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers>
-                                <VisualState.Setters>
-                                    <Setter Target="MaskControlsColumn.Width" Value="0" />
-                                    <Setter Target="MaskControls.(Grid.Column)" Value="0" />
-                                    <Setter Target="MaskControls.(Grid.Row)" Value="1" />
-                                </VisualState.Setters>
-                            </VisualState>
-                            <VisualState x:Name="WideMaskState">
-                                <VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1000" /></VisualState.StateTriggers>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateManager.VisualStateGroups>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition x:Name="MaskControlsColumn" Width="360" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-
-                    <Grid>
-                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <TextBlock
-                            AutomationProperties.HeadingLevel="Level2"
-                            Style="{StaticResource AmsSectionTitleStyle}"
-                            Text="Mask theo ảnh nguồn" />
-                        <Grid
-                            x:Name="MaskViewport"
-                            Grid.Row="1"
-                            MinHeight="420"
-                            Margin="0,12,0,0"
-                            Background="{ThemeResource AmsCardBrush}"
-                            IsTabStop="True"
-                            PointerMoved="OnMaskPointerMoved"
-                            PointerPressed="OnMaskPointerPressed"
-                            PointerReleased="OnMaskPointerReleased">
-                            <Image
-                                x:Name="MaskSourceImage"
-                                AutomationProperties.Name="Ảnh nguồn của Mask AI"
-                                RenderTransformOrigin="0.5,0.5"
-                                Stretch="Uniform">
-                                <Image.RenderTransform><CompositeTransform x:Name="MaskSourceTransform" /></Image.RenderTransform>
-                            </Image>
-                            <Image
-                                x:Name="MaskOverlayImage"
-                                AutomationProperties.Name="Lớp phủ Mask AI màu hồng tím"
-                                IsHitTestVisible="False"
-                                Opacity="0.72"
-                                RenderTransformOrigin="0.5,0.5"
-                                Stretch="Uniform">
-                                <Image.RenderTransform><CompositeTransform x:Name="MaskOverlayTransform" /></Image.RenderTransform>
-                            </Image>
+                            <Border x:Name="StudioControls" Grid.Column="0" Style="{StaticResource AmsCardStyle}">
+                                <StackPanel Spacing="12">
+                                    <TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Tạo ảnh" />
+                                    <ComboBox Header="Model AI" ItemsSource="{x:Bind ViewModel.Models, Mode=OneWay}" MinHeight="52" SelectedItem="{x:Bind ViewModel.SelectedModel, Mode=TwoWay}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate><StackPanel Spacing="2"><TextBlock FontWeight="SemiBold" Text="{Binding Label}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{Binding PriceText}" /></StackPanel></DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <Border Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                        <StackPanel Spacing="2"><TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ModelPriceText, Mode=OneWay}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ModelDescription, Mode=OneWay}" TextWrapping="Wrap" /></StackPanel>
+                                    </Border>
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <ComboBox Header="Chất lượng" DisplayMemberPath="Label" ItemsSource="{x:Bind ViewModel.Qualities, Mode=OneWay}" MinHeight="44" SelectedItem="{x:Bind ViewModel.SelectedQuality, Mode=TwoWay}" Visibility="{x:Bind ViewModel.HasQualitySettings, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <ComboBox Grid.Column="1" Header="Tỷ lệ ảnh" DisplayMemberPath="Label" ItemsSource="{x:Bind ViewModel.Aspects, Mode=OneWay}" MinHeight="44" SelectedItem="{x:Bind ViewModel.SelectedAspect, Mode=TwoWay}" />
+                                        <ComboBox Grid.Row="1" Header="Độ phân giải" DisplayMemberPath="Label" ItemsSource="{x:Bind ViewModel.Resolutions, Mode=OneWay}" MinHeight="44" SelectedItem="{x:Bind ViewModel.SelectedResolution, Mode=TwoWay}" Visibility="{x:Bind ViewModel.HasResolutionSettings, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    </Grid>
+                                    <ComboBox Header="Cách tạo" DisplayMemberPath="Label" ItemsSource="{x:Bind ViewModel.CreationModes}" MinHeight="44" SelectedItem="{x:Bind ViewModel.SelectedCreationMode, Mode=TwoWay}" />
+                                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ReferenceMessage, Mode=OneWay}" TextWrapping="Wrap" />
+                                    <TextBox AcceptsReturn="True" Header="Mô tả hình ảnh" MaxLength="4000" MinHeight="136" PlaceholderText="Ví dụ: trang phục sân khấu neon, ánh sáng tím xanh, chi tiết sắc nét..." Text="{x:Bind ViewModel.Prompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
+                                    <TextBlock AutomationProperties.LiveSetting="Polite" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.PromptValidationMessage, Mode=OneWay}" />
+                                    <Border Background="{ThemeResource AmsAccentSubtleBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" Glyph="&#xE8C8;" /><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind ViewModel.QuoteText, Mode=OneWay}" /></StackPanel>
+                                    </Border>
+                                    <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <Button Click="OnSubmitClicked" IsEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsPrimaryButtonStyle}">Tạo ảnh</Button>
+                                        <Button Grid.Column="1" Click="OnCancelClicked" IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Hủy</Button>
+                                    </Grid>
+                                    <Border Background="{ThemeResource AmsSurfaceLowBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
+                                        <StackPanel Spacing="12">
+                                            <TextBox AcceptsReturn="True" Header="Nội dung cần tránh" MaxLength="4000" MinHeight="72" PlaceholderText="Những chi tiết không muốn xuất hiện trong ảnh" Text="{x:Bind ViewModel.NegativePrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
+                                            <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.NegativePromptValidationMessage, Mode=OneWay}" />
+                                            <StackPanel Spacing="8">
+                                                <TextBlock FontWeight="SemiBold" Text="Điều chỉnh ý tưởng" />
+                                                    <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                        <TextBox Header="Chủ đề" Text="{x:Bind ViewModel.Theme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <TextBox Grid.Column="1" Header="Phong cách" Text="{x:Bind ViewModel.VisualStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </Grid>
+                                                    <TextBox Header="Bố cục" Text="{x:Bind ViewModel.Composition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            </StackPanel>
+                                            <StackPanel Spacing="8">
+                                                <TextBlock FontWeight="SemiBold" Text="Ảnh tham chiếu" />
+                                                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Thêm tối đa 5 ảnh để hướng dẫn phong cách hoặc chi tiết cho AI." TextWrapping="Wrap" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="8"><Button Click="OnAddReferencesClicked" Style="{StaticResource AmsSecondaryButtonStyle}">Thêm ảnh</Button><Button Click="OnClearReferencesClicked" IsEnabled="{x:Bind ViewModel.HasAdditionalReferences, Mode=OneWay}">Xóa ảnh</Button></StackPanel>
+                                                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.AdditionalReferencesMessage, Mode=OneWay}" />
+                                            </StackPanel>
+                                            <TextBox Header="Nội dung gửi API Audition AI" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="100" Text="{x:Bind ViewModel.ComposedPrompt, Mode=OneWay}" />
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
                         </Grid>
-                    </Grid>
 
-                    <Border x:Name="MaskControls" Grid.Column="1" Style="{StaticResource AmsCardStyle}">
-                        <StackPanel Spacing="{StaticResource AmsSpace12}">
-                            <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Công cụ Mask" />
-                            <Button
-                                Click="OnInitializeMaskClicked"
-                                MinHeight="44"
-                                Style="{StaticResource AmsPrimaryButtonStyle}">
-                                Tạo Mask từ bản xem trước
-                            </Button>
-                            <ComboBox
-                                Header="Chế độ cọ"
-                                ItemsSource="{x:Bind MaskViewModel.BrushModes}"
-                                MinHeight="44"
-                                SelectedItem="{x:Bind MaskViewModel.Mode, Mode=TwoWay}">
-                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource VietnameseEnumLabelConverter}}" /></DataTemplate></ComboBox.ItemTemplate>
-                            </ComboBox>
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Kích thước cọ (pixel ảnh nguồn)" />
-                            <Slider Minimum="1" Maximum="512" Value="{x:Bind MaskViewModel.BrushSize, Mode=TwoWay}" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Độ cứng" />
-                            <Slider Minimum="0" Maximum="1" StepFrequency="0.05" Value="{x:Bind MaskViewModel.Hardness, Mode=TwoWay}" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Độ mờ" />
-                            <Slider Minimum="0.01" Maximum="1" StepFrequency="0.05" Value="{x:Bind MaskViewModel.Opacity, Mode=TwoWay}" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Thu phóng" />
-                            <Slider Minimum="0.1" Maximum="8" Value="{x:Bind MaskViewModel.Zoom, Mode=TwoWay}" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Di chuyển khung xem" />
-                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
-                                <Button AutomationProperties.Name="Di chuyển Mask sang trái" Click="OnPanLeftClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">&#x2190;</Button>
-                                <Button AutomationProperties.Name="Di chuyển Mask lên trên" Click="OnPanUpClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">&#x2191;</Button>
-                                <Button AutomationProperties.Name="Di chuyển Mask xuống dưới" Click="OnPanDownClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">&#x2193;</Button>
-                                <Button AutomationProperties.Name="Di chuyển Mask sang phải" Click="OnPanRightClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">&#x2192;</Button>
-                                <Button AutomationProperties.Name="Đặt lại khung xem Mask" Click="OnResetMaskViewClicked" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Đặt lại</Button>
+                        <Border Grid.Row="1" Style="{StaticResource AmsLowPanelStyle}">
+                            <StackPanel Spacing="8">
+                                <Grid><TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Lịch sử tạo ảnh" /><Button HorizontalAlignment="Right" Click="OnRefreshHistoryClicked" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">Làm mới</Button></Grid>
+                                <TextBlock AutomationProperties.LiveSetting="Polite" Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.HistoryMessage, Mode=OneWay}" />
+                                <ListView ItemsSource="{x:Bind ViewModel.History, Mode=OneWay}" SelectionMode="None"><ListView.ItemTemplate><DataTemplate><Grid MinHeight="48" Padding="8" ColumnSpacing="12"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><StackPanel><TextBlock FontWeight="SemiBold" Text="{Binding Operation}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{Binding CreatedAt}" /></StackPanel><TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{Binding State}" /><Button Grid.Column="2" Click="OnCancelJobClicked" IsEnabled="{Binding CanCancel}" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}" Tag="{Binding JobId}">Hủy</Button></Grid></DataTemplate></ListView.ItemTemplate></ListView>
                             </StackPanel>
-                            <ToggleSwitch
-                                Header="Hiển thị Mask"
-                                IsOn="{x:Bind MaskViewModel.ShowMask, Mode=TwoWay}"
-                                MinHeight="44"
-                                OffContent="Ẩn"
-                                OnContent="Hiện" />
-                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
-                                <Button Click="OnUndoMaskClicked" IsEnabled="{x:Bind MaskViewModel.CanUndo, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Hoàn tác</Button>
-                                <Button Click="OnRedoMaskClicked" IsEnabled="{x:Bind MaskViewModel.CanRedo, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Làm lại</Button>
-                                <Button Click="OnClearMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Xóa Mask</Button>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabViewItem>
+
+            <TabViewItem Header="Chỉnh vùng bằng Mask">
+                <ScrollViewer HorizontalContentAlignment="Stretch">
+                    <Grid Padding="0,12,0,24" ColumnSpacing="16" RowSpacing="16">
+                        <VisualStateManager.VisualStateGroups><VisualStateGroup><VisualState x:Name="StackedMaskState"><VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="0" /></VisualState.StateTriggers><VisualState.Setters><Setter Target="MaskControls.(Grid.Column)" Value="0" /><Setter Target="MaskControls.(Grid.Row)" Value="1" /></VisualState.Setters></VisualState><VisualState x:Name="WideMaskState"><VisualState.StateTriggers><AdaptiveTrigger MinWindowWidth="1120" /></VisualState.StateTriggers></VisualState></VisualStateGroup></VisualStateManager.VisualStateGroups>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="380" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <StackPanel Spacing="4"><TextBlock AutomationProperties.HeadingLevel="Level2" Style="{StaticResource AmsSectionTitleStyle}" Text="Vùng chỉnh sửa" /><TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="Tạo Mask từ bản xem trước hoặc Texture đang chọn, rồi tô vùng cần chỉnh." /></StackPanel>
+                            <Grid x:Name="MaskViewport" Grid.Row="1" MinHeight="500" Margin="0,12,0,0" Background="{ThemeResource AmsCardBrush}" IsTabStop="True" PointerMoved="OnMaskPointerMoved" PointerPressed="OnMaskPointerPressed" PointerReleased="OnMaskPointerReleased">
+                                <Image x:Name="MaskSourceImage" AutomationProperties.Name="Ảnh nguồn Mask" RenderTransformOrigin="0.5,0.5" Stretch="Uniform"><Image.RenderTransform><CompositeTransform x:Name="MaskSourceTransform" /></Image.RenderTransform></Image>
+                                <Image x:Name="MaskOverlayImage" AutomationProperties.Name="Lớp phủ Mask" IsHitTestVisible="False" Opacity="0.72" RenderTransformOrigin="0.5,0.5" Stretch="Uniform"><Image.RenderTransform><CompositeTransform x:Name="MaskOverlayTransform" /></Image.RenderTransform></Image>
+                            </Grid>
+                        </Grid>
+                        <Border x:Name="MaskControls" Grid.Column="1" Style="{StaticResource AmsCardStyle}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Công cụ Mask" />
+                                <Button Click="OnInitializeMaskClicked" MinHeight="44" Style="{StaticResource AmsPrimaryButtonStyle}">Tạo Mask từ bản xem trước</Button>
+                                <ComboBox Header="Chế độ cọ" ItemsSource="{x:Bind MaskViewModel.BrushModes}" MinHeight="44" SelectedItem="{x:Bind MaskViewModel.Mode, Mode=TwoWay}"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Converter={StaticResource VietnameseEnumLabelConverter}}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+                                <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Kích thước cọ" /><Slider Minimum="1" Maximum="512" Value="{x:Bind MaskViewModel.BrushSize, Mode=TwoWay}" />
+                                <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Độ cứng" /><Slider Minimum="0" Maximum="1" StepFrequency="0.05" Value="{x:Bind MaskViewModel.Hardness, Mode=TwoWay}" />
+                                <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Độ mờ" /><Slider Minimum="0.01" Maximum="1" StepFrequency="0.05" Value="{x:Bind MaskViewModel.Opacity, Mode=TwoWay}" />
+                                <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Thu phóng" /><Slider Minimum="0.1" Maximum="8" Value="{x:Bind MaskViewModel.Zoom, Mode=TwoWay}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8"><Button Click="OnPanLeftClicked" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">←</Button><Button Click="OnPanUpClicked" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">↑</Button><Button Click="OnPanDownClicked" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">↓</Button><Button Click="OnPanRightClicked" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">→</Button><Button Click="OnResetMaskViewClicked" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">Đặt lại</Button></StackPanel>
+                                <ToggleSwitch Header="Hiển thị Mask" IsOn="{x:Bind MaskViewModel.ShowMask, Mode=TwoWay}" OffContent="Ẩn" OnContent="Hiện" />
+                                <StackPanel Orientation="Horizontal" Spacing="8"><Button Click="OnUndoMaskClicked" IsEnabled="{x:Bind MaskViewModel.CanUndo, Mode=OneWay}" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">Hoàn tác</Button><Button Click="OnRedoMaskClicked" IsEnabled="{x:Bind MaskViewModel.CanRedo, Mode=OneWay}" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">Làm lại</Button><Button Click="OnClearMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">Xóa</Button></StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8"><Button Click="OnInvertMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">Đảo vùng</Button><Button Click="OnStampCenterClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">Tô giữa</Button></StackPanel>
+                                <Button Click="OnSaveMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Lưu Mask</Button>
+                                <Button Click="OnCancelMaskCompositionClicked" IsEnabled="{x:Bind MaskViewModel.IsComposing, Mode=OneWay}" MinHeight="40" Style="{StaticResource AmsSecondaryButtonStyle}">Hủy xử lý Mask</Button>
+                                <ProgressRing Width="20" Height="20" IsActive="{x:Bind MaskViewModel.IsComposing, Mode=OneWay}" /><TextBlock AutomationProperties.LiveSetting="Polite" Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind MaskViewModel.StatusMessage, Mode=OneWay}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind MaskViewModel.MemoryStatus, Mode=OneWay}" />
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="{StaticResource AmsSpace8}">
-                                <Button Click="OnInvertMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Đảo Mask</Button>
-                                <Button
-                                    AutomationProperties.HelpText="Thao tác thay thế bằng bàn phím cho việc vẽ bằng con trỏ"
-                                    Click="OnStampCenterClicked"
-                                    IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}"
-                                    MinHeight="44"
-                                    Style="{StaticResource AmsSecondaryButtonStyle}">
-                                    Chấm vào giữa
-                                </Button>
-                            </StackPanel>
-                            <Button Click="OnSaveMaskClicked" IsEnabled="{x:Bind MaskViewModel.HasMask, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Lưu tài nguyên Mask</Button>
-                            <Button Click="OnCancelMaskCompositionClicked" IsEnabled="{x:Bind MaskViewModel.IsComposing, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Hủy xử lý Mask</Button>
-                            <ProgressRing AutomationProperties.Name="Đang tạo lớp phủ Mask" IsActive="{x:Bind MaskViewModel.IsComposing, Mode=OneWay}" />
-                            <TextBlock AutomationProperties.LiveSetting="Polite" Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind MaskViewModel.StatusMessage, Mode=OneWay}" />
-                            <TextBlock Style="{StaticResource AmsBodyTextStyle}" Text="{x:Bind MaskViewModel.MemoryStatus, Mode=OneWay}" />
-                        </StackPanel>
-                    </Border>
-                </Grid>
-            </Border>
-        </Grid>
-    </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </TabViewItem>
+        </TabView>
+    </Grid>
 </Page>

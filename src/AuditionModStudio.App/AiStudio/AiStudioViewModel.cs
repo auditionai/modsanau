@@ -22,10 +22,19 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private readonly ILocalPromptPresetStore? _localPresets;
     private readonly ICloudPromptPresetService? _cloudPresets;
     private readonly ICapabilityAuthorizationService? _capabilities;
+    private readonly IImageImportService? _imageImportService;
+    private readonly IUserActivityService? _activity;
     private AiStudioOperationOption _selectedOperation = AiStudioOptions.Operations[0];
+    private IReadOnlyList<AiStudioOption> _models = AiStudioOptions.Models;
+    private IReadOnlyList<AiStudioOption> _qualities = AiStudioOptions.Qualities;
+    private IReadOnlyList<AiStudioAspectOption> _aspects = AiStudioOptions.Aspects;
+    private IReadOnlyList<AiStudioOption> _resolutions = [];
+    private AiStudioOption _selectedResolution = new("", "");
+    private readonly Dictionary<string, AiStudioModelOption> _modelCatalog = new(StringComparer.OrdinalIgnoreCase);
     private AiStudioOption _selectedModel = AiStudioOptions.Models[0];
     private AiStudioOption _selectedQuality = AiStudioOptions.Qualities[0];
     private AiStudioAspectOption _selectedAspect = AiStudioOptions.Aspects[0];
+    private AiCreationModeOption _selectedCreationMode = AiCreationModes.Supported[0];
     private string _prompt = string.Empty;
     private string _negativePrompt = string.Empty;
     private string _outputWidth = "1024";
@@ -42,6 +51,10 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private int _progressPercentage;
     private BackgroundTaskId _activeTaskId;
     private CancellationTokenSource? _activationCancellation;
+    private IReadOnlyList<InternalImage> _additionalReferences = [];
+    private string _theme = string.Empty;
+    private string _visualStyle = string.Empty;
+    private string _composition = string.Empty;
 
     public AiStudioViewModel(
         IAiService aiService,
@@ -52,7 +65,9 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         IApplicationProjectSession? projectSession = null,
         ILocalPromptPresetStore? localPresets = null,
         ICloudPromptPresetService? cloudPresets = null,
-        ICapabilityAuthorizationService? capabilities = null)
+        ICapabilityAuthorizationService? capabilities = null,
+        IImageImportService? imageImportService = null,
+        IUserActivityService? activity = null)
     {
         _aiService = aiService ?? throw new ArgumentNullException(nameof(aiService));
         _studioService = studioService ?? throw new ArgumentNullException(nameof(studioService));
@@ -63,14 +78,32 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         _localPresets = localPresets;
         _cloudPresets = cloudPresets;
         _capabilities = capabilities;
+        _imageImportService = imageImportService;
+        _activity = activity;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public IReadOnlyList<AiStudioOperationOption> Operations => AiStudioOptions.Operations;
-    public IReadOnlyList<AiStudioOption> Models => AiStudioOptions.Models;
-    public IReadOnlyList<AiStudioOption> Qualities => AiStudioOptions.Qualities;
-    public IReadOnlyList<AiStudioAspectOption> Aspects => AiStudioOptions.Aspects;
+    public IReadOnlyList<AiStudioOption> Models { get => _models; private set => Set(ref _models, value); }
+    public IReadOnlyList<AiStudioOption> Qualities { get => _qualities; private set => Set(ref _qualities, value); }
+    public IReadOnlyList<AiStudioAspectOption> Aspects { get => _aspects; private set => Set(ref _aspects, value); }
+    public IReadOnlyList<AiStudioOption> Resolutions { get => _resolutions; private set => Set(ref _resolutions, value); }
+    public bool HasQualitySettings => Qualities.Count > 0;
+    public bool HasResolutionSettings => Resolutions.Count > 0;
+    public IReadOnlyList<AiCreationModeOption> CreationModes => AiCreationModes.Supported;
+
+    public AiCreationModeOption SelectedCreationMode
+    {
+        get => _selectedCreationMode;
+        set
+        {
+            if (value is null || !CreationModes.Contains(value) || !Set(ref _selectedCreationMode, value)) return;
+            SelectedOperation = Operations.First(item => item.Operation ==
+                (value.Mode == AiCreationMode.BasedOnSelectedDds ? AiStudioOperation.Edit : AiStudioOperation.Generate));
+            OnPropertyChanged(nameof(ComposedPrompt));
+        }
+    }
     public IReadOnlyList<PromptPreset> Presets { get => _presets; private set => Set(ref _presets, value); }
     public PromptPreset? SelectedPreset
     {
@@ -107,7 +140,15 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public AiStudioOption SelectedModel
     {
         get => _selectedModel;
-        set { if (value is not null && Models.Contains(value) && Set(ref _selectedModel, value)) NotifyValidationChanged(); }
+        set
+        {
+            if (value is null || !Models.Contains(value) || !Set(ref _selectedModel, value)) return;
+            OnPropertyChanged(nameof(ModelDescription));
+            OnPropertyChanged(nameof(ModelPriceText));
+            ApplyModelSettings(value.Value);
+            NotifyValidationChanged();
+            _ = RefreshQuoteAsync();
+        }
     }
 
     public AiStudioOption SelectedQuality
@@ -125,8 +166,18 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public string Prompt
     {
         get => _prompt;
-        set { if (Set(ref _prompt, value ?? string.Empty)) NotifyValidationChanged(); }
+        set { if (Set(ref _prompt, value ?? string.Empty)) { OnPropertyChanged(nameof(ComposedPrompt)); NotifyValidationChanged(); } }
     }
+
+    public string Theme { get => _theme; set { if (Set(ref _theme, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
+    public string VisualStyle { get => _visualStyle; set { if (Set(ref _visualStyle, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
+    public string Composition { get => _composition; set { if (Set(ref _composition, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
+    public int AdditionalReferenceCount => _additionalReferences.Count;
+    public bool HasAdditionalReferences => AdditionalReferenceCount > 0;
+    public string AdditionalReferencesMessage => AdditionalReferenceCount == 0
+        ? "Ch\u01B0a c\u00F3 \u1EA3nh tham chi\u1EBFu b\u1ED5 sung."
+        : $"\u0110\u00E3 ch\u1ECDn {AdditionalReferenceCount} \u1EA3nh tham chi\u1EBFu b\u1ED5 sung.";
+    public string ComposedPrompt => BuildComposedPrompt();
 
     public string NegativePrompt
     {
@@ -145,6 +196,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     }
 
     public string OperationDescription => SelectedOperation.Description;
+    public string ModelDescription => SelectedModel.Description;
+    public string ModelPriceText => SelectedModel.PriceText;
     public string PromptValidationMessage => Prompt.Length > AiPrompt.MaximumLength
             ? $"Nội dung mô tả vượt quá {AiPrompt.MaximumLength:N0} ký tự."
         : string.IsNullOrWhiteSpace(Prompt) && SelectedOperation.Operation is not
@@ -197,6 +250,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         try
         {
             await Task.WhenAll(
+                RefreshModelsAsync(_activationCancellation.Token),
                 RefreshQuoteAsync(_activationCancellation.Token),
                 RefreshHistoryAsync(_activationCancellation.Token),
                 RefreshPresetsAsync(_activationCancellation.Token));
@@ -236,6 +290,59 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             : "Chưa có chi phí · dịch vụ đang ngoại tuyến";
     }
 
+    public AiStudioOption SelectedResolution
+    {
+        get => _selectedResolution;
+        set { if (value is not null && Resolutions.Contains(value) && Set(ref _selectedResolution, value)) NotifyValidationChanged(); }
+    }
+
+    private async Task RefreshModelsAsync(CancellationToken cancellationToken)
+    {
+        var result = await _studioService.GetModelsAsync(cancellationToken);
+        if (!result.Succeeded || result.Models.Count == 0) return;
+
+        var models = result.Models.Select(model => new AiStudioOption(
+            model.Id,
+            model.Name,
+            BuildModelDescription(model),
+            BuildModelPriceText(model))).ToArray();
+        _modelCatalog.Clear();
+        foreach (var model in result.Models) _modelCatalog[model.Id] = model;
+        Models = models;
+        SelectedModel = models.FirstOrDefault(model => model.Value == _selectedModel.Value) ?? models[0];
+        ApplyModelSettings(SelectedModel.Value);
+        OnPropertyChanged(nameof(ModelDescription));
+        OnPropertyChanged(nameof(ModelPriceText));
+    }
+
+    private void ApplyModelSettings(string modelId)
+    {
+        if (!_modelCatalog.TryGetValue(modelId, out var model)) return;
+        var qualities = model.Qualities.Select(value => new AiStudioOption(value, value.ToUpperInvariant())).ToArray();
+        Qualities = qualities.Length > 0 ? qualities : AiStudioOptions.Qualities;
+        SelectedQuality = Qualities.FirstOrDefault(item => item.Value == SelectedQuality.Value) ?? Qualities[0];
+        var resolutions = model.Resolutions.Select(value => new AiStudioOption(value, value.ToUpperInvariant())).ToArray();
+        Resolutions = resolutions;
+        SelectedResolution = resolutions.FirstOrDefault(item => item.Value == SelectedResolution.Value) ?? (resolutions.Length > 0 ? resolutions[0] : new AiStudioOption("", ""));
+        OnPropertyChanged(nameof(HasQualitySettings));
+        OnPropertyChanged(nameof(HasResolutionSettings));
+    }
+
+    private static string BuildModelDescription(AiStudioModelOption model)
+    {
+        var details = new List<string>();
+        if (model.Qualities.Count > 0) details.Add($"Chất lượng: {string.Join(", ", model.Qualities)}");
+        if (model.AspectRatios.Count > 0) details.Add($"Tỷ lệ: {string.Join(", ", model.AspectRatios)}");
+        if (model.Resolutions.Count > 0) details.Add($"Kích thước: {string.Join(", ", model.Resolutions)}");
+        return details.Count == 0 ? "Thiết lập được xác nhận bởi dịch vụ AI." : string.Join(" · ", details);
+    }
+
+    private static string BuildModelPriceText(AiStudioModelOption model) => model.CreditCosts.Count == 0
+        ? "Giá được xác nhận khi tạo ảnh"
+        : model.CreditCosts.Count == 1
+            ? $"Từ {model.CreditCosts[0]:N0} Credits / ảnh"
+            : $"Từ {model.CreditCosts.Min():N0} đến {model.CreditCosts.Max():N0} Credits / ảnh";
+
     public async Task RefreshHistoryAsync(CancellationToken cancellationToken = default)
     {
         var result = await _studioService.GetHistoryAsync(cancellationToken);
@@ -247,6 +354,31 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             : History.Count == 0
                 ? "Chưa có tác vụ AI. Các tác vụ đã gửi sẽ xuất hiện tại đây."
                 : $"{History.Count:N0} tác vụ gần đây";
+    }
+
+    public async Task AddReferenceImagesAsync(IEnumerable<string> sourcePaths, CancellationToken cancellationToken = default)
+    {
+        if (_imageImportService is null) { StatusMessage = "Khong the tai anh tham chieu tren thiet bi nay."; return; }
+        var images = _additionalReferences.ToList();
+        var sourceSlots = SelectedCreationMode.Mode == AiCreationMode.BasedOnSelectedDds ? 1 : 0;
+        foreach (var path in sourcePaths.Take(Math.Max(0, 5 - sourceSlots - images.Count)))
+        {
+            var imported = await _imageImportService.ImportAsync(new(path), cancellationToken).ConfigureAwait(false);
+            if (imported.Succeeded && imported.Image is not null) images.Add(imported.Image);
+        }
+        _additionalReferences = images;
+        OnPropertyChanged(nameof(AdditionalReferenceCount));
+        OnPropertyChanged(nameof(HasAdditionalReferences));
+        OnPropertyChanged(nameof(AdditionalReferencesMessage));
+        StatusMessage = images.Count == 0 ? "Khong the doc anh tham chieu da chon." : "Da them anh tham chieu vao yeu cau AI.";
+    }
+
+    public void ClearReferenceImages()
+    {
+        _additionalReferences = [];
+        OnPropertyChanged(nameof(AdditionalReferenceCount));
+        OnPropertyChanged(nameof(HasAdditionalReferences));
+        OnPropertyChanged(nameof(AdditionalReferencesMessage));
     }
 
     public Task SubmitAsync(CancellationToken cancellationToken = default) =>
@@ -284,11 +416,12 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             return;
         }
 
+        var composedPrompt = BuildComposedPrompt();
         AiPrompt? prompt = SelectedOperation.Operation is AiStudioOperation.Upscale
                 or AiStudioOperation.RemoveObject
-            || string.IsNullOrWhiteSpace(Prompt)
+            || string.IsNullOrWhiteSpace(composedPrompt)
             ? null
-            : new AiPrompt(Prompt);
+            : new AiPrompt(composedPrompt);
         AiPrompt? negative = string.IsNullOrWhiteSpace(NegativePrompt) ? null : new AiPrompt(NegativePrompt);
         var preferences = new AiRequestPreferences(negative, SelectedModel.Value, SelectedQuality.Value);
         if (!preferences.IsValid)
@@ -298,6 +431,10 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         }
 
         AiImageResult? aiResult = null;
+        var operationId = Guid.NewGuid().ToString("N");
+        var operationStarted = DateTimeOffset.UtcNow;
+        var operationLabel = SelectedOperation.Label;
+        _activity?.Publish("INFO", $"Bắt đầu {operationLabel.ToLowerInvariant()}.", "AI / hình ảnh", "Chuẩn bị yêu cầu", 0, "Running", operationId);
         IsBusy = true;
         ProgressPercentage = 0;
         StatusMessage = "Đang gửi yêu cầu đến dịch vụ AI…";
@@ -312,24 +449,37 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                 AiOperationPhase.Receiving => "Đang nhận bản xem trước…",
                 _ => StatusMessage,
             };
+            _activity?.Publish("INFO", StatusMessage, "AI / hình ảnh", value.Phase.ToString(), ProgressPercentage,
+                "Running", operationId, DateTimeOffset.UtcNow - operationStarted,
+                value.Phase == AiOperationPhase.Processing && value.Percentage <= 0);
         });
         var enqueue = await _taskManager.EnqueueAsync(new BackgroundTaskRequest(
             BackgroundTaskKind.Ai,
             async (_, token) =>
             {
-                if (SelectedOperation.Operation is AiStudioOperation.Inpaint or AiStudioOperation.Outpaint
+                if ((_studioService.SupportsGenerationWithReferences
+                        && SelectedOperation.Operation is AiStudioOperation.Generate or AiStudioOperation.Edit)
+                    || SelectedOperation.Operation is AiStudioOperation.Inpaint or AiStudioOperation.Outpaint
                     or AiStudioOperation.RemoveObject or AiStudioOperation.ReplaceObject or AiStudioOperation.Upscale)
                 {
+                    var source = reference ?? CreateBlankSource();
                     var execution = await _studioService.ExecuteAsync(new(
                         SelectedOperation.Operation,
-                        reference!,
+                        source,
                         mask,
                         prompt,
                         SelectedOperation.Operation is AiStudioOperation.Outpaint or AiStudioOperation.Upscale
                             ? TryCreateExplicitTargetSize()
                             : null,
                         SelectedModel.Value,
-                        $"desktop-{Guid.NewGuid():N}"), progress, token).ConfigureAwait(false);
+                        $"desktop-{Guid.NewGuid():N}",
+                        _additionalReferences,
+                        new Dictionary<string, string>
+                        {
+                            ["quality"] = SelectedQuality.Value,
+                            ["aspect_ratio"] = SelectedAspect.Value,
+                            ["resolution"] = SelectedResolution.Value,
+                        }), progress, token).ConfigureAwait(false);
                     aiResult = execution.Succeeded && execution.Preview is not null
                         ? AiImageResult.Success(execution.Preview)
                         : execution.Cancelled ? AiImageResult.CancelledResult()
@@ -339,12 +489,13 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                 {
                     aiResult = await ExecuteAsync(reference, prompt, preferences, progress, token);
                 }
-                return aiResult.Succeeded
+                return aiResult is { Succeeded: true }
                     ? BackgroundTaskExecutionResult.Success()
-                    : BackgroundTaskExecutionResult.Failure(aiResult.DiagnosticCode);
+                    : BackgroundTaskExecutionResult.Failure(aiResult?.DiagnosticCode ?? "AI_OPERATION_FAILED");
             }), cancellationToken);
         if (!enqueue.Succeeded)
         {
+            _activity?.Publish("ERROR", "Không thể đưa tác vụ hình ảnh vào hàng đợi.", "AI / hình ảnh", "Xếp hàng", 0, "Error", operationId, DateTimeOffset.UtcNow - operationStarted);
             IsBusy = false;
             StatusMessage = "Không thể đưa tác vụ AI vào hàng đợi. Vui lòng thử lại.";
             return;
@@ -360,6 +511,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         catch (OperationCanceledException)
         {
             _taskManager.TryCancel(enqueue.TaskId);
+            _activity?.Publish("WARNING", "Đã hủy tác vụ hình ảnh theo yêu cầu.", "AI / hình ảnh", "Đã hủy", ProgressPercentage, "Cancelled", operationId, DateTimeOffset.UtcNow - operationStarted);
             StatusMessage = "Đã hủy yêu cầu AI. Nội dung dự án không bị thay đổi.";
             return;
         }
@@ -371,10 +523,12 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         }
         if (completion?.State == BackgroundTaskState.Cancelled || aiResult?.Cancelled == true)
         {
+            _activity?.Publish("WARNING", "Tác vụ hình ảnh đã hủy; dự án chưa bị thay đổi.", "AI / hình ảnh", "Đã hủy", ProgressPercentage, "Cancelled", operationId, DateTimeOffset.UtcNow - operationStarted);
             StatusMessage = "Đã hủy yêu cầu AI. Nội dung dự án không bị thay đổi.";
         }
         else if (aiResult?.Succeeded == true && aiResult.Image is not null)
         {
+            _activity?.Publish("SUCCESS", $"Đã hoàn tất {operationLabel.ToLowerInvariant()} và tạo bản xem trước.", "AI / hình ảnh", "Hoàn tất", 100, "Success", operationId, DateTimeOffset.UtcNow - operationStarted);
             PreviewImage = aiResult.Image;
             OnPropertyChanged(nameof(HasPreview));
             ProgressPercentage = 100;
@@ -382,6 +536,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         }
         else
         {
+            _activity?.Publish("ERROR", "Tác vụ hình ảnh không hoàn tất; dự án chưa bị thay đổi.", "AI / hình ảnh", "Kết thúc", ProgressPercentage, "Error", operationId, DateTimeOffset.UtcNow - operationStarted);
             StatusMessage = aiResult?.FailureReason == AiServiceFailureReason.Unavailable
                 ? "Dịch vụ AI đang ngoại tuyến. Bạn vẫn có thể chỉnh sửa trên máy."
                 : "Không thể xử lý yêu cầu AI. Nội dung dự án không bị thay đổi.";
@@ -489,6 +644,27 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         };
     }
 
+    private string BuildComposedPrompt()
+    {
+        var parts = new List<string>
+        {
+            "Create a production-ready game texture image.",
+            SelectedCreationMode.Mode == AiCreationMode.BasedOnSelectedDds
+                ? "Use the supplied DDS texture as the visual base; preserve its readable layout and only apply the requested creative changes."
+                : "Create an original image from the requested creative direction."
+        };
+        if (!string.IsNullOrWhiteSpace(Theme)) parts.Add($"Theme: {Theme.Trim()}.");
+        if (!string.IsNullOrWhiteSpace(VisualStyle)) parts.Add($"Design style: {VisualStyle.Trim()}.");
+        if (!string.IsNullOrWhiteSpace(Composition)) parts.Add($"Composition: {Composition.Trim()}.");
+        if (!string.IsNullOrWhiteSpace(Prompt)) parts.Add($"User requirements: {Prompt.Trim()}.");
+        if (_additionalReferences.Count > 0) parts.Add("Use the uploaded reference images only for their requested visual details.");
+        return string.Join(" ", parts);
+    }
+
+    private static InternalImage CreateBlankSource() => new(
+        1, 1, 4, [0, 0, 0, 0],
+        new ImageSourceMetadata(ImageSourceFormat.Png, 1, 1, ImageSourceOrientation.Normal, true, false));
+
     private void NotifyValidationChanged()
     {
         OnPropertyChanged(nameof(PromptValidationMessage));
@@ -526,4 +702,21 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     {
         public void Report(T value) => callback(value);
     }
+}
+
+public enum AiCreationMode
+{
+    NewImage,
+    BasedOnSelectedDds
+}
+
+public sealed record AiCreationModeOption(AiCreationMode Mode, string Label, string Description);
+
+public static class AiCreationModes
+{
+    public static IReadOnlyList<AiCreationModeOption> Supported { get; } =
+    [
+        new(AiCreationMode.NewImage, "T\u1EA1o m\u1EDBi", "T\u1EA1o \u1EA3nh m\u1EDBi t\u1EEB \u00FD t\u01B0\u1EDFng v\u00E0 \u1EA3nh tham chi\u1EBFu t\u00F9y ch\u1ECDn."),
+        new(AiCreationMode.BasedOnSelectedDds, "T\u1EEB DDS \u0111ang ch\u1ECDn", "D\u00F9ng DDS \u0111ang ch\u1ECDn l\u00E0m \u1EA3nh tham chi\u1EBFu \u0111\u1EC3 t\u1EA1o phi\u00EAn b\u1EA3n m\u1EDBi.")
+    ];
 }
