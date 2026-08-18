@@ -105,6 +105,14 @@ function qualityText(value) {
     return `${label}: ${item}`;
   }).join(" · ");
 }
+function isAllowedAiModel(model) {
+  const value = `${model?.modelId ?? model?.id ?? ""} ${model?.modelName ?? model?.name ?? ""}`
+    .toLowerCase().replace(/[._]/g, " ");
+  return /\bgpt(?:[- ]?image)?[- ]?2\b/.test(value)
+    || /\bnano[- ]?banana[- ]?pro\b/.test(value)
+    || /\b(?:image|imagen)[- ]?4\b/.test(value)
+    || /\bflux[- ]?2[- ]?pro\b/.test(value);
+}
 function money(v, currency = "vnd") {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -737,7 +745,7 @@ async function loadPayments() {
 }
 async function loadAiModels() {
   const result = await aiModelApi();
-  state.aiModels = result.models || [];
+  state.aiModels = (result.models || []).filter(isAllowedAiModel);
   $("[data-ai-models-count]").textContent = `${number(state.aiModels.length)} cấu hình`;
   $("[data-ai-models-body]").innerHTML = state.aiModels.length
     ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.pricingId)}">
