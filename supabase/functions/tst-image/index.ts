@@ -406,22 +406,28 @@ Deno.serve(async (req) => {
         idempotencyKey, creditCost, pricingVersion: `internal-${currentPricing?.pricingVersion ?? 1}`,
       });
       if (prepared.replayed && prepared.providerJobId) return json({ job_id: prepared.jobId });
-      const submitted = await provider("/image/generate", {
-        method: "POST",
-        body: JSON.stringify({ model: modelId, prompt, ...settings,
-          ...(referenceImages.length ? { reference_images: referenceImages } : {}) }),
-      });
-      const providerJobId = String(submitted.job_id ?? submitted.id ?? "");
-      const directResult = typeof submitted.result === "string" ? submitted.result : null;
-      if (!providerJobId && !directResult) throw new Error("TST_JOB_ID_MISSING");
-      await rpc(admin, "submitted", {
-        userId: userData.user.id, jobId: prepared.jobId, providerJobId: providerJobId || `direct-${prepared.jobId}`,
-      });
-      if (directResult) {
-        await rpc(admin, "complete", { userId: userData.user.id, jobId: prepared.jobId, resultUrl: directResult });
-        return json({ job_id: prepared.jobId, status: "completed", result: directResult });
+      try {
+        const submitted = await provider("/image/generate", {
+          method: "POST",
+          body: JSON.stringify({ model: modelId, prompt, ...settings,
+            ...(referenceImages.length ? { reference_images: referenceImages } : {}) }),
+        });
+        const providerJobId = String(submitted.job_id ?? submitted.id ?? "");
+        const directResult = typeof submitted.result === "string" ? submitted.result : null;
+        if (!providerJobId && !directResult) throw new Error("TST_JOB_ID_MISSING");
+        await rpc(admin, "submitted", {
+          userId: userData.user.id, jobId: prepared.jobId, providerJobId: providerJobId || `direct-${prepared.jobId}`,
+        });
+        if (directResult) {
+          await rpc(admin, "complete", { userId: userData.user.id, jobId: prepared.jobId, resultUrl: directResult });
+          return json({ job_id: prepared.jobId, status: "completed", result: directResult });
+        }
+        return json({ job_id: prepared.jobId, status: "queued" });
+      } catch (caught) {
+        try { await rpc(admin, "fail", { userId: userData.user.id, jobId: prepared.jobId, errorCode: "TST_PROVIDER_FAILED" }); }
+        catch { /* Preserve the original provider failure; reconciliation can inspect the durable job. */ }
+        throw caught;
       }
-      return json({ job_id: prepared.jobId, status: "queued" });
     }
     if (action === "status") {
       const jobId = url.searchParams.get("job_id") ?? "";
