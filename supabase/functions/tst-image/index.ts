@@ -54,18 +54,36 @@ async function provider(path: string, init: RequestInit = {}) {
 }
 
 function modelParams(item: AnyMap): AnyMap {
-  const source = item.params ?? item.settings ?? item.options ?? item.parameters ?? item.input_schema;
-  const params = source && typeof source === "object" && !Array.isArray(source) ? { ...(source as AnyMap) } : {};
-  const properties = params.properties;
-  if (properties && typeof properties === "object" && !Array.isArray(properties)) {
-    for (const [key, definition] of Object.entries(properties as AnyMap)) {
-      if (!params[key] && definition && typeof definition === "object") {
-        const option = definition as AnyMap;
-        params[key] = option.enum ?? option.values ?? option.options ?? option.choices;
+  const params: AnyMap = {};
+  const merge = (source: unknown) => {
+    if (!source || typeof source !== "object") return;
+    if (Array.isArray(source)) {
+      for (const entry of source) {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+        const option = entry as AnyMap;
+        const key = String(option.name ?? option.key ?? option.id ?? option.parameter ?? "").trim();
+        if (key) params[key] = option.enum ?? option.values ?? option.options ?? option.choices ?? option.default ?? params[key];
+        merge(option.properties);
+      }
+      return;
+    }
+    const map = source as AnyMap;
+    const properties = map.properties;
+    if (properties && typeof properties === "object" && !Array.isArray(properties)) {
+      for (const [key, definition] of Object.entries(properties as AnyMap)) {
+        if (definition && typeof definition === "object") {
+          const option = definition as AnyMap;
+          params[key] = option.enum ?? option.values ?? option.options ?? option.choices ?? option.default ?? params[key];
+        } else if (Array.isArray(definition)) params[key] = definition;
       }
     }
-    delete params.properties;
-  }
+    for (const [key, value] of Object.entries(map)) {
+      if (key !== "properties" && (Array.isArray(value) || (value && typeof value === "object"))) params[key] = value;
+    }
+    merge(map.input_schema);
+    merge(map.parameters);
+  };
+  for (const key of ["params", "settings", "options", "parameters", "input_schema"]) merge(item[key]);
   for (const key of ["quality", "aspect_ratio", "resolution", "size", "speed", "processing_speed", "count", "quantity"]) {
     if (item[key] !== undefined && params[key] === undefined) params[key] = item[key];
   }

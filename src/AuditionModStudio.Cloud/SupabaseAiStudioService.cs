@@ -101,7 +101,7 @@ public sealed class SupabaseAiStudioService(
         submit.Content = new StringContent(JsonSerializer.Serialize(new
         {
             prompt = effectivePrompt ?? string.Empty, model = request.PublicOptionId, idempotency_key = request.IdempotencyKey,
-            reference_images = references,
+            reference_images = references, settings = request.ModelSettings ?? new Dictionary<string, string>(),
         }, JsonOptions), Encoding.UTF8, "application/json");
         using var response = await httpClient.SendAsync(submit, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode) return new(false, false, "AI_JOB_SUBMIT_FAILED", null);
