@@ -121,6 +121,9 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
+                                    <Border Background="{ThemeResource AmsAccentSubtleBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                        <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" Glyph="&#xE8C8;" /><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind ViewModel.QuoteText, Mode=OneWay}" /></StackPanel>
+                                    </Border>
                                     <Grid ColumnSpacing="8" Visibility="Collapsed">
                                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -132,10 +135,10 @@
                                     <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ReferenceMessage, Mode=OneWay}" TextWrapping="Wrap" />
                                     <TextBox AcceptsReturn="True" Header="Mô tả hình ảnh" MaxLength="4000" MinHeight="136" PlaceholderText="Ví dụ: trang phục sân khấu neon, ánh sáng tím xanh, chi tiết sắc nét..." Text="{x:Bind ViewModel.Prompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
                                     <TextBlock AutomationProperties.LiveSetting="Polite" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.PromptValidationMessage, Mode=OneWay}" />
-                                    <Border Background="{ThemeResource AmsAccentSubtleBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                    <Border Background="{ThemeResource AmsAccentSubtleBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Visibility="Collapsed">
                                         <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" Glyph="&#xE8C8;" /><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind ViewModel.QuoteText, Mode=OneWay}" /></StackPanel>
                                     </Border>
-                                    <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Grid ColumnSpacing="8" Visibility="Collapsed"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                         <Button Click="OnSubmitClicked" IsEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsPrimaryButtonStyle}">Tạo ảnh</Button>
                                         <Button Grid.Column="1" Click="OnCancelClicked" IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Hủy</Button>
                                     </Grid>
@@ -160,6 +163,10 @@
                                             <TextBox Header="Nội dung gửi API Audition AI" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="100" Text="{x:Bind ViewModel.ComposedPrompt, Mode=OneWay}" />
                                         </StackPanel>
                                     </Border>
+                                    <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <Button Click="OnSubmitClicked" IsEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsPrimaryButtonStyle}">Tạo ảnh</Button>
+                                        <Button Grid.Column="1" Click="OnCancelClicked" IsEnabled="{x:Bind ViewModel.CanCancel, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsSecondaryButtonStyle}">Hủy</Button>
+                                    </Grid>
                                 </StackPanel>
                             </Border>
                         </Grid>

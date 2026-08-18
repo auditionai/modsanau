@@ -15,18 +15,31 @@ public sealed record AiStudioAspectOption(string Value, string Label, int Width,
 
 public sealed class AiModelSettingViewModel
 {
-    public AiModelSettingViewModel(string key, string label, IReadOnlyList<AiStudioOption> options)
+    private readonly Action? _changed;
+    private AiStudioOption _selected;
+
+    public AiModelSettingViewModel(string key, string label, IReadOnlyList<AiStudioOption> options, Action? changed = null)
     {
         Key = key;
         Label = label;
         Options = options;
-        Selected = options.FirstOrDefault() ?? new AiStudioOption("", "");
+        _selected = options.FirstOrDefault() ?? new AiStudioOption("", "");
+        _changed = changed;
     }
 
     public string Key { get; }
     public string Label { get; }
     public IReadOnlyList<AiStudioOption> Options { get; }
-    public AiStudioOption Selected { get; set; }
+    public AiStudioOption Selected
+    {
+        get => _selected;
+        set
+        {
+            if (value is null || value == _selected) return;
+            _selected = value;
+            _changed?.Invoke();
+        }
+    }
 }
 
 public sealed record AiStudioJobPresentation(

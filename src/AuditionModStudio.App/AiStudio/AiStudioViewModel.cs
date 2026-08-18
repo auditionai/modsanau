@@ -286,7 +286,9 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
 
     public async Task RefreshQuoteAsync(CancellationToken cancellationToken = default)
     {
-        var result = await _studioService.GetQuoteAsync(SelectedOperation.Operation, cancellationToken);
+        var settings = ModelSettings.ToDictionary(item => item.Key, item => item.Selected.Value,
+            StringComparer.OrdinalIgnoreCase);
+        var result = await _studioService.GetQuoteAsync(SelectedOperation.Operation, SelectedModel.Value, settings, cancellationToken);
         QuoteText = result.Succeeded && result.Quote is { CreditCost: > 0 } quote
             ? $"Ước tính {quote.CreditCost:N0} Credits · {quote.PricingVersion}"
             : "Giá sẽ xác nhận theo model và setting khi tạo ảnh";
@@ -321,7 +323,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     {
         if (!_modelCatalog.TryGetValue(modelId, out var model)) return;
         ModelSettings = model.Settings.Select(item => new AiModelSettingViewModel(
-            item.Key, GetSettingLabel(item.Key), item.Value.Select(value => new AiStudioOption(value, value)).ToArray())).ToArray();
+            item.Key, GetSettingLabel(item.Key), item.Value.Select(value => new AiStudioOption(value, value)).ToArray(),
+            () => _ = RefreshQuoteAsync())).ToArray();
         var qualities = model.Qualities.Select(value => new AiStudioOption(value, value.ToUpperInvariant())).ToArray();
         Qualities = qualities.Length > 0 ? qualities : AiStudioOptions.Qualities;
         SelectedQuality = Qualities.FirstOrDefault(item => item.Value == SelectedQuality.Value) ?? Qualities[0];

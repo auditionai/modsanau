@@ -55,6 +55,34 @@ public sealed class SupabaseAiStudioService(
     public Task<AiStudioQuoteResult> GetQuoteAsync(AiStudioOperation operation, CancellationToken cancellationToken = default) =>
         Task.FromResult(new AiStudioQuoteResult(false, "AI_QUOTE_FROM_LIVE_MODEL_REQUIRED", null));
 
+    public async Task<AiStudioQuoteResult> GetQuoteAsync(AiStudioOperation operation, string? modelId,
+        IReadOnlyDictionary<string, string>? modelSettings, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(modelId)) return new(false, "AI_QUOTE_MODEL_REQUIRED", null);
+        var session = await sessionStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (session is null && (await authentication.RefreshSessionAsync(cancellationToken)).Session is null)
+            return new(false, "AI_QUOTE_AUTH_REQUIRED", null);
+        session = await sessionStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (session is null) return new(false, "AI_QUOTE_AUTH_REQUIRED", null);
+        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint("quote"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        request.Content = new StringContent(JsonSerializer.Serialize(new { model = modelId, settings = modelSettings ?? new Dictionary<string, string>() }, JsonOptions), Encoding.UTF8, "application/json");
+        try
+        {
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return new(false, "AI_QUOTE_UNAVAILABLE", null);
+            using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("creditCost", out var cost) || !cost.TryGetInt64(out var creditCost) || creditCost <= 0)
+                return new(false, "AI_QUOTE_INVALID", null);
+            var version = root.TryGetProperty("pricingVersion", out var versionValue) ? versionValue.GetString() : "live";
+            return new(true, "AI_PRICE_QUOTED", new(creditCost, version ?? "live"));
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (HttpRequestException) { return new(false, "AI_QUOTE_OFFLINE", null); }
+        catch (JsonException) { return new(false, "AI_QUOTE_INVALID", null); }
+    }
+
     public Task<AiStudioHistoryResult> GetHistoryAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new AiStudioHistoryResult(false, "AI_HISTORY_UNAVAILABLE", []));
 

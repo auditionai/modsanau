@@ -332,6 +332,18 @@ Deno.serve(async (req) => {
   try {
     if (action === "models") return json({ models: await models(admin) });
     if (action === "history") return json(await rpc(admin, "history", { userId: userData.user.id }));
+    if (action === "quote") {
+      if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
+      const body = await req.json() as AnyMap;
+      const modelId = String(body.model ?? "");
+      const catalog = await models(admin);
+      const model = modelById(catalog, modelId);
+      if (!model) return error("AI_MODEL_NOT_ALLOWED", 400);
+      const settings = pickSettings(model, (body.settings as AnyMap) ?? {});
+      const currentPricing = await currentModelPricing(admin, modelId, settings);
+      if (!currentPricing?.creditCost) return error("AI_MODEL_PRICING_UNAVAILABLE", 409);
+      return json({ creditCost: currentPricing.creditCost, pricingVersion: `internal-${currentPricing.pricingVersion ?? 1}`, settings });
+    }
     if (action === "compose") {
       if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
       const body = await req.json() as AnyMap;

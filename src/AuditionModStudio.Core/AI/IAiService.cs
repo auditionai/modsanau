@@ -215,6 +215,12 @@ public interface IAiStudioService
         AiStudioOperation operation,
         CancellationToken cancellationToken = default);
 
+    Task<AiStudioQuoteResult> GetQuoteAsync(
+        AiStudioOperation operation,
+        string? modelId,
+        IReadOnlyDictionary<string, string>? modelSettings,
+        CancellationToken cancellationToken = default) => GetQuoteAsync(operation, cancellationToken);
+
     Task<AiStudioHistoryResult> GetHistoryAsync(CancellationToken cancellationToken = default);
 
     Task<AiStudioHistoryResult> CancelJobAsync(
