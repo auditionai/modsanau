@@ -51,7 +51,8 @@ async function providerModels() {
   return rows.filter((row: unknown) => {
     const item = row as AnyMap;
     const type = String(item.type ?? item.category ?? "").toLowerCase();
-    return type === "image" || type.includes("image");
+    const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
+    return (type === "image" || type.includes("image")) && /gpt|banana|flux|imagen?[- _]?4|image[- _]?4/.test(identity);
   }).map((row: unknown) => {
     const item = row as AnyMap;
     return {
@@ -92,7 +93,9 @@ Deno.serve(async (req) => {
       payload: { ...body, adminUserId: user.user.id, recentAuth },
     });
     if (error) throw new Error(error.message || "AI_MODEL_DATABASE_ERROR");
-    return respond(req, req.method === "GET" ? { models: data } : data);
+    const models = Array.isArray(data) ? data.filter((item: AnyMap) =>
+      /gpt|banana|flux|imagen?[- _]?4|image[- _]?4/.test(`${item.modelId ?? item.id ?? ""} ${item.modelName ?? item.name ?? ""}`.toLowerCase())) : data;
+    return respond(req, req.method === "GET" ? { models } : data);
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "AI_MODEL_REQUEST_FAILED";
     const known = message.match(/AI_MODEL_[A-Z_]+|ADMIN_[A-Z_]+/)?.[0] ?? "AI_MODEL_REQUEST_FAILED";

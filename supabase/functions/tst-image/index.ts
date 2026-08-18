@@ -52,7 +52,8 @@ async function models(admin: any) {
   const imageRows = rows.filter((row) => {
     const item = row as AnyMap;
     const type = String(item.type ?? item.category ?? "").toLowerCase();
-    return type === "image" || type.includes("image");
+    const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
+    return (type === "image" || type.includes("image")) && /gpt|banana|flux|imagen?[- _]?4|image[- _]?4/.test(identity);
   }).map((row) => {
     const item = row as AnyMap;
     return {
