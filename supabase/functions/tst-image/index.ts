@@ -55,6 +55,14 @@ async function provider(path: string, init: RequestInit = {}) {
 
 function modelParams(item: AnyMap): AnyMap {
   const params: AnyMap = {};
+  const optionValues = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      const option = value as AnyMap;
+      return option.enum ?? option.values ?? option.options ?? option.choices ?? option.default;
+    }
+    return undefined;
+  };
   const merge = (source: unknown) => {
     if (!source || typeof source !== "object") return;
     if (Array.isArray(source)) {
@@ -62,7 +70,7 @@ function modelParams(item: AnyMap): AnyMap {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
         const option = entry as AnyMap;
         const key = String(option.name ?? option.key ?? option.id ?? option.parameter ?? "").trim();
-        if (key) params[key] = option.enum ?? option.values ?? option.options ?? option.choices ?? option.default ?? params[key];
+        if (key) params[key] = optionValues(option) ?? params[key];
         merge(option.properties);
       }
       return;
@@ -73,12 +81,15 @@ function modelParams(item: AnyMap): AnyMap {
       for (const [key, definition] of Object.entries(properties as AnyMap)) {
         if (definition && typeof definition === "object") {
           const option = definition as AnyMap;
-          params[key] = option.enum ?? option.values ?? option.options ?? option.choices ?? option.default ?? params[key];
+          params[key] = optionValues(option) ?? params[key];
         } else if (Array.isArray(definition)) params[key] = definition;
       }
     }
     for (const [key, value] of Object.entries(map)) {
-      if (key !== "properties" && (Array.isArray(value) || (value && typeof value === "object"))) params[key] = value;
+      if (key !== "properties") {
+        const values = optionValues(value);
+        if (values !== undefined) params[key] = values;
+      }
     }
     merge(map.input_schema);
     merge(map.parameters);
