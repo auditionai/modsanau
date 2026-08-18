@@ -761,7 +761,6 @@ async function loadAiModels() {
         <td class="mono setting-cell">${escapeHtml(settingText(model.settings))}</td>
         <td><label class="check-label"><input data-ai-model-active type="checkbox" ${model.active ? "checked" : ""} /> Đang phát hành</label></td>
         <td>v${number(model.pricingVersion)}</td>
-        <td><input data-ai-model-reason maxlength="500" minlength="8" placeholder="Lý do thay đổi" aria-label="Lý do thay đổi ${escapeHtml(model.name)}" /></td>
         <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.pricingId)}">Lưu</button></td>
       </tr>`).join("")
     : empty(9, "Chưa đồng bộ cấu hình giá model ảnh từ TST.");
@@ -997,11 +996,6 @@ document.addEventListener("click", async (e) => {
     const row = b.closest("tr");
     const current = state.aiModels.find((model) => model.pricingId === b.dataset.saveAiModel);
     if (!row || !current) return;
-    const reason = $("[data-ai-model-reason]", row).value.trim();
-    if (reason.length < 8) {
-      toast("Nhập lý do thay đổi ít nhất 8 ký tự.", "error");
-      return;
-    }
     b.disabled = true;
     try {
       await aiModelApi({
@@ -1011,7 +1005,6 @@ document.addEventListener("click", async (e) => {
           creditCost: Number($("[data-ai-model-cost]", row).value),
           active: $("[data-ai-model-active]", row).checked,
           sortOrder: Number(current.sortOrder || 0),
-          reason,
           correlationId: uuid(),
         }),
       });
