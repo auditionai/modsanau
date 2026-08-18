@@ -5,9 +5,29 @@ namespace AuditionModStudio.App.AiStudio;
 public sealed record AiStudioOperationOption(
     AiStudioOperation Operation, string Label, string Description, bool RequiresReference);
 
-public sealed record AiStudioOption(string Value, string Label);
+public sealed record AiStudioOption(
+    string Value,
+    string Label,
+    string Description = "",
+    string PriceText = "Giá được xác nhận khi tạo ảnh");
 
 public sealed record AiStudioAspectOption(string Value, string Label, int Width, int Height);
+
+public sealed class AiModelSettingViewModel
+{
+    public AiModelSettingViewModel(string key, string label, IReadOnlyList<AiStudioOption> options)
+    {
+        Key = key;
+        Label = label;
+        Options = options;
+        Selected = options.FirstOrDefault() ?? new AiStudioOption("", "");
+    }
+
+    public string Key { get; }
+    public string Label { get; }
+    public IReadOnlyList<AiStudioOption> Options { get; }
+    public AiStudioOption Selected { get; set; }
+}
 
 public sealed record AiStudioJobPresentation(
     Guid JobId,
@@ -40,33 +60,32 @@ public static class AiStudioOptions
 {
     public static IReadOnlyList<AiStudioOperationOption> Operations { get; } =
     [
-        new(AiStudioOperation.Generate, "Tạo ảnh", "Tạo hình ảnh mới từ nội dung mô tả.", false),
-        new(AiStudioOperation.Edit, "Chỉnh sửa ảnh nguồn", "Biến đổi Texture đang chọn.", true),
-        new(AiStudioOperation.Inpaint, "Inpaint", "Tạo lại vùng Mask theo ảnh nguồn.", true),
-        new(AiStudioOperation.Outpaint, "Outpaint", "Mở rộng Texture đang chọn.", true),
-        new(AiStudioOperation.RemoveObject, "Xóa đối tượng", "Xóa nội dung bên trong vùng Mask.", true),
-        new(AiStudioOperation.ReplaceObject, "Thay đối tượng", "Thay nội dung bên trong vùng Mask.", true),
-        new(AiStudioOperation.Upscale, "Upscale", "Tăng chi tiết và giữ nguyên Texture đã chọn.", true),
+        new(AiStudioOperation.Generate, "Tạo ảnh mới", "Tạo hình ảnh từ mô tả của bạn.", false),
+        new(AiStudioOperation.Edit, "Chỉnh từ Texture", "Dùng Texture đang chọn làm ảnh tham chiếu.", true),
+        new(AiStudioOperation.Inpaint, "Tạo lại vùng đã tô", "Áp dụng lên vùng Mask đã vẽ.", true),
+        new(AiStudioOperation.Outpaint, "Mở rộng ảnh", "Mở rộng vùng ngoài Texture đang chọn.", true),
+        new(AiStudioOperation.RemoveObject, "Xóa đối tượng", "Xóa phần nằm trong vùng Mask.", true),
+        new(AiStudioOperation.ReplaceObject, "Thay đối tượng", "Thay phần nằm trong vùng Mask theo mô tả.", true),
+        new(AiStudioOperation.Upscale, "Tăng độ nét", "Tăng chi tiết cho Texture đang chọn.", true),
     ];
 
+    // These options keep the page usable while the secure catalog is loading.
     public static IReadOnlyList<AiStudioOption> Models { get; } =
     [
-        new("server-default", "Mặc định"),
-        new("balanced", "Cân bằng"),
-        new("detail", "Chi tiết"),
+        new("server-default", "Model mặc định", "Dịch vụ sẽ chọn model phù hợp.", "Giá được xác nhận khi tạo ảnh"),
     ];
 
     public static IReadOnlyList<AiStudioOption> Qualities { get; } =
     [
         new("standard", "Tiêu chuẩn"),
-        new("high", "Cao"),
+        new("high", "Chất lượng cao"),
     ];
 
     public static IReadOnlyList<AiStudioAspectOption> Aspects { get; } =
     [
-        new("square", "Vuông · 1:1", 512, 512),
-        new("landscape", "Ngang · 3:2", 768, 512),
-        new("portrait", "Dọc · 2:3", 512, 768),
+        new("square", "Vuông · 1:1", 1024, 1024),
+        new("landscape", "Ngang · 3:2", 1536, 1024),
+        new("portrait", "Dọc · 2:3", 1024, 1536),
     ];
 
     public static string GetOperationLabel(AiStudioOperation operation) =>

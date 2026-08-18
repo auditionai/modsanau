@@ -52,7 +52,7 @@ public sealed class EdgeFunctionAiStudioService(
                 var aspects = ReadOptionValues(parameters, "aspect_ratio");
                 var resolutions = ReadOptionValues(parameters, "size");
                 var prices = ReadCreditCosts(item);
-                result.Add(new(id!, name, qualities, aspects, resolutions, prices));
+                result.Add(new(id!, name, qualities, aspects, resolutions, prices) { Settings = ReadSettings(parameters) });
             }
             return result.Count == 0
                 ? new(false, "AI_MODELS_EMPTY", [])
@@ -381,6 +381,15 @@ public sealed class EdgeFunctionAiStudioService(
                 values.Add(amount);
         }
         return values.Distinct().Order().Take(10).ToArray();
+    }
+
+    private static IReadOnlyDictionary<string, IReadOnlyList<string>> ReadSettings(JsonElement parameters)
+    {
+        if (parameters.ValueKind != JsonValueKind.Object) return new Dictionary<string, IReadOnlyList<string>>();
+        return parameters.EnumerateObject().Select(property =>
+            (property.Name, Values: ReadOptionValues(parameters, property.Name)))
+            .Where(item => item.Values.Count > 0)
+            .ToDictionary(item => item.Name, item => item.Values, StringComparer.OrdinalIgnoreCase);
     }
 
     private Uri Endpoint(string relativePath) => new($"{options.BaseUri.AbsoluteUri.TrimEnd('/')}/{relativePath.TrimStart('/')}");

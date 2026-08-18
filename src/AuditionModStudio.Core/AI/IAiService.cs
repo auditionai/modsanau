@@ -175,7 +175,11 @@ public sealed record AiStudioModelOption(
     IReadOnlyList<string> Qualities,
     IReadOnlyList<string> AspectRatios,
     IReadOnlyList<string> Resolutions,
-    IReadOnlyList<long> CreditCosts);
+    IReadOnlyList<long> CreditCosts)
+{
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> Settings { get; init; }
+        = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+}
 
 public sealed record AiStudioModelsResult(
     bool Succeeded, string DiagnosticCode, IReadOnlyList<AiStudioModelOption> Models);
@@ -187,7 +191,9 @@ public sealed record AiStudioExecutionRequest(
     AiPrompt? Prompt,
     AiTargetSize? TargetSize,
     string PublicOptionId,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    IReadOnlyList<InternalImage>? AdditionalReferences = null,
+    IReadOnlyDictionary<string, string>? ModelSettings = null);
 
 public sealed record AiStudioExecutionResult(
     bool Succeeded, bool Cancelled, string DiagnosticCode, InternalImage? Preview);
@@ -200,6 +206,8 @@ public interface IAiTransportImageEncoder
 
 public interface IAiStudioService
 {
+    bool SupportsGenerationWithReferences => false;
+
     Task<AiStudioModelsResult> GetModelsAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new AiStudioModelsResult(false, "AI_MODELS_UNAVAILABLE", []));
 

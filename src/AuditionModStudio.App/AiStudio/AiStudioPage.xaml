@@ -106,7 +106,17 @@
                                     <Border Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
                                         <StackPanel Spacing="2"><TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ModelPriceText, Mode=OneWay}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ModelDescription, Mode=OneWay}" TextWrapping="Wrap" /></StackPanel>
                                     </Border>
-                                    <Grid ColumnSpacing="8">
+                                    <ItemsControl ItemsSource="{x:Bind ViewModel.ModelSettings, Mode=OneWay}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Spacing="6" Margin="0,0,0,10">
+                                                    <TextBlock Style="{StaticResource AmsLabelTextStyle}" Text="{Binding Label}" />
+                                                    <ComboBox ItemsSource="{Binding Options}" DisplayMemberPath="Label" SelectedItem="{Binding Selected, Mode=TwoWay}" MinHeight="44" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Grid ColumnSpacing="8" Visibility="Collapsed">
                                         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                         <ComboBox Header="Chất lượng" DisplayMemberPath="Label" ItemsSource="{x:Bind ViewModel.Qualities, Mode=OneWay}" MinHeight="44" SelectedItem="{x:Bind ViewModel.SelectedQuality, Mode=TwoWay}" Visibility="{x:Bind ViewModel.HasQualitySettings, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />

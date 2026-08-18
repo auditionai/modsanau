@@ -41,7 +41,7 @@ public sealed class SupabaseAiStudioService(
                 return string.IsNullOrWhiteSpace(id) ? null : new AiStudioModelOption(
                     id!, name ?? id!, ReadOptionValues(parameters, "quality"), ReadOptionValues(parameters, "aspect_ratio"),
                     ReadOptionValues(parameters, "resolution").Count > 0 ? ReadOptionValues(parameters, "resolution") : ReadOptionValues(parameters, "size"),
-                    ReadCreditCosts(item));
+                    ReadCreditCosts(item)) { Settings = ReadSettings(parameters, item) };
             }).Where(item => item is not null && IsAllowedModel(item.Id, item.Name)).Cast<AiStudioModelOption>().ToArray();
             return result.Length == 0 ? new(false, "AI_MODELS_EMPTY", []) : new(true, "AI_MODELS_LOADED", result);
         }
@@ -176,6 +176,32 @@ public sealed class SupabaseAiStudioService(
         }
         return values.Distinct().Order().Take(10).ToArray();
     }
+
+    private static IReadOnlyDictionary<string, IReadOnlyList<string>> ReadSettings(JsonElement parameters, JsonElement model)
+    {
+        var result = parameters.ValueKind != JsonValueKind.Object
+            ? new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
+            : parameters.EnumerateObject().Select(property =>
+            (property.Name, Values: ReadOptionValues(parameters, property.Name)))
+            .Where(item => item.Values.Count > 0)
+            .ToDictionary(item => item.Name, item => item.Values, StringComparer.OrdinalIgnoreCase);
+        if (model.TryGetProperty("servers", out var servers))
+        {
+            var values = ReadArrayValues(servers);
+            if (values.Count > 0) result["server"] = values;
+        }
+        if (model.TryGetProperty("modes", out var modes))
+        {
+            var values = ReadArrayValues(modes);
+            if (values.Count > 0 && !result.ContainsKey("speed")) result["speed"] = values;
+        }
+        return result;
+    }
+
+    private static IReadOnlyList<string> ReadArrayValues(JsonElement value) => value.ValueKind == JsonValueKind.Array
+        ? value.EnumerateArray().Where(item => item.ValueKind is JsonValueKind.String or JsonValueKind.Number)
+            .Select(item => item.ToString()).Where(item => item.Length is > 0 and <= 64).Take(20).ToArray()
+        : [];
 
     private static bool IsAllowedModel(string id, string name)
     {

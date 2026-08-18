@@ -31,6 +31,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private IReadOnlyList<AiStudioOption> _resolutions = [];
     private AiStudioOption _selectedResolution = new("", "");
     private readonly Dictionary<string, AiStudioModelOption> _modelCatalog = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<AiModelSettingViewModel> _modelSettings = [];
     private AiStudioOption _selectedModel = AiStudioOptions.Models[0];
     private AiStudioOption _selectedQuality = AiStudioOptions.Qualities[0];
     private AiStudioAspectOption _selectedAspect = AiStudioOptions.Aspects[0];
@@ -91,6 +92,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public IReadOnlyList<AiStudioOption> Resolutions { get => _resolutions; private set => Set(ref _resolutions, value); }
     public bool HasQualitySettings => Qualities.Count > 0;
     public bool HasResolutionSettings => Resolutions.Count > 0;
+    public IReadOnlyList<AiModelSettingViewModel> ModelSettings { get => _modelSettings; private set => Set(ref _modelSettings, value); }
     public IReadOnlyList<AiCreationModeOption> CreationModes => AiCreationModes.Supported;
 
     public AiCreationModeOption SelectedCreationMode
@@ -318,6 +320,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private void ApplyModelSettings(string modelId)
     {
         if (!_modelCatalog.TryGetValue(modelId, out var model)) return;
+        ModelSettings = model.Settings.Select(item => new AiModelSettingViewModel(
+            item.Key, GetSettingLabel(item.Key), item.Value.Select(value => new AiStudioOption(value, value)).ToArray())).ToArray();
         var qualities = model.Qualities.Select(value => new AiStudioOption(value, value.ToUpperInvariant())).ToArray();
         Qualities = qualities.Length > 0 ? qualities : AiStudioOptions.Qualities;
         SelectedQuality = Qualities.FirstOrDefault(item => item.Value == SelectedQuality.Value) ?? Qualities[0];
@@ -327,6 +331,17 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasQualitySettings));
         OnPropertyChanged(nameof(HasResolutionSettings));
     }
+
+    private static string GetSettingLabel(string key) => key.ToLowerInvariant() switch
+    {
+        "quality" => "Chất lượng",
+        "resolution" or "size" => "Độ phân giải",
+        "aspect_ratio" => "Tỷ lệ khung hình",
+        "speed" or "processing_speed" => "Tốc độ xử lý",
+        "server" or "server_id" => "Server model",
+        "n" or "count" or "quantity" => "Số lượng",
+        _ => key.Replace('_', ' '),
+    };
 
     private static string BuildModelDescription(AiStudioModelOption model)
     {
@@ -474,12 +489,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                         SelectedModel.Value,
                         $"desktop-{Guid.NewGuid():N}",
                         _additionalReferences,
-                        new Dictionary<string, string>
-                        {
-                            ["quality"] = SelectedQuality.Value,
-                            ["aspect_ratio"] = SelectedAspect.Value,
-                            ["resolution"] = SelectedResolution.Value,
-                        }), progress, token).ConfigureAwait(false);
+                        ModelSettings.ToDictionary(item => item.Key, item => item.Selected.Value,
+                            StringComparer.OrdinalIgnoreCase)), progress, token).ConfigureAwait(false);
                     aiResult = execution.Succeeded && execution.Preview is not null
                         ? AiImageResult.Success(execution.Preview)
                         : execution.Cancelled ? AiImageResult.CancelledResult()
