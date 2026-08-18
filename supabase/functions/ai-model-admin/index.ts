@@ -1,6 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
 type AnyMap = Record<string, unknown>;
+const GPTI2_SIZES = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"];
+function gpti2Pricing() {
+  return GPTI2_SIZES.flatMap((size) => ["low", "medium", "high"].flatMap((quality) => [1, 2, 3, 4].map((n) => ({ size, quality, n, cost: 50 * n }))));
+}
 const maxBodyBytes = 16 * 1024;
 
 function allowedOrigin(req: Request) {
@@ -23,9 +27,14 @@ function headers(req: Request) {
 function isAllowedImageModel(identity: string) {
   const value = identity.toLowerCase().replace(/[._]/g, " ");
   return /\bgpt(?:[- ]?image)?[- ]?2\b/.test(value)
-    || /\bnano[- ]?banana[- ]?pro\b/.test(value)
-    || /\b(?:image|imagen)[- ]?4\b/.test(value)
-    || /\bflux[- ]?2[- ]?pro\b/.test(value);
+    || /\bnano[- ]?banana[- ]?pro\b/.test(value);
+}
+
+function normalizeModelId(identity: string) {
+  const value = identity.toLowerCase().replace(/[._]/g, " ");
+  if (/\bnano[- ]?banana[- ]?pro\b/.test(value)) return "nano-banana-pro";
+  if (/\bgpt(?:[- ]?image)?[- ]?2\b/.test(value)) return "gpt-image-2";
+  return "";
 }
 
 function respond(req: Request, body: unknown, status = 200) {
@@ -48,28 +57,39 @@ async function readJson(req: Request): Promise<AnyMap> {
 }
 
 async function providerModels() {
-  const key = Deno.env.get("TST_API_KEY") ?? Deno.env.get("TRAM_SANG_TAO_API_KEY");
+  const key = Deno.env.get("GPTI2_API_KEY");
   if (!key) throw new Error("AI_MODEL_PROVIDER_NOT_CONFIGURED");
-  const response = await fetch("https://api.tramsangtao.com/v1/models", {
+  const response = await fetch("https://gpti2.store/v1/models", {
     headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
   });
   const source = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error("AI_MODEL_PROVIDER_UNAVAILABLE");
-  const rows: unknown[] = Array.isArray(source) ? source : Array.isArray(source.models) ? source.models : [];
-  return rows.filter((row: unknown) => {
+  const nanoResponse = await fetch("https://gpti2.store/v1/images/nano/models", {
+    headers: { Authorization: `Bearer ${key}`, Accept: "application/json" },
+  });
+  const nanoSource = await nanoResponse.json().catch(() => ({}));
+  const rows: unknown[] = [
+    ...(Array.isArray(source) ? source : Array.isArray(source.models) ? source.models : []),
+    ...(Array.isArray(nanoSource) ? nanoSource : Array.isArray(nanoSource.models) ? nanoSource.models : []),
+  ];
+  const result = rows.filter((row: unknown) => {
     const item = row as AnyMap;
     const type = String(item.type ?? item.category ?? "").toLowerCase();
     const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
-    return (type === "image" || type.includes("image")) && isAllowedImageModel(identity);
+    return (!type || type === "image" || type.includes("image")) && isAllowedImageModel(identity);
   }).map((row: unknown) => {
     const item = row as AnyMap;
     return {
-      id: String(item.id ?? item.slug ?? item.model ?? "").toLowerCase(),
-      name: item.name ?? item.title ?? item.id,
+      id: normalizeModelId(`${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`),
+      name: normalizeModelId(`${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`) === "gpt-image-2" ? "GPT Image 2" : "Nano Banana PRO",
       type: String(item.type ?? item.category ?? "image").toLowerCase(),
-      pricing: Array.isArray(item.pricing) ? item.pricing : [],
+      pricing: Array.isArray(item.pricing) && item.pricing.length ? item.pricing : gpti2Pricing(),
+      params: normalizeModelId(`${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`) === "gpt-image-2"
+        ? { size: ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], quality: ["low", "medium", "high"], n: ["1", "2", "3", "4"] }
+        : { size: ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], quality: ["low", "medium", "high"], n: ["1", "2", "3", "4"] },
     };
   }).filter((item: { id: string }) => /^[a-z0-9._-]{1,64}$/.test(item.id));
+  return [...new Map(result.map((item) => [item.id, item])).values()];
 }
 
 Deno.serve(async (req) => {

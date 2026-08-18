@@ -114,9 +114,7 @@ function isAllowedAiModel(model) {
   const value = `${model?.modelId ?? model?.id ?? ""} ${model?.modelName ?? model?.name ?? ""}`
     .toLowerCase().replace(/[._]/g, " ");
   return /\bgpt(?:[- ]?image)?[- ]?2\b/.test(value)
-    || /\bnano[- ]?banana[- ]?pro\b/.test(value)
-    || /\b(?:image|imagen)[- ]?4\b/.test(value)
-    || /\bflux[- ]?2[- ]?pro\b/.test(value);
+    || /\bnano[- ]?banana[- ]?pro\b/.test(value);
 }
 function money(v, currency = "vnd") {
   return new Intl.NumberFormat("vi-VN", {
@@ -763,7 +761,7 @@ async function loadAiModels() {
         <td>v${number(model.pricingVersion)}</td>
         <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.pricingId)}">Lưu</button></td>
       </tr>`).join("")
-    : empty(9, "Chưa đồng bộ cấu hình giá model ảnh từ TST.");
+    : empty(9, "Chưa đồng bộ cấu hình giá model ảnh từ GPTi2.");
   applyRoleVisibility();
 }
 async function showPaymentDetail(orderId) {

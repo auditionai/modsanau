@@ -8,18 +8,28 @@ const cors = {
   "Content-Type": "application/json",
 };
 
-const TST_BASE = "https://api.tramsangtao.com/v1";
+const GPTI2_BASE = "https://gpti2.store/v1";
 const MODEL_CACHE_MS = 5 * 60_000;
 let modelCache: { expires: number; models: unknown[] } | null = null;
+const GPTI2_SIZES = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"];
+
+function gpti2Pricing() {
+  return GPTI2_SIZES.flatMap((size) => ["low", "medium", "high"].flatMap((quality) => [1, 2, 3, 4].map((n) => ({ size, quality, n, cost: 50 * n }))));
+}
 
 type AnyMap = Record<string, unknown>;
 
 function isAllowedImageModel(identity: string) {
   const value = identity.toLowerCase().replace(/[._]/g, " ");
   return /\bgpt(?:[- ]?image)?[- ]?2\b/.test(value)
-    || /\bnano[- ]?banana[- ]?pro\b/.test(value)
-    || /\b(?:image|imagen)[- ]?4\b/.test(value)
-    || /\bflux[- ]?2[- ]?pro\b/.test(value);
+    || /\bnano[- ]?banana[- ]?pro\b/.test(value);
+}
+
+function normalizeModelId(identity: string) {
+  const value = identity.toLowerCase().replace(/[._]/g, " ");
+  if (/\bnano[- ]?banana[- ]?pro\b/.test(value)) return "nano-banana-pro";
+  if (/\bgpt(?:[- ]?image)?[- ]?2\b/.test(value)) return "gpt-image-2";
+  return "";
 }
 
 function json(body: unknown, status = 200) {
@@ -36,19 +46,19 @@ function authToken(req: Request) {
 }
 
 async function provider(path: string, init: RequestInit = {}) {
-  const key = Deno.env.get("TST_API_KEY") ?? Deno.env.get("TRAM_SANG_TAO_API_KEY");
-  if (!key) throw new Error("TST_API_KEY_NOT_CONFIGURED");
+  const key = Deno.env.get("GPTI2_API_KEY");
+  if (!key) throw new Error("GPTI2_API_KEY_NOT_CONFIGURED");
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${key}`);
   headers.set("Accept", "application/json");
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const response = await fetch(`${TST_BASE}${path}`, { ...init, headers });
+  const response = await fetch(`${GPTI2_BASE}${path}`, { ...init, headers });
   const text = await response.text();
   let body: unknown = {};
   try { body = text ? JSON.parse(text) : {}; } catch { body = {}; }
   if (!response.ok) {
     const code = (body as AnyMap)?.error ?? (body as AnyMap)?.message;
-    throw new Error(typeof code === "string" ? code : `TST_HTTP_${response.status}`);
+    throw new Error(typeof code === "string" ? code : `GPTI2_HTTP_${response.status}`);
   }
   return body as AnyMap;
 }
@@ -122,12 +132,15 @@ function modelParams(item: AnyMap): AnyMap {
     if (item[key] !== undefined && params[key] === undefined) params[key] = item[key];
   }
   const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
-  if (/gpt(?:[- ]?image)?[- ]?2/.test(identity)) {
+  const normalized = normalizeModelId(identity);
+  if (normalized === "gpt-image-2") {
+    params.size = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"];
+    params.quality = ["low", "medium", "high"];
+    params.n = ["1", "2", "3", "4"];
+  } else if (normalized === "nano-banana-pro") {
+    params.size ??= ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"];
     params.quality ??= ["low", "medium", "high"];
-    params.resolution ??= ["1k", "2k", "4k"];
-  }
-  if (/(?:flux[- ]?2[- ]?pro|nano[- ]?banana[- ]?pro|(?:image|imagen)[- ]?4)/.test(identity)) {
-    params.aspect_ratio ??= ["1:1", "16:9", "9:16", "4:3", "3:4"];
+    params.n ??= ["1", "2", "3", "4"];
   }
   return params;
 }
@@ -159,40 +172,31 @@ function pricingParams(item: AnyMap): AnyMap {
 }
 
 async function detailedModel(item: AnyMap) {
-  const id = String(item.id ?? item.slug ?? item.model ?? "");
-  if (!id) return item;
-  let merged: AnyMap = { ...item };
-  const encoded = encodeURIComponent(id);
-  for (const path of [`/models/${encoded}`, `/models/${encoded}/schema`, `/models/${encoded}/settings`, `/models/${encoded}/parameters`]) {
-    try {
-      const source = await provider(path);
-      const detail = source.model && typeof source.model === "object" ? source.model as AnyMap : source;
-      merged = { ...merged, ...detail, params: { ...modelParams(merged), ...modelParams(detail) } };
-    } catch {
-      // Providers may not implement all metadata endpoints.
-    }
-  }
-  return merged;
+  return { ...item, params: modelParams(item) };
 }
 
 async function models(admin: any) {
   if (modelCache && modelCache.expires > Date.now()) return modelCache.models;
   const source = await provider("/models");
-  const rows = Array.isArray(source) ? source : Array.isArray(source.models) ? source.models : [];
+  const nanoSource = await provider("/images/nano/models").catch(() => ({}));
+  const rows = [
+    ...(Array.isArray(source) ? source : Array.isArray(source.models) ? source.models : []),
+    ...(Array.isArray(nanoSource) ? nanoSource : Array.isArray((nanoSource as AnyMap).models) ? (nanoSource as AnyMap).models as unknown[] : []),
+  ];
   const allowedRows = rows.filter((row) => {
     const item = row as AnyMap;
     const type = String(item.type ?? item.category ?? "").toLowerCase();
     const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
-    return (type === "image" || type.includes("image")) && isAllowedImageModel(identity);
+    return isAllowedImageModel(identity);
   });
   const imageRows = await Promise.all(allowedRows.map(async (row) => {
-    const item = await detailedModel(row as AnyMap);
+    const item = await detailedModel(row as AnyMap) as AnyMap;
     return {
-      id: String(item.id ?? item.slug ?? item.model),
-      name: item.name ?? item.title ?? item.id,
+      id: normalizeModelId(`${item.id ?? item.slug ?? item.model} ${item.name ?? item.title ?? ""}`),
+      name: normalizeModelId(`${item.id ?? item.slug ?? item.model} ${item.name ?? item.title ?? ""}`) === "gpt-image-2" ? "GPT Image 2" : "Nano Banana PRO",
       type: "image",
       servers: item.servers ?? [],
-      pricing: item.pricing ?? [],
+      pricing: Array.isArray(item.pricing) && item.pricing.length ? item.pricing : gpti2Pricing(),
       modes: item.modes ?? [],
       params: { ...pricingParams(item), ...modelParams(item) },
       notes: item.notes ?? null,
@@ -202,7 +206,8 @@ async function models(admin: any) {
   if (syncError) throw new Error(syncError);
   const catalog = Array.isArray(data) ? data as AnyMap[] : [];
   const byId = new Map(catalog.map((item) => [String(item.id), item]));
-  const merged = imageRows.map((model) => ({
+  const deduped = [...new Map(imageRows.map((model) => [model.id, model])).values()];
+  const merged = deduped.map((model) => ({
     ...model,
     name: byId.get(String(model.id))?.name ?? model.name,
     creditCost: Number(byId.get(String(model.id))?.creditCost ?? 10),
@@ -273,6 +278,18 @@ async function rpc(admin: any, action: string, payload: AnyMap) {
   const { data, error: rpcError } = await admin.rpc("ai_image_api", { action, payload });
   if (rpcError) throw new Error(rpcError.message || "AI_DATABASE_ERROR");
   return data as AnyMap;
+}
+
+function firstProviderResult(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const map = value as AnyMap;
+  if (typeof map.result === "string") return map.result;
+  if (typeof map.url === "string") return map.url;
+  const data = Array.isArray(map.data) ? map.data : [];
+  const first = data[0] && typeof data[0] === "object" ? data[0] as AnyMap : null;
+  if (typeof first?.url === "string") return first.url;
+  if (typeof first?.b64_json === "string") return `data:image/png;base64,${first.b64_json}`;
+  return null;
 }
 
 async function adminRpc(admin: any, action: string, payload: AnyMap) {
@@ -407,14 +424,17 @@ Deno.serve(async (req) => {
       });
       if (prepared.replayed && prepared.providerJobId) return json({ job_id: prepared.jobId });
       try {
-        const submitted = await provider("/image/generate", {
+        const providerPath = modelId === "nano-banana-pro" ? "/images/nano/generations" : "/images/jobs";
+        const submitted = await provider(providerPath, {
           method: "POST",
-          body: JSON.stringify({ model: modelId, prompt, ...settings,
+          headers: { "Idempotency-Key": idempotencyKey, "Prefer": "respond-async" },
+          body: JSON.stringify({ model: modelId, prompt, n: Number(settings.n ?? 1), ...settings,
             ...(referenceImages.length ? { reference_images: referenceImages } : {}) }),
         });
-        const providerJobId = String(submitted.job_id ?? submitted.id ?? "");
-        const directResult = typeof submitted.result === "string" ? submitted.result : null;
-        if (!providerJobId && !directResult) throw new Error("TST_JOB_ID_MISSING");
+        const rawProviderJobId = String(submitted.job_id ?? submitted.id ?? "");
+        const providerJobId = rawProviderJobId && modelId === "nano-banana-pro" ? `nano:${rawProviderJobId}` : rawProviderJobId;
+        const directResult = firstProviderResult(submitted);
+        if (!providerJobId && !directResult) throw new Error("GPTI2_JOB_ID_MISSING");
         await rpc(admin, "submitted", {
           userId: userData.user.id, jobId: prepared.jobId, providerJobId: providerJobId || `direct-${prepared.jobId}`,
         });
@@ -424,7 +444,7 @@ Deno.serve(async (req) => {
         }
         return json({ job_id: prepared.jobId, status: "queued" });
       } catch (caught) {
-        try { await rpc(admin, "fail", { userId: userData.user.id, jobId: prepared.jobId, errorCode: "TST_PROVIDER_FAILED" }); }
+        try { await rpc(admin, "fail", { userId: userData.user.id, jobId: prepared.jobId, errorCode: "GPTI2_PROVIDER_FAILED" }); }
         catch { /* Preserve the original provider failure; reconciliation can inspect the durable job. */ }
         throw caught;
       }
@@ -437,9 +457,14 @@ Deno.serve(async (req) => {
         job_id: jobId, status: String(current.status).toLowerCase(), result: current.resultUrl ?? null,
       });
       if (!current.providerJobId) return json({ job_id: jobId, status: "queued" });
-      const remote = await provider(`/jobs/${encodeURIComponent(String(current.providerJobId))}`);
+      const storedProviderJobId = String(current.providerJobId);
+      const isNanoJob = storedProviderJobId.startsWith("nano:");
+      const remoteId = isNanoJob ? storedProviderJobId.slice(5) : storedProviderJobId;
+      const remote = await provider(isNanoJob
+        ? `/images/nano/${encodeURIComponent(remoteId)}`
+        : `/images/jobs/${encodeURIComponent(remoteId)}`);
       const state = String(remote.status ?? remote.state ?? "processing").toLowerCase();
-      const result = typeof remote.result === "string" ? remote.result : typeof remote.output === "string" ? remote.output : null;
+      const result = firstProviderResult(remote) ?? (typeof remote.output === "string" ? remote.output : null);
       if (result && /^https:\/\/[^\s]+$/.test(result)) {
         const completed = await rpc(admin, "complete", { userId: userData.user.id, jobId, resultUrl: result });
         return json({ job_id: jobId, status: "completed", result: completed.resultUrl ?? result });
@@ -451,7 +476,7 @@ Deno.serve(async (req) => {
           });
           if (cancelError) throw new Error(cancelError.message || "AI_JOB_CANCEL_FAILED");
         } else {
-          await rpc(admin, "fail", { userId: userData.user.id, jobId, errorCode: "TST_PROVIDER_FAILED" });
+          await rpc(admin, "fail", { userId: userData.user.id, jobId, errorCode: "GPTI2_PROVIDER_FAILED" });
         }
         return json({ job_id: jobId, status: state });
       }
@@ -461,7 +486,7 @@ Deno.serve(async (req) => {
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "AI_PROVIDER_FAILED";
     const code = message.includes("ai_jobs_one_active_per_user_idx") ? "AI_JOB_ALREADY_ACTIVE"
-      : message.startsWith("TST_") || message.startsWith("AI_") ? message : "AI_PROVIDER_FAILED";
+      : message.startsWith("GPTI2_") || message.startsWith("AI_") ? message : "AI_PROVIDER_FAILED";
     return error(code, code === "AI_JOB_ALREADY_ACTIVE" ? 409 : 502);
   }
 });

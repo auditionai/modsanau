@@ -5,8 +5,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const TRAM_SANG_TAO_API_KEY = Deno.env.get('TRAM_SANG_TAO_API_KEY')!
-const TRAM_SANG_TAO_ENDPOINT = 'https://tramsangtao.com/v1'
+const GPTI2_API_KEY = Deno.env.get('GPTI2_API_KEY')!
+const GPTI2_ENDPOINT = 'https://gpti2.store/v1'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -59,15 +59,34 @@ serve(async (req) => {
     const url = new URL(req.url)
     const path = url.pathname.replace('/ai-proxy', '')
 
+    if (path === '/models' && req.method === 'GET') {
+      const response = await fetch(`${GPTI2_ENDPOINT}/models`, {
+        headers: { 'Authorization': `Bearer ${GPTI2_API_KEY}`, 'Accept': 'application/json' },
+      })
+      const data = await response.json()
+      const rows = Array.isArray(data) ? data : Array.isArray(data?.models) ? data.models : []
+      const imageModels = rows.filter((item: any) => {
+        const type = String(item?.type ?? item?.category ?? '').toLowerCase()
+        return !type || type === 'image'
+      })
+      return new Response(JSON.stringify({ models: imageModels }), {
+        status: response.status,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     if (path === '/generate' && req.method === 'POST') {
       const body = await req.json()
-      const response = await fetch(`${TRAM_SANG_TAO_ENDPOINT}/image/generate`, {
+      const settings = body?.settings && typeof body.settings === 'object' && !Array.isArray(body.settings)
+        ? body.settings : {}
+      delete body.settings
+      const response = await fetch(`${GPTI2_ENDPOINT}/images/jobs`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${TRAM_SANG_TAO_API_KEY}`,
+          'Authorization': `Bearer ${GPTI2_API_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, ...settings }),
       })
       const data = await response.json()
       return new Response(JSON.stringify(data), {
@@ -78,9 +97,9 @@ serve(async (req) => {
 
     if (path.startsWith('/jobs/') && req.method === 'GET') {
       const jobId = path.replace('/jobs/', '')
-      const response = await fetch(`${TRAM_SANG_TAO_ENDPOINT}/jobs/${jobId}`, {
+      const response = await fetch(`${GPTI2_ENDPOINT}/images/jobs/${jobId}`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${TRAM_SANG_TAO_API_KEY}` },
+        headers: { 'Authorization': `Bearer ${GPTI2_API_KEY}` },
       })
       const data = await response.json()
       return new Response(JSON.stringify(data), {
@@ -90,9 +109,9 @@ serve(async (req) => {
     }
 
     if (path === '/balance' && req.method === 'GET') {
-      const response = await fetch(`${TRAM_SANG_TAO_ENDPOINT}/balance`, {
+      const response = await fetch(`${GPTI2_ENDPOINT}/balance`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${TRAM_SANG_TAO_API_KEY}` },
+        headers: { 'Authorization': `Bearer ${GPTI2_API_KEY}` },
       })
       const data = await response.json()
       return new Response(JSON.stringify(data), {
@@ -103,10 +122,10 @@ serve(async (req) => {
 
     if (path === '/upscale' && req.method === 'POST') {
       const body = await req.json()
-      const response = await fetch(`${TRAM_SANG_TAO_ENDPOINT}/upscale/image`, {
+      const response = await fetch(`${GPTI2_ENDPOINT}/images/generations`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${TRAM_SANG_TAO_API_KEY}`,
+          'Authorization': `Bearer ${GPTI2_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
