@@ -55,6 +55,12 @@ async function provider(path: string, init: RequestInit = {}) {
 
 function modelParams(item: AnyMap): AnyMap {
   const params: AnyMap = {};
+  const keyAliases: Record<string, string> = {
+    image_quality: "quality", output_quality: "quality", image_resolution: "resolution",
+    output_resolution: "resolution", output_size: "size", image_size: "size",
+    aspectRatio: "aspect_ratio", processingSpeed: "processing_speed", num_images: "count",
+  };
+  const knownKeys = new Set(["quality", "aspect_ratio", "resolution", "size", "speed", "processing_speed", "count", "quantity", "server", "server_id"]);
   const optionValues = (value: unknown): unknown => {
     if (Array.isArray(value)) return value;
     if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -94,9 +100,31 @@ function modelParams(item: AnyMap): AnyMap {
     merge(map.input_schema);
     merge(map.parameters);
   };
-  for (const key of ["params", "settings", "options", "parameters", "input_schema"]) merge(item[key]);
+  const scan = (source: unknown, depth = 0) => {
+    if (!source || typeof source !== "object" || depth > 6) return;
+    if (Array.isArray(source)) { for (const entry of source) scan(entry, depth + 1); return; }
+    const map = source as AnyMap;
+    for (const [rawKey, value] of Object.entries(map)) {
+      const key = keyAliases[rawKey] ?? rawKey.toLowerCase();
+      if (knownKeys.has(key)) {
+        const values = optionValues(value);
+        if (values !== undefined) params[key] = values;
+      }
+      scan(value, depth + 1);
+    }
+  };
+  for (const key of ["params", "settings", "options", "parameters", "input_schema", "schema", "input", "config", "request_schema"]) {
+    merge(item[key]);
+    scan(item[key]);
+  }
+  scan(item);
   for (const key of ["quality", "aspect_ratio", "resolution", "size", "speed", "processing_speed", "count", "quantity"]) {
     if (item[key] !== undefined && params[key] === undefined) params[key] = item[key];
+  }
+  const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
+  if (/gpt(?:[- ]?image)?[- ]?2/.test(identity)) {
+    params.quality ??= ["low", "medium", "high"];
+    params.resolution ??= ["1k", "2k", "4k"];
   }
   return params;
 }
