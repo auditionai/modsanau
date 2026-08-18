@@ -1,5 +1,7 @@
 using AuditionModStudio.Archives;
 using AuditionModStudio.AI;
+using AuditionModStudio.App.Build;
+using AuditionModStudio.App.Payments;
 using AuditionModStudio.Core.AI;
 using AuditionModStudio.Core.Accounts;
 using AuditionModStudio.Core.Archives;
@@ -113,22 +115,21 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IArchiveToolProvisioningService, ArchiveToolProvisioningService>();
         builder.Services.AddSingleton<IArchiveToolRunner, AcvTool5Runner>();
         builder.Services.AddSingleton<IGameRegionProfileResolver, GameRegionProfileCatalog>();
-        builder.Services.AddSingleton(new AcvTool5ArchiveEngineOptions(AppContext.BaseDirectory, "acv.exe"));
+        builder.Services.AddSingleton(new AcvTool5ArchiveEngineOptions(AppContext.BaseDirectory, "Archives\\acv.exe"));
         builder.Services.AddSingleton<IArchiveEngine, AcvTool5ArchiveEngine>();
-        var templateVersions = TemplateVersionCatalog.Create([]);
-        if (!templateVersions.Succeeded)
-        {
-            throw new InvalidOperationException("Built-in template version catalog validation failed.");
-        }
-        builder.Services.AddSingleton(templateVersions.Catalog!);
+        builder.Services.AddSingleton<ProductTemplateCatalogRuntime>();
+        builder.Services.AddSingleton<ITemplateVersionCatalog>(services =>
+            services.GetRequiredService<ProductTemplateCatalogRuntime>());
         builder.Services.AddSingleton<IAuditionArchiveService, AuditionArchiveService>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceManifestStore, ProjectArchiveWorkspaceManifestStore>();
         builder.Services.AddSingleton<IProjectArchiveWorkspaceService, ProjectArchiveWorkspaceService>();
+        builder.Services.AddSingleton<IProjectArchiveWorkspaceRemovalService>(services =>
+            (IProjectArchiveWorkspaceRemovalService)services.GetRequiredService<IProjectArchiveWorkspaceService>());
         builder.Services.AddSingleton<IProjectArchiveWorkspaceRecoveryService, ProjectArchiveWorkspaceRecoveryService>();
         builder.Services.AddSingleton<IAuditionProjectStore, AuditionProjectStore>();
+        builder.Services.AddSingleton<ILocalProjectCatalog, LocalProjectCatalog>();
         builder.Services.AddSingleton<IProjectMetadataCache, ProjectMetadataCache>();
-        builder.Services.AddSingleton<ITemplateEntitlementService, UnavailableTemplateEntitlementService>();
-        builder.Services.AddSingleton<IProjectTemplateAcquisitionService, UnavailableProjectTemplateAcquisitionService>();
+        builder.Services.AddSingleton<ITemplateEntitlementService, LocalTemplateEntitlementService>();
         builder.Services.AddSingleton<IArchiveAssetScanner, ArchiveAssetScanner>();
         builder.Services.AddSingleton<IDdsMetadataReader, DdsMetadataReader>();
         builder.Services.AddSingleton(DirectXTexEvaluationToolCatalog.May2026X64);
@@ -149,35 +150,10 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAiMaskEditingService, AiMaskEditingService>();
         builder.Services.AddSingleton<IAiTransportImageEncoder, AiTransportImageEncoder>();
         builder.Services.AddSingleton<IAiMaskAssetStore, AiMaskAssetStore>();
-        var gameCatalog = GameCatalog.CreateBuiltIn();
-        builder.Services.AddSingleton(gameCatalog);
-        builder.Services.AddSingleton<IModCatalog>(services =>
-        {
-            var result = ModCatalog.Create(
-                [],
-                gameCatalog,
-                services.GetRequiredService<IGameRegionProfileResolver>());
-            if (!result.Succeeded)
-            {
-                var diagnostics = string.Join(",", result.Issues.Select(issue => issue.DiagnosticCode));
-                throw new InvalidOperationException($"Built-in mod catalog validation failed: {diagnostics}");
-            }
-
-            return result.Catalog!;
-        });
-        builder.Services.AddSingleton<ITextureManifestCatalog>(services =>
-        {
-            var result = TextureManifestCatalog.Create(
-                [],
-                services.GetRequiredService<IModCatalog>());
-            if (!result.Succeeded)
-            {
-                var diagnostics = string.Join(",", result.Issues.Select(issue => issue.DiagnosticCode));
-                throw new InvalidOperationException($"Built-in texture manifest catalog validation failed: {diagnostics}");
-            }
-
-            return result.Catalog!;
-        });
+        builder.Services.AddSingleton<ProductCatalogRuntime>();
+        builder.Services.AddSingleton<IGameCatalog>(services => services.GetRequiredService<ProductCatalogRuntime>());
+        builder.Services.AddSingleton<IModCatalog>(services => services.GetRequiredService<ProductCatalogRuntime>());
+        builder.Services.AddSingleton<ITextureManifestCatalog>(services => services.GetRequiredService<ProductCatalogRuntime>());
         builder.Services.AddSingleton(ThumbnailCacheOptions.Default);
         builder.Services.AddSingleton<IThumbnailCache, ThumbnailCache>();
         builder.Services.AddSingleton<ITextureLazyLoadingService, TextureLazyLoadingService>();
@@ -239,49 +215,53 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<IAiStudioService>(services =>
         {
             var (url, publishableKey) = ProductionSupabaseConfiguration.Resolve();
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri))
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri) || string.IsNullOrWhiteSpace(publishableKey))
             {
                 return new UnavailableAiStudioService();
             }
-
-            // Edge Function URL: {supabase_url}/functions/v1/ai-proxy
-            var edgeFunctionUri = new Uri(projectUri, "functions/v1/ai-proxy");
-            var options = new EdgeFunctionOptions(edgeFunctionUri);
-
-            return options.IsValid
-                ? new EdgeFunctionAiStudioService(
-                    services.GetRequiredService<HttpClient>(),
-                    services.GetRequiredService<ISecureSessionStore>(),
-                    services.GetRequiredService<IAuthenticationService>(),
-                    options,
-                    services.GetRequiredService<IAiTransportImageEncoder>(),
-                    services.GetRequiredService<IImageImportService>())
-                : new UnavailableAiStudioService();
+            return new SupabaseAiStudioService(
+                services.GetRequiredService<HttpClient>(),
+                services.GetRequiredService<ISecureSessionStore>(),
+                services.GetRequiredService<IAuthenticationService>(),
+                projectUri,
+                services.GetRequiredService<IImageImportService>(),
+                services.GetRequiredService<IAiTransportImageEncoder>());
         });
         builder.Services.AddSingleton<IProductCatalogService>(services =>
         {
-            var url = Environment.GetEnvironmentVariable("AUDITION_GATEWAY_URL");
-            var keyId = Environment.GetEnvironmentVariable("AUDITION_PRODUCT_CATALOG_KEY_ID");
-            var publicKey = Environment.GetEnvironmentVariable("AUDITION_PRODUCT_CATALOG_PUBLIC_KEY_PEM");
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var gatewayUri)
-                || string.IsNullOrWhiteSpace(keyId) || keyId.Length > 64
-                || string.IsNullOrWhiteSpace(publicKey) || publicKey.Length > 16_384)
+            var (url, publishableKey) = ProductionSupabaseConfiguration.Resolve();
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri))
                 return new UnavailableProductCatalogService();
-            var catalogOptions = new ProductCatalogOptions(gatewayUri,
-                paths.CacheDirectory,
-                System.Collections.Immutable.ImmutableDictionary<string, string>.Empty.Add(keyId, publicKey));
-            return catalogOptions.IsValid
-                ? new ProductCatalogService(services.GetRequiredService<HttpClient>(),
-                    services.GetRequiredService<ISecureSessionStore>(), catalogOptions,
-                    services.GetRequiredService<IPathSecurity>())
+            var options = new SupabaseProductCatalogOptions(
+                new Uri(projectUri, "rest/v1/rpc/product_catalog_api"), publishableKey);
+            return options.IsValid
+                ? new SupabaseProductCatalogService(services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(), options)
                 : new UnavailableProductCatalogService();
+        });
+        builder.Services.AddSingleton<IProjectTemplateAcquisitionService>(services =>
+        {
+            var (_, publishableKey) = ProductionSupabaseConfiguration.Resolve();
+            if (!ProductionR2Configuration.ArchiveDeliveryEndpoint.IsAbsoluteUri)
+                return new UnavailableProjectTemplateAcquisitionService();
+            var options = new SupabaseProjectTemplateAcquisitionOptions(
+                ProductionR2Configuration.ArchiveDeliveryEndpoint, publishableKey,
+                ProductionR2Configuration.ArchiveDownloadHost);
+            return options.IsValid
+                ? new SupabaseProjectTemplateAcquisitionService(services.GetRequiredService<HttpClient>(),
+                    services.GetRequiredService<ISecureSessionStore>(), services.GetRequiredService<IAppPaths>(),
+                    services.GetRequiredService<IPathSecurity>(), options,
+                    message => services.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("AuditionModStudio.Cloud.TemplateAcquisition")
+                        .LogError("{Diagnostic}", message))
+                : new UnavailableProjectTemplateAcquisitionService();
         });
         builder.Services.AddSingleton<IAccountOverviewService>(services =>
         {
-            var url = Environment.GetEnvironmentVariable("AUDITION_GATEWAY_URL");
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var gatewayUri))
+            var (url, _) = ProductionSupabaseConfiguration.Resolve();
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var projectUri))
                 return new UnavailableAccountOverviewService();
-            var accountOptions = new GatewayAccountOptions(gatewayUri);
+            var accountOptions = new GatewayAccountOptions(projectUri, "functions/v1/account");
             return accountOptions.IsValid
                 ? new GatewayAccountOverviewService(services.GetRequiredService<HttpClient>(),
                     services.GetRequiredService<ISecureSessionStore>(),
@@ -311,12 +291,14 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         // Production update signing keys/feed/CDN are intentionally not configured in source.
         // Local editing/build/export remains available while the updater fails closed.
         builder.Services.AddSingleton<IAppUpdateService, UnavailableAppUpdateService>();
-        // Production endpoint/public trust root chưa được Product Owner cung cấp: fail closed, không dùng env làm trust root.
-#if PLAN102_UI_EVIDENCE
-        builder.Services.AddSingleton<IPortableUpdateCoordinator, Plan102UiEvidenceUpdateCoordinator>();
-#else
-        builder.Services.AddSingleton<IPortableUpdateCoordinator, UnavailablePortableUpdateCoordinator>();
-#endif
+        builder.Services.AddSingleton<IPortableUpdaterProcessLauncher, SystemPortableUpdaterProcessLauncher>();
+        builder.Services.AddSingleton<IPortableUpdateCoordinator>(services => new ConfiguredPortableUpdateCoordinator(
+            services.GetRequiredService<HttpClient>(),
+            ProductionPortableUpdateConfiguration.ManifestUri,
+            new EcdsaUpdateManifestVerifier(ProductionPortableUpdateConfiguration.PublicKeyPem),
+            ProductionPortableUpdateConfiguration.AllowedHosts,
+            Path.Combine(services.GetRequiredService<IAppPaths>().CacheDirectory, "Updates"),
+            services.GetRequiredService<IPortableUpdaterProcessLauncher>()));
         builder.Services.AddSingleton<IUserActivityService, UserActivityService>();
         builder.Services.AddSingleton(BackgroundTaskManagerOptions.Default);
         builder.Services.AddSingleton<BackgroundTaskManager>();
@@ -328,10 +310,12 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddSingleton<ApplicationProjectSession>();
         builder.Services.AddSingleton<IApplicationProjectSession>(services =>
             services.GetRequiredService<ApplicationProjectSession>());
+        builder.Services.AddSingleton<IProjectDeletionService, ProjectDeletionService>();
         builder.Services.AddSingleton<HomeViewModel>();
         builder.Services.AddTransient<HomePage>();
         builder.Services.AddSingleton<ProjectWorkspaceViewModel>();
         builder.Services.AddSingleton<BuildExportViewModel>();
+        builder.Services.AddTransient<BuildExportPage>();
         builder.Services.AddSingleton<IWorkspaceTextureSelection>(services =>
             services.GetRequiredService<ProjectWorkspaceViewModel>());
         builder.Services.AddTransient<ProjectWorkspacePage>();
@@ -342,6 +326,7 @@ internal sealed class ApplicationBootstrapper : IAsyncDisposable
         builder.Services.AddTransient<AiStudioPage>();
         builder.Services.AddSingleton<AccountViewModel>();
         builder.Services.AddTransient<AccountPage>();
+        builder.Services.AddTransient<PaymentCatalogPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddSingleton<AppShellViewModel>();
         builder.Services.AddTransient<MainPage>();
