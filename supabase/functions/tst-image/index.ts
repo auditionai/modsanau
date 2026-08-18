@@ -52,7 +52,7 @@ async function models(admin: any) {
   const imageRows = rows.filter((row) => {
     const item = row as AnyMap;
     const type = String(item.type ?? item.category ?? "").toLowerCase();
-    return !type || type === "image" || type.includes("image");
+    return type === "image" || type.includes("image");
   }).map((row) => {
     const item = row as AnyMap;
     return {

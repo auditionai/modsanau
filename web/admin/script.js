@@ -79,6 +79,15 @@ function uuid() {
 function number(v) {
   return new Intl.NumberFormat("vi-VN").format(Number(v || 0));
 }
+function providerPrice(value) {
+  if (!Array.isArray(value) || value.length === 0) return "—";
+  const values = value.map((item) => {
+    if (!item || typeof item !== "object") return "";
+    const row = item;
+    return row.credits ?? row.cost ?? row.price ?? "";
+  }).filter((item) => item !== "");
+  return values.length ? escapeHtml(values.join(" · ")) : "—";
+}
 function money(v, currency = "vnd") {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -717,12 +726,13 @@ async function loadAiModels() {
     ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.id)}">
         <td><strong>${escapeHtml(model.name)}</strong><small class="mono">${escapeHtml(model.id)}</small></td>
         <td><input data-ai-model-cost type="number" min="1" max="1000000" step="1" value="${escapeHtml(String(model.creditCost))}" aria-label="Giá Credits ${escapeHtml(model.name)}" /></td>
+        <td>${providerPrice(model.tstPricing)}</td>
         <td><label class="check-label"><input data-ai-model-active type="checkbox" ${model.active ? "checked" : ""} /> Đang phát hành</label></td>
         <td>v${number(model.pricingVersion)}</td>
         <td><input data-ai-model-reason maxlength="500" minlength="8" placeholder="Lý do thay đổi" aria-label="Lý do thay đổi ${escapeHtml(model.name)}" /></td>
         <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.id)}">Lưu</button></td>
       </tr>`).join("")
-    : empty(6, "Chưa đồng bộ model từ TST. Mở AI Studio một lần để đồng bộ catalog.");
+    : empty(7, "Chưa đồng bộ model ảnh từ TST.");
   applyRoleVisibility();
 }
 async function showPaymentDetail(orderId) {
