@@ -101,7 +101,12 @@ function qualityText(value) {
   const entries = Object.entries(value).filter(([key]) => isQualitySetting(key));
   if (!entries.length) return "Mặc định";
   return entries.map(([key, item]) => {
-    const label = /resolution|size|dimension/i.test(key) ? "Độ phân giải" : "Chất lượng";
+    const normalized = String(item).toLowerCase().replace(/\s/g, "");
+    const label = /^(low|medium|high|standard|best)$/.test(normalized)
+      ? "Chất lượng"
+      : /^(1k|2k|4k|[0-9]+x[0-9]+)$/.test(normalized) || /resolution|size|dimension/i.test(key)
+        ? "Độ phân giải"
+        : "Thiết lập";
     return `${label}: ${item}`;
   }).join(" · ");
 }
