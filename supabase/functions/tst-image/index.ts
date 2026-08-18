@@ -28,7 +28,7 @@ function authToken(req: Request) {
 }
 
 async function provider(path: string, init: RequestInit = {}) {
-  const key = Deno.env.get("TST_API_KEY");
+  const key = Deno.env.get("TST_API_KEY") ?? Deno.env.get("TRAM_SANG_TAO_API_KEY");
   if (!key) throw new Error("TST_API_KEY_NOT_CONFIGURED");
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${key}`);
