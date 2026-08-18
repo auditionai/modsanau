@@ -240,10 +240,14 @@
                 <p>GPTi2 tính giá theo số ảnh và độ dài prompt; Credits bên dưới là giá nội bộ do Admin đặt.</p>
               </div>
             </div>
+            <div class="toolbar ai-pricing-toolbar">
+              <label class="search-box"><span>Model</span><select data-ai-model-filter><option value="all">Tất cả model</option><option value="gpt-image-2">GPT Image 2</option><option value="nano-banana-pro">Nano Banana PRO</option></select></label>
+              <button class="secondary-button operator-only" type="button" data-save-ai-all>Lưu tất cả</button>
+            </div>
             <article class="panel table-panel">
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Model</th><th>Giá ảnh GPTi2</th><th>Prompt miễn phí</th><th>Phụ thu prompt</th><th>Credits nội bộ</th><th>Trạng thái</th><th>Version</th><th></th></tr></thead>
+                  <thead><tr><th>Model</th><th>Kích thước</th><th>Chất lượng</th><th>Giá GPTi2</th><th>Prompt</th><th>Credits nội bộ</th><th>Trạng thái</th><th>Version</th><th></th></tr></thead>
                   <tbody data-ai-models-body></tbody>
                 </table>
               </div>

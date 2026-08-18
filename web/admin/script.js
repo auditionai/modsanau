@@ -1403,8 +1403,10 @@ window.AdminPortal = {
 async function loadAiModels() {
   const result = await aiModelApi();
   state.aiModels = (result.models || []).filter(isAllowedAiModel);
-  $("[data-ai-models-count]").textContent = `${number(state.aiModels.length)} configurations`;
-  $("[data-ai-models-body]").innerHTML = state.aiModels.length ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.pricingId || `${model.modelId}:${model.settings?.size}:${model.settings?.quality}`)}">
+  const filter = $("[data-ai-model-filter]")?.value || "all";
+  const visible = filter === "all" ? state.aiModels : state.aiModels.filter((model) => model.modelId === filter);
+  $("[data-ai-models-count]").textContent = `${number(visible.length)} cấu hình`;
+  $("[data-ai-models-body]").innerHTML = visible.length ? visible.map((model) => `<tr data-ai-model-row="${escapeHtml(model.pricingId || `${model.modelId}:${model.settings?.size}:${model.settings?.quality}`)}">
     <td><strong>${escapeHtml(model.modelName)}</strong><small class="mono">${escapeHtml(model.modelId)}</small></td>
     <td>${escapeHtml(model.settings?.size || "-")}</td>
     <td>${escapeHtml(String(model.settings?.quality || "").toUpperCase())}</td>
@@ -1417,6 +1419,29 @@ async function loadAiModels() {
   </tr>`).join("") : empty(9, "Chưa tải được ma trận giá GPTi2.");
   applyRoleVisibility();
 }
+async function saveAiModel(model, row) {
+  await aiModelApi({ method: "POST", body: JSON.stringify({
+    modelId: model.modelId, size: model.settings?.size, quality: model.settings?.quality,
+    creditCost: Number($("[data-ai-model-cost]", row).value),
+    active: $("[data-ai-model-active]", row).checked, correlationId: uuid(),
+  }) });
+}
+$("[data-ai-model-filter]")?.addEventListener("change", () => loadAiModels().catch((error) => showError(error.message)));
+$("[data-save-ai-all]")?.addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const rows = [...$$("[data-ai-model-row]")];
+  button.disabled = true;
+  try {
+    for (const row of rows) {
+      const key = row.dataset.aiModelRow;
+      const model = state.aiModels.find((item) => (item.pricingId || `${item.modelId}:${item.settings?.size}:${item.settings?.quality}`) === key);
+      if (model) await saveAiModel(model, row);
+    }
+    toast(`Đã lưu ${rows.length} cấu hình GPTi2.`);
+    await loadAiModels();
+  } catch (error) { toast(error.message, "error"); }
+  finally { button.disabled = false; }
+});
 installCommerceTabs();
 restoreSession();
 document.addEventListener("click", async (event) => {
