@@ -86,8 +86,22 @@ public sealed class SupabaseAiStudioService(
     public Task<AiStudioHistoryResult> GetHistoryAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new AiStudioHistoryResult(false, "AI_HISTORY_UNAVAILABLE", []));
 
-    public Task<AiStudioHistoryResult> CancelJobAsync(Guid jobId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(new AiStudioHistoryResult(false, "AI_CANCEL_UNSUPPORTED", []));
+    public async Task<AiStudioHistoryResult> CancelJobAsync(Guid jobId, CancellationToken cancellationToken = default)
+    {
+        if (jobId == Guid.Empty) return new(false, "AI_JOB_INVALID", []);
+        var session = await sessionStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (session is null && (await authentication.RefreshSessionAsync(cancellationToken)).Session is null)
+            return new(false, "AI_CANCEL_AUTH_REQUIRED", []);
+        session = await sessionStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (session is null) return new(false, "AI_CANCEL_AUTH_REQUIRED", []);
+        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint("cancel"));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+        request.Content = new StringContent(JsonSerializer.Serialize(new { job_id = jobId, finalize = false }, JsonOptions), Encoding.UTF8, "application/json");
+        using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+        return response.IsSuccessStatusCode
+            ? new(true, "AI_JOB_CANCEL_REQUESTED", [])
+            : new(false, "AI_JOB_CANCEL_FAILED", []);
+    }
 
     public async Task<AiStudioExecutionResult> ExecuteAsync(AiStudioExecutionRequest request,
         IProgress<AiOperationProgress>? progress = null, CancellationToken cancellationToken = default)
@@ -137,8 +151,10 @@ public sealed class SupabaseAiStudioService(
         var root = document.RootElement;
         var jobId = root.TryGetProperty("job_id", out var id) ? id.GetString() : null;
         var result = root.TryGetProperty("result", out var direct) ? direct.GetString() : null;
-        for (var attempt = 0; result is null && !string.IsNullOrWhiteSpace(jobId) && attempt < 120; attempt++)
+        try
         {
+            for (var attempt = 0; result is null && !string.IsNullOrWhiteSpace(jobId) && attempt < 120; attempt++)
+            {
             cancellationToken.ThrowIfCancellationRequested();
             await Task.Delay(TimeSpan.FromSeconds(Math.Min(5, 1 + attempt / 10)), cancellationToken).ConfigureAwait(false);
             using var poll = new HttpRequestMessage(HttpMethod.Get, Endpoint($"status&job_id={Uri.EscapeDataString(jobId)}"));
@@ -150,6 +166,13 @@ public sealed class SupabaseAiStudioService(
             result = pollDoc.RootElement.TryGetProperty("result", out var output) ? output.GetString() : null;
             progress?.Report(new(AiOperationPhase.Processing, Math.Min(90, 20 + attempt), status ?? "AI_JOB_PROCESSING"));
             if (status is "failed" or "cancelled") return new(false, status == "cancelled", "AI_JOB_" + status.ToUpperInvariant(), null);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested && Guid.TryParse(jobId, out var cancelledJobId))
+        {
+            try { await CancelJobAsync(cancelledJobId, CancellationToken.None).ConfigureAwait(false); }
+            catch (HttpRequestException) { }
+            throw;
         }
         if (!Uri.TryCreate(result, UriKind.Absolute, out var resultUri) || resultUri.Scheme != Uri.UriSchemeHttps || !string.IsNullOrEmpty(resultUri.UserInfo))
             return new(false, false, "AI_OUTPUT_DOWNLOAD_INVALID", null);
@@ -201,7 +224,7 @@ public sealed class SupabaseAiStudioService(
             foreach (var key in new[] { "credits", "cost", "price" })
                 if (item.ValueKind == JsonValueKind.Object && item.TryGetProperty(key, out var value)
                     && value.TryGetInt64(out var amount) && amount > 0) values.Add(amount);
-        }
+            }
         return values.Distinct().Order().Take(10).ToArray();
     }
 

@@ -50,12 +50,42 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private bool _isBusy;
     private bool _isLoading;
     private int _progressPercentage;
+    private string _elapsedText = "00:00";
+    private DateTimeOffset _operationStarted;
     private BackgroundTaskId _activeTaskId;
     private CancellationTokenSource? _activationCancellation;
     private IReadOnlyList<InternalImage> _additionalReferences = [];
     private string _theme = string.Empty;
     private string _visualStyle = string.Empty;
     private string _composition = string.Empty;
+    private string _selectedPromptIdea = string.Empty;
+
+    private static readonly IReadOnlyList<string> PromptIdeas =
+    [
+        "Neon cyberpunk, ánh sáng xanh tím, vật liệu bóng, chi tiết sắc nét",
+        "Fantasy cổ điển, ánh sáng vàng ấm, hoa văn thủ công, chất liệu giàu chiều sâu",
+        "Khoa học viễn tưởng, kim loại hiện đại, ánh sáng lạnh, bề mặt có phản xạ",
+        "Tối giản cao cấp, nền sạch, hình khối rõ ràng, màu sắc tinh tế",
+        "Phong cách anime, đường nét gọn, màu sắc tươi, ánh sáng mềm",
+        "Hoạt hình 3D, hình khối đáng yêu, chất liệu mềm, màu pastel",
+        "Steampunk, đồng thau, bánh răng, vết xước nhẹ, ánh sáng điện ảnh",
+        "Horror u tối, sương mù, tương phản mạnh, bề mặt cũ kỹ",
+        "Retro arcade, màu neon, pixel art hiện đại, tương phản cao",
+        "Thiên nhiên hữu cơ, gỗ và đá, ánh sáng ban ngày, chi tiết chân thực",
+        "Vũ trụ, bụi sao, màu xanh sâu, điểm sáng lấp lánh",
+        "Đô thị hiện đại, bê tông và kính, ánh sáng hoàng hôn, bố cục cân đối",
+        "Dệt may thủ công, sợi vải rõ nét, hoa văn tinh xảo, màu ấm",
+        "Đá cẩm thạch sang trọng, đường vân tự nhiên, ánh sáng studio",
+        "Băng tuyết, tinh thể trong suốt, ánh sáng xanh lạnh, chi tiết sắc nét",
+        "Lửa và dung nham, màu đỏ cam, nhiệt phát sáng, bề mặt nứt",
+        "Quân sự thực dụng, sơn sần, dấu hiệu sử dụng, màu olive",
+        "Biển sâu, san hô, ánh sáng xanh, chất liệu ướt và trong",
+        "Kiến trúc cổ điển, hoa văn đối xứng, đá chạm khắc, ánh sáng tự nhiên",
+        "Phong cách game cao cấp, vật liệu PBR, ánh sáng điện ảnh, độ chi tiết cao",
+    ];
+    private static readonly IReadOnlyList<string> ThemeIdeas = ["Neon", "Fantasy", "Khoa học viễn tưởng", "Tối giản", "Anime", "Hoạt hình 3D", "Steampunk", "Horror", "Retro", "Thiên nhiên", "Vũ trụ", "Đô thị", "Dệt may", "Cẩm thạch", "Băng tuyết", "Dung nham", "Quân sự", "Biển sâu", "Cổ điển", "Game cao cấp"];
+    private static readonly IReadOnlyList<string> StyleIdeas = ["Cyberpunk", "Điện ảnh", "Anime", "Minh họa", "3D PBR", "Pixel art", "Low poly", "Tả thực", "Sơn dầu", "Màu nước", "Baroque", "Art deco", "Vaporwave", "Dark fantasy", "Sci-fi", "Retro", "Tối giản", "Thủ công", "Hoạt hình", "Concept art"];
+    private static readonly IReadOnlyList<string> CompositionIdeas = ["Cân đối trung tâm", "Toàn cảnh", "Cận cảnh", "Góc thấp", "Góc cao", "Đối xứng", "Đường dẫn thị giác", "Tiền cảnh rõ", "Hậu cảnh mờ", "Chéo năng động", "Khung trong khung", "Quy tắc một phần ba", "Hình học", "Nhiều lớp chiều sâu", "Không gian âm", "Nhân vật chính giữa", "Nhóm đối tượng", "Vật thể nổi bật", "Bố cục dọc", "Bố cục ngang"];
 
     public AiStudioViewModel(
         IAiService aiService,
@@ -180,6 +210,15 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         ? "Ch\u01B0a c\u00F3 \u1EA3nh tham chi\u1EBFu b\u1ED5 sung."
         : $"\u0110\u00E3 ch\u1ECDn {AdditionalReferenceCount} \u1EA3nh tham chi\u1EBFu b\u1ED5 sung.";
     public string ComposedPrompt => BuildComposedPrompt();
+    public IReadOnlyList<string> PromptIdeasList => PromptIdeas;
+    public IReadOnlyList<string> ThemeIdeasList => ThemeIdeas;
+    public IReadOnlyList<string> StyleIdeasList => StyleIdeas;
+    public IReadOnlyList<string> CompositionIdeasList => CompositionIdeas;
+    public string SelectedPromptIdea
+    {
+        get => _selectedPromptIdea;
+        set { if (Set(ref _selectedPromptIdea, value ?? string.Empty) && !string.IsNullOrWhiteSpace(value)) Prompt = value; }
+    }
 
     public string NegativePrompt
     {
@@ -231,6 +270,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public bool IsBusy { get => _isBusy; private set { if (Set(ref _isBusy, value)) NotifyValidationChanged(); } }
     public bool IsLoading { get => _isLoading; private set => Set(ref _isLoading, value); }
     public int ProgressPercentage { get => _progressPercentage; private set => Set(ref _progressPercentage, value); }
+    public string ElapsedText { get => _elapsedText; private set => Set(ref _elapsedText, value); }
     public bool CanCancel => IsBusy && _activeTaskId.IsValid;
     public bool CanSubmit => !IsBusy
         && Prompt.Length <= AiPrompt.MaximumLength
@@ -290,7 +330,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             StringComparer.OrdinalIgnoreCase);
         var result = await _studioService.GetQuoteAsync(SelectedOperation.Operation, SelectedModel.Value, settings, cancellationToken);
         QuoteText = result.Succeeded && result.Quote is { CreditCost: > 0 } quote
-            ? $"Ước tính {quote.CreditCost:N0} Credits · {quote.PricingVersion}"
+            ? $"Ước tính {quote.CreditCost:N0} Credits"
             : "Giá sẽ xác nhận theo model và setting khi tạo ảnh";
     }
 
@@ -455,10 +495,13 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         _activity?.Publish("INFO", $"Bắt đầu {operationLabel.ToLowerInvariant()}.", "AI / hình ảnh", "Chuẩn bị yêu cầu", 0, "Running", operationId);
         IsBusy = true;
         ProgressPercentage = 0;
+        _operationStarted = DateTimeOffset.UtcNow;
+        ElapsedText = "00:00";
         StatusMessage = "Đang gửi yêu cầu đến dịch vụ AI…";
         var progress = new Progress<AiOperationProgress>(value =>
         {
             ProgressPercentage = Math.Clamp(value.Percentage, 0, 100);
+            ElapsedText = FormatElapsed(DateTimeOffset.UtcNow - _operationStarted);
             StatusMessage = value.Phase switch
             {
                 AiOperationPhase.Validating => "Đang kiểm tra yêu cầu…",
@@ -546,6 +589,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             PreviewImage = aiResult.Image;
             OnPropertyChanged(nameof(HasPreview));
             ProgressPercentage = 100;
+            ElapsedText = FormatElapsed(DateTimeOffset.UtcNow - _operationStarted);
             StatusMessage = "Bản xem trước đã sẵn sàng. Dự án chưa bị thay đổi.";
         }
         else
@@ -557,6 +601,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         }
         await RefreshHistoryAsync(cancellationToken);
     }
+
+    private static string FormatElapsed(TimeSpan elapsed) => $"{Math.Max(0, (int)elapsed.TotalMinutes):00}:{elapsed.Seconds:00}";
 
     public async Task<bool> ApprovePreviewAsync(CancellationToken cancellationToken = default)
     {

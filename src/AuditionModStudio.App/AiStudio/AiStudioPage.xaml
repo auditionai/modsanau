@@ -89,7 +89,7 @@
                                     </Grid>
                                     <Grid Grid.Row="2" ColumnSpacing="12">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                        <ProgressBar VerticalAlignment="Center" Maximum="100" Value="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"><ProgressBar Width="220" VerticalAlignment="Center" Maximum="100" Value="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ProgressPercentage, Mode=OneWay}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="%" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ElapsedText, Mode=OneWay}" /></StackPanel>
                                         <Button Grid.Column="1" Click="OnApprovePreviewClicked" IsEnabled="{x:Bind ViewModel.CanApprovePreview, Mode=OneWay}" MinHeight="44" Style="{StaticResource AmsPrimaryButtonStyle}">Dùng cho Texture đang chọn</Button>
                                     </Grid>
                                 </Grid>
@@ -103,7 +103,7 @@
                                             <DataTemplate><StackPanel Spacing="2"><TextBlock FontWeight="SemiBold" Text="{Binding Label}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{Binding PriceText}" /></StackPanel></DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
-                                    <Border Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8">
+                                    <Border Background="{ThemeResource AmsPanelBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Visibility="Collapsed">
                                         <StackPanel Spacing="2"><TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.ModelPriceText, Mode=OneWay}" /><TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ModelDescription, Mode=OneWay}" TextWrapping="Wrap" /></StackPanel>
                                     </Border>
                                     <ItemsControl ItemsSource="{x:Bind ViewModel.ModelSettings, Mode=OneWay}">
@@ -134,6 +134,7 @@
                                     <ComboBox Header="Cách tạo" DisplayMemberPath="Label" ItemsSource="{x:Bind ViewModel.CreationModes}" MinHeight="44" SelectedItem="{x:Bind ViewModel.SelectedCreationMode, Mode=TwoWay}" />
                                     <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ReferenceMessage, Mode=OneWay}" TextWrapping="Wrap" />
                                     <TextBox AcceptsReturn="True" Header="Mô tả hình ảnh" MaxLength="4000" MinHeight="136" PlaceholderText="Ví dụ: trang phục sân khấu neon, ánh sáng tím xanh, chi tiết sắc nét..." Text="{x:Bind ViewModel.Prompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
+                                    <ComboBox Header="Gợi ý prompt" ItemsSource="{x:Bind ViewModel.PromptIdeasList, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedPromptIdea, Mode=TwoWay}" MinHeight="40" />
                                     <TextBlock AutomationProperties.LiveSetting="Polite" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.PromptValidationMessage, Mode=OneWay}" />
                                     <Border Background="{ThemeResource AmsAccentSubtleBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Visibility="Collapsed">
                                         <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" Glyph="&#xE8C8;" /><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind ViewModel.QuoteText, Mode=OneWay}" /></StackPanel>
@@ -144,15 +145,15 @@
                                     </Grid>
                                     <Border Background="{ThemeResource AmsSurfaceLowBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="8" Padding="12">
                                         <StackPanel Spacing="12">
-                                            <TextBox AcceptsReturn="True" Header="Nội dung cần tránh" MaxLength="4000" MinHeight="72" PlaceholderText="Những chi tiết không muốn xuất hiện trong ảnh" Text="{x:Bind ViewModel.NegativePrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
-                                            <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.NegativePromptValidationMessage, Mode=OneWay}" />
+                                            <TextBox AcceptsReturn="True" Header="Nội dung cần tránh" MaxLength="4000" MinHeight="72" PlaceholderText="Những chi tiết không muốn xuất hiện trong ảnh" Text="{x:Bind ViewModel.NegativePrompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" Visibility="Collapsed" />
+                                            <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.NegativePromptValidationMessage, Mode=OneWay}" Visibility="Collapsed" />
                                             <StackPanel Spacing="8">
                                                 <TextBlock FontWeight="SemiBold" Text="Điều chỉnh ý tưởng" />
                                                     <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                                        <TextBox Header="Chủ đề" Text="{x:Bind ViewModel.Theme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                                        <TextBox Grid.Column="1" Header="Phong cách" Text="{x:Bind ViewModel.VisualStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                        <StackPanel Spacing="4"><ComboBox Header="Chủ đề" ItemsSource="{x:Bind ViewModel.ThemeIdeasList, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Theme, Mode=TwoWay}" /><TextBox Header="Tùy chỉnh chủ đề" Text="{x:Bind ViewModel.Theme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
+                                                        <StackPanel Grid.Column="1" Spacing="4"><ComboBox Header="Phong cách" ItemsSource="{x:Bind ViewModel.StyleIdeasList, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.VisualStyle, Mode=TwoWay}" /><TextBox Header="Tùy chỉnh phong cách" Text="{x:Bind ViewModel.VisualStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
                                                     </Grid>
-                                                    <TextBox Header="Bố cục" Text="{x:Bind ViewModel.Composition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                    <StackPanel Spacing="4"><ComboBox Header="Bố cục" ItemsSource="{x:Bind ViewModel.CompositionIdeasList, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Composition, Mode=TwoWay}" /><TextBox Header="Tùy chỉnh bố cục" Text="{x:Bind ViewModel.Composition, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /></StackPanel>
                                             </StackPanel>
                                             <StackPanel Spacing="8">
                                                 <TextBlock FontWeight="SemiBold" Text="Ảnh tham chiếu" />
@@ -160,7 +161,7 @@
                                                     <StackPanel Orientation="Horizontal" Spacing="8"><Button Click="OnAddReferencesClicked" Style="{StaticResource AmsSecondaryButtonStyle}">Thêm ảnh</Button><Button Click="OnClearReferencesClicked" IsEnabled="{x:Bind ViewModel.HasAdditionalReferences, Mode=OneWay}">Xóa ảnh</Button></StackPanel>
                                                     <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.AdditionalReferencesMessage, Mode=OneWay}" />
                                             </StackPanel>
-                                            <TextBox Header="Nội dung gửi API Audition AI" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="100" Text="{x:Bind ViewModel.ComposedPrompt, Mode=OneWay}" />
+                                            <TextBox Header="Nội dung gửi API Audition AI" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="100" Text="{x:Bind ViewModel.ComposedPrompt, Mode=OneWay}" Visibility="Collapsed" />
                                         </StackPanel>
                                     </Border>
                                     <Grid ColumnSpacing="8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>

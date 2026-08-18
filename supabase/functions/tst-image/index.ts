@@ -349,6 +349,17 @@ Deno.serve(async (req) => {
   try {
     if (action === "models") return json({ models: await models(admin) });
     if (action === "history") return json(await rpc(admin, "history", { userId: userData.user.id }));
+    if (action === "cancel") {
+      if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
+      const body = await req.json() as AnyMap;
+      const jobId = String(body.job_id ?? body.jobId ?? "");
+      if (!/^[0-9a-f-]{36}$/i.test(jobId)) return error("AI_JOB_INVALID", 400);
+      const { data, error: cancelError } = await admin.rpc("ai_job_cancel_api", {
+        p_user_id: userData.user.id, p_job_id: jobId, p_finalize: Boolean(body.finalize),
+      });
+      if (cancelError) throw new Error(cancelError.message || "AI_JOB_CANCEL_FAILED");
+      return json(data);
+    }
     if (action === "quote") {
       if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
       const body = await req.json() as AnyMap;
@@ -377,6 +388,9 @@ Deno.serve(async (req) => {
       const catalog = await models(admin);
       const model = modelById(catalog, modelId);
       if (!model) return error("AI_MODEL_NOT_ALLOWED", 400);
+      const { data: hasActive, error: activeError } = await admin.rpc("ai_user_active_job_api", { p_user_id: userData.user.id });
+      if (activeError) throw new Error(activeError.message || "AI_JOB_ACTIVE_CHECK_FAILED");
+      if (hasActive === true) return error("AI_JOB_ALREADY_ACTIVE", 409);
       const prompt = String(body.prompt ?? "").trim();
       if (!prompt || prompt.length > 16_000) return error("AI_PROMPT_INVALID", 400);
       const referenceImages = readReferenceImages(body.reference_images);
@@ -425,7 +439,14 @@ Deno.serve(async (req) => {
         return json({ job_id: jobId, status: "completed", result: completed.resultUrl ?? result });
       }
       if (["failed", "error", "cancelled"].includes(state)) {
-        await rpc(admin, "fail", { userId: userData.user.id, jobId, errorCode: "TST_PROVIDER_FAILED" });
+        if (state === "cancelled") {
+          const { error: cancelError } = await admin.rpc("ai_job_cancel_api", {
+            p_user_id: userData.user.id, p_job_id: jobId, p_finalize: true,
+          });
+          if (cancelError) throw new Error(cancelError.message || "AI_JOB_CANCEL_FAILED");
+        } else {
+          await rpc(admin, "fail", { userId: userData.user.id, jobId, errorCode: "TST_PROVIDER_FAILED" });
+        }
         return json({ job_id: jobId, status: state });
       }
       return json({ job_id: jobId, status: "processing" });
@@ -433,6 +454,8 @@ Deno.serve(async (req) => {
     return error("AI_ACTION_UNKNOWN", 400);
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "AI_PROVIDER_FAILED";
-    return error(message.startsWith("TST_") || message.startsWith("AI_") ? message : "AI_PROVIDER_FAILED", 502);
+    const code = message.includes("ai_jobs_one_active_per_user_idx") ? "AI_JOB_ALREADY_ACTIVE"
+      : message.startsWith("TST_") || message.startsWith("AI_") ? message : "AI_PROVIDER_FAILED";
+    return error(code, code === "AI_JOB_ALREADY_ACTIVE" ? 409 : 502);
   }
 });
