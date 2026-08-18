@@ -289,7 +289,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         var result = await _studioService.GetQuoteAsync(SelectedOperation.Operation, cancellationToken);
         QuoteText = result.Succeeded && result.Quote is { CreditCost: > 0 } quote
             ? $"Ước tính {quote.CreditCost:N0} Credits · {quote.PricingVersion}"
-            : "Chưa có chi phí · dịch vụ đang ngoại tuyến";
+            : "Giá sẽ xác nhận theo model và setting khi tạo ảnh";
     }
 
     public AiStudioOption SelectedResolution

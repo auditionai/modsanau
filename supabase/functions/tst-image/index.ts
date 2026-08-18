@@ -64,6 +64,12 @@ async function models(admin: any) {
     return (type === "image" || type.includes("image")) && isAllowedImageModel(identity);
   }).map((row) => {
     const item = row as AnyMap;
+    const rawParams = item.params ?? item.settings ?? item.options ?? {};
+    const params = rawParams && typeof rawParams === "object" && !Array.isArray(rawParams)
+      ? { ...(rawParams as AnyMap) } : {};
+    for (const key of ["quality", "aspect_ratio", "resolution", "size", "speed", "processing_speed", "count", "quantity"]) {
+      if (item[key] !== undefined && params[key] === undefined) params[key] = item[key];
+    }
     return {
       id: String(item.id ?? item.slug ?? item.model),
       name: item.name ?? item.title ?? item.id,
@@ -71,7 +77,7 @@ async function models(admin: any) {
       servers: item.servers ?? [],
       pricing: item.pricing ?? [],
       modes: item.modes ?? [],
-      params: item.params ?? {},
+      params,
       notes: item.notes ?? null,
     };
   });
