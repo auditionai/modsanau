@@ -88,6 +88,11 @@ function providerPrice(value) {
   }).filter((item) => item !== "");
   return values.length ? escapeHtml(values.join(" · ")) : "—";
 }
+function settingText(value) {
+  if (!value || typeof value !== "object") return "Mặc định";
+  const entries = Object.entries(value);
+  return entries.length ? entries.map(([key, item]) => `${key}=${item}`).join(" · ") : "Mặc định";
+}
 function money(v, currency = "vnd") {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -721,18 +726,19 @@ async function loadPayments() {
 async function loadAiModels() {
   const result = await aiModelApi();
   state.aiModels = result.models || [];
-  $("[data-ai-models-count]").textContent = `${number(state.aiModels.length)} model`;
+  $("[data-ai-models-count]").textContent = `${number(state.aiModels.length)} cấu hình`;
   $("[data-ai-models-body]").innerHTML = state.aiModels.length
-    ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.id)}">
-        <td><strong>${escapeHtml(model.name)}</strong><small class="mono">${escapeHtml(model.id)}</small></td>
+    ? state.aiModels.map((model) => `<tr data-ai-model-row="${escapeHtml(model.pricingId)}">
+        <td><strong>${escapeHtml(model.modelName)}</strong><small class="mono">${escapeHtml(model.modelId)}</small></td>
         <td><input data-ai-model-cost type="number" min="1" max="1000000" step="1" value="${escapeHtml(String(model.creditCost))}" aria-label="Giá Credits ${escapeHtml(model.name)}" /></td>
-        <td>${providerPrice(model.tstPricing)}</td>
+        <td>${model.tstCost == null ? "—" : escapeHtml(String(model.tstCost))}</td>
+        <td class="mono setting-cell">${escapeHtml(settingText(model.settings))}</td>
         <td><label class="check-label"><input data-ai-model-active type="checkbox" ${model.active ? "checked" : ""} /> Đang phát hành</label></td>
         <td>v${number(model.pricingVersion)}</td>
         <td><input data-ai-model-reason maxlength="500" minlength="8" placeholder="Lý do thay đổi" aria-label="Lý do thay đổi ${escapeHtml(model.name)}" /></td>
-        <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.id)}">Lưu</button></td>
+        <td><button class="secondary-button operator-only" data-save-ai-model="${escapeHtml(model.pricingId)}">Lưu</button></td>
       </tr>`).join("")
-    : empty(7, "Chưa đồng bộ model ảnh từ TST.");
+    : empty(8, "Chưa đồng bộ cấu hình giá model ảnh từ TST.");
   applyRoleVisibility();
 }
 async function showPaymentDetail(orderId) {
@@ -963,7 +969,7 @@ document.addEventListener("click", async (e) => {
   if (b.dataset.editUser) openUser(b.dataset.editUser);
   if (b.dataset.saveAiModel) {
     const row = b.closest("tr");
-    const current = state.aiModels.find((model) => model.id === b.dataset.saveAiModel);
+    const current = state.aiModels.find((model) => model.pricingId === b.dataset.saveAiModel);
     if (!row || !current) return;
     const reason = $("[data-ai-model-reason]", row).value.trim();
     if (reason.length < 8) {
@@ -975,8 +981,7 @@ document.addEventListener("click", async (e) => {
       await aiModelApi({
         method: "POST",
         body: JSON.stringify({
-          modelId: current.id,
-          displayName: current.name,
+          pricingId: current.pricingId,
           creditCost: Number($("[data-ai-model-cost]", row).value),
           active: $("[data-ai-model-active]", row).checked,
           sortOrder: Number(current.sortOrder || 0),

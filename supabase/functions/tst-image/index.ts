@@ -100,12 +100,10 @@ function pricingCost(model: AnyMap): number {
   return Number.isSafeInteger(value) && value > 0 ? value : 0;
 }
 
-async function currentModelPricing(admin: any, modelId: string) {
-  const { data, error: catalogError } = await adminRpc(admin, "public", {});
+async function currentModelPricing(admin: any, modelId: string, settings: AnyMap) {
+  const { data, error: catalogError } = await adminRpc(admin, "quote", { modelId, settings });
   if (catalogError) throw new Error(catalogError);
-  const row = Array.isArray(data)
-    ? (data as AnyMap[]).find((item) => String(item.id) === modelId)
-    : null;
+  const row = data as AnyMap | null;
   return row ? { creditCost: pricingCost(row), pricingVersion: Number(row.pricingVersion ?? 1) } : null;
 }
 
@@ -227,7 +225,7 @@ Deno.serve(async (req) => {
       const idempotencyKey = String(body.idempotency_key ?? crypto.randomUUID());
       const request = { model: modelId, prompt, settings, referenceCount: referenceImages.length };
       const hash = await requestHash(request);
-      const currentPricing = await currentModelPricing(admin, modelId);
+      const currentPricing = await currentModelPricing(admin, modelId, settings);
       const creditCost = currentPricing?.creditCost ?? 0;
       if (!creditCost) return error("AI_MODEL_PRICING_UNAVAILABLE", 409);
       const prepared = await rpc(admin, "prepare", {
