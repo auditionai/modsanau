@@ -184,6 +184,10 @@ public sealed record AiStudioModelOption(
 public sealed record AiStudioModelsResult(
     bool Succeeded, string DiagnosticCode, IReadOnlyList<AiStudioModelOption> Models);
 
+public sealed record AiImagePromptPreset(string Id, string Name);
+public sealed record AiImagePromptPresetResult(
+    bool Succeeded, string DiagnosticCode, IReadOnlyList<AiImagePromptPreset> Presets);
+
 public sealed record AiStudioExecutionRequest(
     AiStudioOperation Operation,
     InternalImage Source,
@@ -193,7 +197,10 @@ public sealed record AiStudioExecutionRequest(
     string PublicOptionId,
     string IdempotencyKey,
     IReadOnlyList<InternalImage>? AdditionalReferences = null,
-    IReadOnlyDictionary<string, string>? ModelSettings = null);
+    IReadOnlyDictionary<string, string>? ModelSettings = null,
+    string? PromptPresetId = null,
+    IReadOnlyDictionary<string, string>? CreativeInputs = null,
+    AiTargetSize? ExactOutputSize = null);
 
 public sealed record AiStudioExecutionResult(
     bool Succeeded, bool Cancelled, string DiagnosticCode, InternalImage? Preview);
@@ -210,6 +217,9 @@ public interface IAiStudioService
 
     Task<AiStudioModelsResult> GetModelsAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new AiStudioModelsResult(false, "AI_MODELS_UNAVAILABLE", []));
+
+    Task<AiImagePromptPresetResult> GetImagePromptPresetsAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(new AiImagePromptPresetResult(false, "AI_PRESETS_UNAVAILABLE", []));
 
     Task<AiStudioQuoteResult> GetQuoteAsync(
         AiStudioOperation operation,

@@ -103,6 +103,7 @@
                                             <DataTemplate><TextBlock FontWeight="SemiBold" Text="{Binding Label}" /></DataTemplate>
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
+                                    <ComboBox Header="Mẫu tạo ảnh" ItemsSource="{x:Bind ViewModel.ImagePromptPresets, Mode=OneWay}" DisplayMemberPath="Name" SelectedItem="{x:Bind ViewModel.SelectedImagePromptPreset, Mode=TwoWay}" MinHeight="44" />
                                     <ItemsControl ItemsSource="{x:Bind ViewModel.ModelSettings, Mode=OneWay}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
@@ -130,7 +131,7 @@
                                     </Grid>
                                     <ComboBox Header="Cách tạo" DisplayMemberPath="Label" ItemsSource="{x:Bind ViewModel.CreationModes}" MinHeight="44" SelectedItem="{x:Bind ViewModel.SelectedCreationMode, Mode=TwoWay}" />
                                     <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.ReferenceMessage, Mode=OneWay}" TextWrapping="Wrap" />
-                                    <TextBox AcceptsReturn="True" Header="Mô tả hình ảnh" MaxLength="4000" MinHeight="136" PlaceholderText="Ví dụ: trang phục sân khấu neon, ánh sáng tím xanh, chi tiết sắc nét..." Text="{x:Bind ViewModel.Prompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
+                                    <TextBox AcceptsReturn="True" Header="Ghi chú bổ sung" MaxLength="4000" MinHeight="96" PlaceholderText="Không bắt buộc. Bổ sung yêu cầu riêng cho mẫu đã chọn." Text="{x:Bind ViewModel.Prompt, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" />
                                     <TextBlock AutomationProperties.LiveSetting="Polite" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.PromptValidationMessage, Mode=OneWay}" />
                                     <Border Background="{ThemeResource AmsAccentSubtleBrush}" BorderBrush="{ThemeResource AmsCardBorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10,8" Visibility="Collapsed">
                                         <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Foreground="{ThemeResource AmsFocusBrush}" Glyph="&#xE8C8;" /><TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Text="{x:Bind ViewModel.QuoteText, Mode=OneWay}" /></StackPanel>

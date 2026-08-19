@@ -50,6 +50,27 @@ public sealed class SupabaseAiStudioService(
         catch (JsonException) { return new(true, "AI_MODELS_FALLBACK", KnownGpti2Models()); }
     }
 
+    public async Task<AiImagePromptPresetResult> GetImagePromptPresetsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var session = await sessionStore.LoadAsync(cancellationToken).ConfigureAwait(false);
+            if (session is null) return new(false, "AI_PRESETS_AUTH_REQUIRED", []);
+            using var request = new HttpRequestMessage(HttpMethod.Get, Endpoint("presets"));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) return new(false, "AI_PRESETS_UNAVAILABLE", []);
+            using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            if (!document.RootElement.TryGetProperty("presets", out var rows) || rows.ValueKind != JsonValueKind.Array) return new(false, "AI_PRESETS_INVALID", []);
+            return new(true, "AI_PRESETS_LOADED", rows.EnumerateArray().Select(row => new AiImagePromptPreset(
+                row.TryGetProperty("presetId", out var id) ? id.GetString() ?? string.Empty : string.Empty,
+                row.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty))
+                .Where(item => Guid.TryParse(item.Id, out _) && !string.IsNullOrWhiteSpace(item.Name)).ToArray());
+        }
+        catch (HttpRequestException) { return new(false, "AI_PRESETS_UNAVAILABLE", []); }
+        catch (JsonException) { return new(false, "AI_PRESETS_INVALID", []); }
+    }
+
     private static IReadOnlyList<AiStudioModelOption> KnownGpti2Models() =>
     [
         new("gpt-image-2", "GPT Image 2", ["low", "medium", "high"], [], ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], [50]) { Settings = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase) { ["size"] = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], ["quality"] = ["low", "medium", "high"], ["n"] = ["1", "2", "3", "4"] } },
@@ -112,7 +133,7 @@ public sealed class SupabaseAiStudioService(
     public async Task<AiStudioExecutionResult> ExecuteAsync(AiStudioExecutionRequest request,
         IProgress<AiOperationProgress>? progress = null, CancellationToken cancellationToken = default)
     {
-        if (request.Prompt is not { IsValid: true } prompt || string.IsNullOrWhiteSpace(request.PublicOptionId))
+        if (string.IsNullOrWhiteSpace(request.PromptPresetId) || string.IsNullOrWhiteSpace(request.PublicOptionId))
             return new(false, false, "AI_STUDIO_REQUEST_INVALID", null);
         var session = await sessionStore.LoadAsync(cancellationToken).ConfigureAwait(false);
         if (session is null && (await authentication.RefreshSessionAsync(cancellationToken)).Session is null)
@@ -136,20 +157,14 @@ public sealed class SupabaseAiStudioService(
         }
         if (references.Count > 5) return new(false, false, "AI_REFERENCE_LIMIT_EXCEEDED", null);
         progress?.Report(new(AiOperationPhase.Submitting, 10, "AI_JOB_SUBMITTING"));
-        var effectivePrompt = prompt is { IsValid: true }
-            ? await ComposePromptAsync(session.AccessToken, prompt.Value, references, cancellationToken).ConfigureAwait(false)
-            : null;
-        if (request.Operation is AiStudioOperation.Generate or AiStudioOperation.Edit
-            or AiStudioOperation.Inpaint or AiStudioOperation.Outpaint or AiStudioOperation.ReplaceObject)
-        {
-            if (effectivePrompt is null) return new(false, false, "AI_PROMPT_COMPOSITION_FAILED", null);
-        }
         using var submit = new HttpRequestMessage(HttpMethod.Post, Endpoint("generate"));
         submit.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
         submit.Content = new StringContent(JsonSerializer.Serialize(new
         {
-            prompt = effectivePrompt ?? string.Empty, model = request.PublicOptionId, idempotency_key = request.IdempotencyKey,
+            preset_id = request.PromptPresetId, model = request.PublicOptionId, idempotency_key = request.IdempotencyKey,
             reference_images = references, settings = request.ModelSettings ?? new Dictionary<string, string>(),
+            creative_inputs = request.CreativeInputs ?? new Dictionary<string, string>(),
+            output = request.ExactOutputSize is { } size ? new { width = size.Width, height = size.Height } : null,
         }, JsonOptions), Encoding.UTF8, "application/json");
         using var response = await httpClient.SendAsync(submit, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode) return new(false, false, "AI_JOB_SUBMIT_FAILED", null);
@@ -190,26 +205,6 @@ public sealed class SupabaseAiStudioService(
         return imported.Succeeded && imported.Image is not null ? new(true, false, "AI_OPERATION_COMPLETED", imported.Image) : new(false, false, "AI_OUTPUT_INVALID", null);
     }
 
-    private async Task<string?> ComposePromptAsync(string accessToken, string prompt, IReadOnlyList<string> references,
-        CancellationToken cancellationToken)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint("compose"));
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        request.Content = new StringContent(JsonSerializer.Serialize(new { prompt, reference_images = references }, JsonOptions),
-            Encoding.UTF8, "application/json");
-        try
-        {
-            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-                .ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode) return null;
-            using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken),
-                cancellationToken: cancellationToken).ConfigureAwait(false);
-            var result = document.RootElement.TryGetProperty("prompt", out var value) ? value.GetString()?.Trim() : null;
-            return string.IsNullOrWhiteSpace(result) || result.Length > 16_000 ? null : result;
-        }
-        catch (HttpRequestException) { return null; }
-        catch (JsonException) { return null; }
-    }
 
     private static IReadOnlyList<string> ReadOptionValues(JsonElement parameters, string key)
     {

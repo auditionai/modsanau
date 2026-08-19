@@ -45,6 +45,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private string _historyMessage = "Đang tải lịch sử tạo…";
     private IReadOnlyList<AiStudioJobPresentation> _history = [];
     private IReadOnlyList<PromptPreset> _presets = [];
+    private IReadOnlyList<AiImagePromptPreset> _imagePromptPresets = [];
+    private AiImagePromptPreset? _selectedImagePromptPreset;
     private PromptPreset? _selectedPreset;
     private InternalImage? _previewImage;
     private bool _isBusy;
@@ -283,7 +285,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public int ProgressPercentage { get => _progressPercentage; private set => Set(ref _progressPercentage, value); }
     public string ElapsedText { get => _elapsedText; private set => Set(ref _elapsedText, value); }
     public bool CanCancel => IsBusy && _activeTaskId.IsValid;
-    public bool CanSubmit => !IsBusy
+    public bool CanSubmit => !IsBusy && SelectedImagePromptPreset is not null
         && Prompt.Length <= AiPrompt.MaximumLength
         && NegativePrompt.Length <= AiPrompt.MaximumLength
         && (SelectedOperation.Operation is AiStudioOperation.Upscale or AiStudioOperation.RemoveObject
@@ -306,7 +308,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                 RefreshModelsAsync(_activationCancellation.Token),
                 RefreshQuoteAsync(_activationCancellation.Token),
                 RefreshHistoryAsync(_activationCancellation.Token),
-                RefreshPresetsAsync(_activationCancellation.Token));
+                RefreshPresetsAsync(_activationCancellation.Token),
+                RefreshImagePromptPresetsAsync(_activationCancellation.Token));
         }
         finally
         {
@@ -343,6 +346,22 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
         QuoteText = result.Succeeded && result.Quote is { CreditCost: > 0 } quote
             ? $"Ước tính {quote.CreditCost:N0} Credits"
             : "Giá sẽ xác nhận theo model và setting khi tạo ảnh";
+    }
+
+    public IReadOnlyList<AiImagePromptPreset> ImagePromptPresets { get => _imagePromptPresets; private set => Set(ref _imagePromptPresets, value); }
+    public AiImagePromptPreset? SelectedImagePromptPreset
+    {
+        get => _selectedImagePromptPreset;
+        set { if (Set(ref _selectedImagePromptPreset, value)) NotifyValidationChanged(); }
+    }
+
+    private async Task RefreshImagePromptPresetsAsync(CancellationToken cancellationToken)
+    {
+        var result = await _studioService.GetImagePromptPresetsAsync(cancellationToken);
+        ImagePromptPresets = result.Succeeded ? result.Presets : [];
+        SelectedImagePromptPreset = ImagePromptPresets.FirstOrDefault(item => item.Id == SelectedImagePromptPreset?.Id)
+            ?? ImagePromptPresets.FirstOrDefault();
+        if (!result.Succeeded) StatusMessage = "Khong the tai mau tao anh tu dich vu.";
     }
 
     public AiStudioOption SelectedResolution
@@ -546,7 +565,14 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                         $"desktop-{Guid.NewGuid():N}",
                         _additionalReferences,
                         WithSingleImage(ModelSettings.ToDictionary(item => item.Key, item => item.Selected.Value,
-                            StringComparer.OrdinalIgnoreCase))), progress, token).ConfigureAwait(false);
+                            StringComparer.OrdinalIgnoreCase)),
+                        SelectedImagePromptPreset?.Id,
+                        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["theme"] = Theme, ["style"] = VisualStyle, ["composition"] = Composition,
+                            ["palette"] = ColorPalette, ["note"] = Prompt,
+                        },
+                        _selection.SelectedTexture is { } texture ? new AiTargetSize(texture.Width, texture.Height) : null), progress, token).ConfigureAwait(false);
                     aiResult = execution.Succeeded && execution.Preview is not null
                         ? AiImageResult.Success(execution.Preview)
                         : execution.Cancelled ? AiImageResult.CancelledResult()

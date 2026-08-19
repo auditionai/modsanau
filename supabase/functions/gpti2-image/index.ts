@@ -262,6 +262,56 @@ async function rpc(admin: any, action: string, payload: AnyMap) {
   return data as AnyMap;
 }
 
+function readCreativeInputs(value: unknown) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value as AnyMap : {};
+  const read = (key: string) => String(source[key] ?? "").trim().slice(0, 1000);
+  return { theme: read("theme"), style: read("style"), composition: read("composition"), palette: read("palette"), note: read("note") };
+}
+
+function readOutput(value: unknown) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? value as AnyMap : {};
+  const width = Number(source.width), height = Number(source.height);
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 64 || height < 64 || width > 8192 || height > 8192 || width * height > 32_000_000) return null;
+  return { width, height };
+}
+
+async function activePreset(admin: any, presetId: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(presetId)) throw new Error("AI_PRESET_REQUIRED");
+  const { data, error: presetError } = await admin.from("ai_image_prompt_presets")
+    .select("preset_id, display_name, base_prompt").eq("preset_id", presetId).eq("is_active", true).is("deleted_at", null).maybeSingle();
+  if (presetError || !data) throw new Error("AI_PRESET_UNAVAILABLE");
+  return data as { preset_id: string; display_name: string; base_prompt: string };
+}
+
+async function pngGuideCanvas(sourceSize: string, output: { width: number; height: number }) {
+  const match = /^(\d{3,4})x(\d{3,4})$/.exec(sourceSize);
+  if (!match) return null;
+  const width = Number(match[1]), height = Number(match[2]);
+  const targetRatio = output.width / output.height, sourceRatio = width / height;
+  if (!Number.isFinite(targetRatio) || Math.abs(targetRatio - sourceRatio) < 0.002) return null;
+  const safeWidth = targetRatio >= sourceRatio ? width : Math.max(1, Math.round(height * targetRatio));
+  const safeHeight = targetRatio >= sourceRatio ? Math.max(1, Math.round(width / targetRatio)) : height;
+  const left = Math.floor((width - safeWidth) / 2), top = Math.floor((height - safeHeight) / 2);
+  const raw = new Uint8Array((width * 3 + 1) * height);
+  for (let y = 0; y < height; y += 1) {
+    const offset = y * (width * 3 + 1); raw[offset] = 0;
+    for (let x = 0; x < width; x += 1) {
+      const inside = x >= left && x < left + safeWidth && y >= top && y < top + safeHeight;
+      const color = inside ? 255 : 0; const pixel = offset + 1 + x * 3;
+      raw[pixel] = color; raw[pixel + 1] = color; raw[pixel + 2] = color;
+    }
+  }
+  const crc = (bytes: Uint8Array) => { let value = 0xffffffff; for (const byte of bytes) { value ^= byte; for (let bit = 0; bit < 8; bit += 1) value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0); } return (value ^ 0xffffffff) >>> 0; };
+  const chunk = (type: string, body: Uint8Array) => { const result = new Uint8Array(body.length + 12); const view = new DataView(result.buffer); view.setUint32(0, body.length); result.set(new TextEncoder().encode(type), 4); result.set(body, 8); view.setUint32(body.length + 8, crc(result.slice(4, body.length + 8))); return result; };
+  const ihdr = new Uint8Array(13); const header = new DataView(ihdr.buffer); header.setUint32(0, width); header.setUint32(4, height); ihdr[8] = 8; ihdr[9] = 2;
+  const compressed = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate"))).arrayBuffer());
+  const parts = [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", compressed), chunk("IEND", new Uint8Array())];
+  const length = parts.reduce((total, part) => total + part.length, 0); const png = new Uint8Array(length); let offset = 0;
+  for (const part of parts) { png.set(part, offset); offset += part.length; }
+  let binary = ""; for (const byte of png) binary += String.fromCharCode(byte);
+  return { image: `data:image/png;base64,${btoa(binary)}`, safe: { left, top, width: safeWidth, height: safeHeight }, source: { width, height } };
+}
+
 function firstProviderResult(value: unknown): string | null {
   if (!value || typeof value !== "object") return null;
   const map = value as AnyMap;
@@ -347,6 +397,11 @@ Deno.serve(async (req) => {
   const action = url.searchParams.get("action") ?? "";
   try {
     if (action === "models") return json({ models: await models(admin) });
+    if (action === "presets") {
+      const { data, error: presetError } = await admin.rpc("ai_image_prompt_preset_api", { action: "active_list", payload: {} });
+      if (presetError) throw new Error("AI_PRESET_UNAVAILABLE");
+      return json({ presets: Array.isArray(data) ? data : [] });
+    }
     if (action === "history") return json(await rpc(admin, "history", { userId: userData.user.id }));
     if (action === "cancel") {
       if (req.method !== "POST") return error("METHOD_NOT_ALLOWED", 405);
@@ -390,19 +445,36 @@ Deno.serve(async (req) => {
       const { data: hasActive, error: activeError } = await admin.rpc("ai_user_active_job_api", { p_user_id: userData.user.id });
       if (activeError) throw new Error(activeError.message || "AI_JOB_ACTIVE_CHECK_FAILED");
       if (hasActive === true) return error("AI_JOB_ALREADY_ACTIVE", 409);
-      const prompt = String(body.prompt ?? "").trim();
-      if (!prompt || prompt.length > 16_000) return error("AI_PROMPT_INVALID", 400);
+      const preset = await activePreset(admin, String(body.preset_id ?? body.presetId ?? ""));
       const referenceImages = readReferenceImages(body.reference_images);
+      const creative = readCreativeInputs(body.creative_inputs);
       const settings = pickSettings(model, (body.settings as AnyMap) ?? {});
+      const output = readOutput(body.output);
+      let guide: Awaited<ReturnType<typeof pngGuideCanvas>> | null = null;
+      if (output && typeof settings.size === "string") {
+        if (referenceImages.length >= 5) return error("AI_REFERENCE_LIMIT_EXCEEDED", 400);
+        guide = await pngGuideCanvas(settings.size, output);
+        if (guide) referenceImages.push(guide.image);
+      }
+      const brief = [
+        `Base prompt: ${preset.base_prompt}`,
+        creative.theme && `Theme: ${creative.theme}`,
+        creative.style && `Visual style: ${creative.style}`,
+        creative.composition && `Composition: ${creative.composition}`,
+        creative.palette && `Color palette: ${creative.palette}`,
+        creative.note && `Additional user note: ${creative.note}`,
+        guide && `The final texture target is ${output!.width}x${output!.height}. The last supplied image is a layout guide: black is forbidden margin; design only inside the white safe area. Keep all essential content inside that white area.`,
+      ].filter(Boolean).join("\n");
+      const prompt = await composeWithCredentialPool(admin, brief, referenceImages);
       const idempotencyKey = String(body.idempotency_key ?? crypto.randomUUID());
-      const request = { model: modelId, prompt, settings, referenceCount: referenceImages.length };
+      const request = { model: modelId, presetId: preset.preset_id, creative, settings, output, referenceCount: referenceImages.length };
       const hash = await requestHash(request);
       const currentPricing = await currentModelPricing(admin, modelId, settings);
       const creditCost = currentPricing?.creditCost ?? 0;
       if (!creditCost) return error("AI_MODEL_PRICING_UNAVAILABLE", 409);
       settings.n = 1;
       const prepared = await rpc(admin, "prepare", {
-        userId: userData.user.id, model: modelId, settings, requestHash: hash,
+        userId: userData.user.id, model: modelId, settings: { ...settings, presetId: preset.preset_id, output, guide: guide?.safe ?? null }, requestHash: hash,
         idempotencyKey, creditCost, pricingVersion: `internal-${currentPricing?.pricingVersion ?? 1}`,
       });
       if (prepared.replayed && prepared.providerJobId) return json({ job_id: prepared.jobId });

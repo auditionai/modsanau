@@ -110,11 +110,17 @@ Deno.serve(async (req) => {
     const recentAuth = Number.isFinite(lastSignInAt) && Date.now() - lastSignInAt <= 15 * 60_000;
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
     const body = req.method === "POST" ? await readJson(req) : {};
-    const action = req.method === "GET" ? "admin_list" : "admin_save";
-    const { data, error } = await admin.rpc("gpti2_pricing_admin_api", {
-      action: req.method === "GET" ? "list" : "save",
-      payload: { ...body, adminUserId: user.user.id, recentAuth },
-    });
+    const presetAction = String(body.action ?? "");
+    const isPresetAction = ["preset_list", "preset_save", "preset_delete"].includes(presetAction);
+    const { data, error } = isPresetAction
+      ? await admin.rpc("ai_image_prompt_preset_api", {
+        action: presetAction === "preset_list" ? "admin_list" : presetAction === "preset_save" ? "save" : "delete",
+        payload: { ...body, adminUserId: user.user.id, recentAuth },
+      })
+      : await admin.rpc("gpti2_pricing_admin_api", {
+        action: req.method === "GET" ? "list" : "save",
+        payload: { ...body, adminUserId: user.user.id, recentAuth },
+      });
     if (error) throw new Error(error.message || "AI_MODEL_DATABASE_ERROR");
     return respond(req, req.method === "GET" ? { models: data } : data);
   } catch (caught) {
