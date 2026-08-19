@@ -104,6 +104,7 @@
                                         </ComboBox.ItemTemplate>
                                     </ComboBox>
                                     <ComboBox Header="Mẫu tạo ảnh" ItemsSource="{x:Bind ViewModel.ImagePromptPresets, Mode=OneWay}" DisplayMemberPath="Name" SelectedItem="{x:Bind ViewModel.SelectedImagePromptPreset, Mode=TwoWay}" MinHeight="44" />
+                                    <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.SelectedImagePromptPreset.AspectRatio, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasPresetAspectRatio, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                     <ItemsControl ItemsSource="{x:Bind ViewModel.ModelSettings, Mode=OneWay}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>

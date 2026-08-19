@@ -298,9 +298,9 @@ function readOutput(value: unknown) {
 async function activePreset(admin: any, presetId: string) {
   if (!/^[0-9a-f-]{36}$/i.test(presetId)) throw new Error("AI_PRESET_REQUIRED");
   const { data, error: presetError } = await admin.from("ai_image_prompt_presets")
-    .select("preset_id, display_name, base_prompt").eq("preset_id", presetId).eq("is_active", true).is("deleted_at", null).maybeSingle();
+    .select("preset_id, display_name, base_prompt, aspect_ratio").eq("preset_id", presetId).eq("is_active", true).is("deleted_at", null).maybeSingle();
   if (presetError || !data) throw new Error("AI_PRESET_UNAVAILABLE");
-  return data as { preset_id: string; display_name: string; base_prompt: string };
+  return data as { preset_id: string; display_name: string; base_prompt: string; aspect_ratio: string };
 }
 
 async function pngGuideCanvas(sourceSize: string, output: { width: number; height: number }) {
@@ -468,7 +468,7 @@ Deno.serve(async (req) => {
       const preset = await activePreset(admin, String(body.preset_id ?? body.presetId ?? ""));
       const referenceImages = readReferenceImages(body.reference_images);
       const creative = readCreativeInputs(body.creative_inputs);
-      const settings = resolveGpti2Settings(pickSettings(model, (body.settings as AnyMap) ?? {}));
+      const settings = resolveGpti2Settings({ ...pickSettings(model, (body.settings as AnyMap) ?? {}), aspect_ratio: preset.aspect_ratio });
       const output = readOutput(body.output);
       let guide: Awaited<ReturnType<typeof pngGuideCanvas>> | null = null;
       if (output && typeof settings.size === "string") {

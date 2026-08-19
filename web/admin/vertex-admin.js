@@ -105,7 +105,7 @@
   presetPane.dataset.pane = "aiPresets";
   presetPane.innerHTML = `
     <div class="section-heading"><div><p class="eyebrow">AI IMAGE PRESETS</p><h2>Mẫu tạo ảnh AI</h2><p>Prompt gốc được giữ trên server; ứng dụng chỉ gửi ID mẫu và dữ liệu sáng tạo của người dùng.</p></div></div>
-    <div class="ai-provider-layout"><article class="panel credential-form owner-only"><div class="panel-head"><div><p class="eyebrow">CHỈNH SỬA MẪU</p><h3 data-preset-form-title>Tạo mẫu mới</h3></div><button type="button" class="secondary-button" data-preset-new>Mẫu mới</button></div><form data-ai-preset-form><input name="presetId" type="hidden" /><div class="form-grid"><label>Tên mẫu<input name="name" required maxlength="120" /></label><label>Thứ tự<input name="sortOrder" type="number" min="0" value="0" required /></label><label class="span-2">Prompt gốc<textarea name="basePrompt" rows="12" required maxlength="12000" spellcheck="false"></textarea></label><label class="check-label"><input name="active" type="checkbox" checked /> Hoạt động</label></div><div class="modal-actions"><button type="submit" class="primary-button">Lưu mẫu</button><button type="button" class="ghost-button" data-preset-delete disabled>Xóa mẫu</button></div></form></article><article class="panel vertex-pool-panel"><div class="panel-head"><div><p class="eyebrow">DANH SÁCH</p><h3>Mẫu đang quản lý</h3></div><span class="badge" data-preset-count>0 mẫu</span></div><div class="vertex-credential-list" data-preset-list></div></article></div>`;
+    <div class="ai-provider-layout"><article class="panel credential-form owner-only"><div class="panel-head"><div><p class="eyebrow">CHỈNH SỬA MẪU</p><h3 data-preset-form-title>Tạo mẫu mới</h3></div><button type="button" class="secondary-button" data-preset-new>Mẫu mới</button></div><form data-ai-preset-form><input name="presetId" type="hidden" /><div class="form-grid"><label>Tên mẫu<input name="name" required maxlength="120" /></label><label>Tỉ lệ khung hình<select name="aspectRatio"><option>1:1</option><option>16:9</option><option>9:16</option><option>4:3</option><option>3:4</option><option>3:2</option><option>2:3</option><option>21:9</option></select></label><label>Thứ tự<input name="sortOrder" type="number" min="0" value="0" required /></label><label class="span-2">Prompt gốc<textarea name="basePrompt" rows="12" required maxlength="12000" spellcheck="false"></textarea></label><label class="check-label"><input name="active" type="checkbox" checked /> Hoạt động</label></div><div class="modal-actions"><button type="submit" class="primary-button">Lưu mẫu</button><button type="button" class="ghost-button" data-preset-delete disabled>Xóa mẫu</button></div></form></article><article class="panel vertex-pool-panel"><div class="panel-head"><div><p class="eyebrow">DANH SÁCH</p><h3>Mẫu đang quản lý</h3></div><span class="badge" data-preset-count>0 mẫu</span></div><div class="vertex-credential-list" data-preset-list></div></article></div>`;
   document.querySelector("main.content").append(presetPane);
 
   const presetNav = document.createElement("button");
@@ -116,12 +116,12 @@
 
   let presets = [];
   function resetPresetForm() {
-    const form = $("[data-ai-preset-form]"); form.reset(); form.presetId.value = ""; form.sortOrder.value = "0"; form.active.checked = true;
+    const form = $("[data-ai-preset-form]"); form.reset(); form.presetId.value = ""; form.aspectRatio.value = "1:1"; form.sortOrder.value = "0"; form.active.checked = true;
     $("[data-preset-form-title]").textContent = "Tạo mẫu mới";
     $("[data-preset-delete]").disabled = true;
   }
   function editPreset(item) {
-    const form = $("[data-ai-preset-form]"); form.presetId.value = item.presetId; form.name.value = item.name; form.basePrompt.value = item.basePrompt; form.sortOrder.value = item.sortOrder; form.active.checked = item.active;
+    const form = $("[data-ai-preset-form]"); form.presetId.value = item.presetId; form.name.value = item.name; form.basePrompt.value = item.basePrompt; form.aspectRatio.value = item.aspectRatio; form.sortOrder.value = item.sortOrder; form.active.checked = item.active;
     $("[data-preset-form-title]").textContent = `Chỉnh sửa: ${item.name}`;
     $("[data-preset-delete]").disabled = false;
   }
@@ -134,7 +134,7 @@
   }
   function renderPresets() {
     $("[data-preset-count]").textContent = `${presets.length} mẫu`;
-    $("[data-preset-list]").innerHTML = presets.length ? presets.map((item) => `<article class="vertex-credential-card"><div class="vertex-card-head"><div><strong>${escape(item.name)}</strong><small>${item.active ? "Hoạt động" : "Đã tắt"} · #${Number(item.sortOrder)}</small></div><button class="secondary-button owner-only" data-preset-edit="${item.presetId}">Chỉnh sửa</button></div></article>`).join("") : '<div class="empty-state">Chưa có mẫu tạo ảnh.</div>';
+    $("[data-preset-list]").innerHTML = presets.length ? presets.map((item) => `<article class="vertex-credential-card"><div class="vertex-card-head"><div><strong>${escape(item.name)}</strong><small>${item.active ? "Hoạt động" : "Đã tắt"} · ${escape(item.aspectRatio)} · #${Number(item.sortOrder)}</small></div><button class="secondary-button owner-only" data-preset-edit="${item.presetId}">Chỉnh sửa</button></div></article>`).join("") : '<div class="empty-state">Chưa có mẫu tạo ảnh.</div>';
     applyRoleVisibility();
   }
   function escape(value) { return String(value ?? "").replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[c]); }
@@ -150,6 +150,6 @@
   });
   $("[data-ai-preset-form]").addEventListener("submit", async (event) => {
     event.preventDefault(); const form = event.currentTarget; if (!form.reportValidity()) return;
-    try { await presetApi("preset_save", { presetId: form.presetId.value || null, name: form.name.value.trim(), basePrompt: form.basePrompt.value.trim(), active: form.active.checked, sortOrder: Number(form.sortOrder.value) }); await loadPresets(); toast("Đã lưu mẫu tạo ảnh."); } catch (error) { toast(error.message, "error"); }
+    try { await presetApi("preset_save", { presetId: form.presetId.value || null, name: form.name.value.trim(), basePrompt: form.basePrompt.value.trim(), aspectRatio: form.aspectRatio.value, active: form.active.checked, sortOrder: Number(form.sortOrder.value) }); await loadPresets(); toast("Đã lưu mẫu tạo ảnh."); } catch (error) { toast(error.message, "error"); }
   });
 })();

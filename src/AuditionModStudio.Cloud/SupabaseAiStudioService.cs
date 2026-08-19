@@ -64,7 +64,8 @@ public sealed class SupabaseAiStudioService(
             if (!document.RootElement.TryGetProperty("presets", out var rows) || rows.ValueKind != JsonValueKind.Array) return new(false, "AI_PRESETS_INVALID", []);
             return new(true, "AI_PRESETS_LOADED", rows.EnumerateArray().Select(row => new AiImagePromptPreset(
                 row.TryGetProperty("presetId", out var id) ? id.GetString() ?? string.Empty : string.Empty,
-                row.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty))
+                row.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty,
+                row.TryGetProperty("aspectRatio", out var aspect) ? aspect.GetString() ?? string.Empty : string.Empty))
                 .Where(item => Guid.TryParse(item.Id, out _) && !string.IsNullOrWhiteSpace(item.Name)).ToArray());
         }
         catch (HttpRequestException) { return new(false, "AI_PRESETS_UNAVAILABLE", []); }

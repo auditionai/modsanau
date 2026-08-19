@@ -352,8 +352,18 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public AiImagePromptPreset? SelectedImagePromptPreset
     {
         get => _selectedImagePromptPreset;
-        set { if (Set(ref _selectedImagePromptPreset, value)) NotifyValidationChanged(); }
+        set
+        {
+            if (!Set(ref _selectedImagePromptPreset, value)) return;
+            var aspect = value?.AspectRatio;
+            var setting = ModelSettings.FirstOrDefault(item => item.Key.Equals("aspect_ratio", StringComparison.OrdinalIgnoreCase));
+            if (setting is not null && !string.IsNullOrWhiteSpace(aspect))
+                setting.Selected = setting.Options.FirstOrDefault(item => item.Value == aspect) ?? setting.Selected;
+            OnPropertyChanged(nameof(HasPresetAspectRatio));
+            NotifyValidationChanged();
+        }
     }
+    public bool HasPresetAspectRatio => SelectedImagePromptPreset is not null && !string.IsNullOrWhiteSpace(SelectedImagePromptPreset.AspectRatio);
 
     private async Task RefreshImagePromptPresetsAsync(CancellationToken cancellationToken)
     {
@@ -392,7 +402,8 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private void ApplyModelSettings(string modelId)
     {
         if (!_modelCatalog.TryGetValue(modelId, out var model)) return;
-        ModelSettings = model.Settings.Where(item => !item.Key.Equals("n", StringComparison.OrdinalIgnoreCase)
+        ModelSettings = model.Settings.Where(item => !item.Key.Equals("aspect_ratio", StringComparison.OrdinalIgnoreCase)
+                && !item.Key.Equals("n", StringComparison.OrdinalIgnoreCase)
                 && !item.Key.Equals("count", StringComparison.OrdinalIgnoreCase)
                 && !item.Key.Equals("quantity", StringComparison.OrdinalIgnoreCase)).Select(item => new AiModelSettingViewModel(
             item.Key, GetSettingLabel(item.Key), item.Value.Select(value => new AiStudioOption(value, value)).ToArray(),

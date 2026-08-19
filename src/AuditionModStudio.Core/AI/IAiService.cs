@@ -184,7 +184,7 @@ public sealed record AiStudioModelOption(
 public sealed record AiStudioModelsResult(
     bool Succeeded, string DiagnosticCode, IReadOnlyList<AiStudioModelOption> Models);
 
-public sealed record AiImagePromptPreset(string Id, string Name);
+public sealed record AiImagePromptPreset(string Id, string Name, string AspectRatio);
 public sealed record AiImagePromptPresetResult(
     bool Succeeded, string DiagnosticCode, IReadOnlyList<AiImagePromptPreset> Presets);
 
