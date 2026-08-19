@@ -156,6 +156,9 @@
                                                 <TextBlock FontWeight="SemiBold" Text="Ảnh tham chiếu" />
                                                     <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Thêm tối đa 5 ảnh để hướng dẫn phong cách hoặc chi tiết cho AI." TextWrapping="Wrap" />
                                                     <StackPanel Orientation="Horizontal" Spacing="8"><Button Click="OnAddReferencesClicked" Style="{StaticResource AmsSecondaryButtonStyle}">Thêm ảnh</Button><Button Click="OnClearReferencesClicked" IsEnabled="{x:Bind ViewModel.HasAdditionalReferences, Mode=OneWay}">Xóa ảnh</Button></StackPanel>
+                                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollBarVisibility="Disabled" VerticalScrollMode="Disabled">
+                                                        <StackPanel x:Name="ReferenceThumbnails" Orientation="Horizontal" Spacing="8" />
+                                                    </ScrollViewer>
                                                     <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.AdditionalReferencesMessage, Mode=OneWay}" />
                                             </StackPanel>
                                             <TextBox Header="Nội dung gửi API Audition AI" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="100" Text="{x:Bind ViewModel.ComposedPrompt, Mode=OneWay}" Visibility="Collapsed" />

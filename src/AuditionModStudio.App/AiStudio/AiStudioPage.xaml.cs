@@ -1,9 +1,12 @@
 using System.ComponentModel;
 using AuditionModStudio.App.Imaging;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using AuditionModStudio.Core.Images;
 using Microsoft.UI.Xaml.Input;
+using Windows.Storage.Pickers;
 
 namespace AuditionModStudio.App.AiStudio;
 
@@ -40,6 +43,27 @@ public sealed partial class AiStudioPage : Page
         await ViewModel.ApprovePreviewAsync();
     private async void OnRefreshHistoryClicked(object sender, RoutedEventArgs e) =>
         await ViewModel.RefreshHistoryAsync();
+
+    private async void OnAddReferencesClicked(object sender, RoutedEventArgs e)
+    {
+        if (Application.Current is not App { ActiveWindow: { } window }) return;
+        var picker = new FileOpenPicker();
+        picker.FileTypeFilter.Add(".png");
+        picker.FileTypeFilter.Add(".jpg");
+        picker.FileTypeFilter.Add(".jpeg");
+        picker.FileTypeFilter.Add(".bmp");
+        picker.FileTypeFilter.Add(".webp");
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
+        var files = await picker.PickMultipleFilesAsync();
+        if (files.Count > 0) await ViewModel.AddReferenceImagesAsync(files.Select(file => file.Path));
+    }
+
+    private void OnClearReferencesClicked(object sender, RoutedEventArgs e) => ViewModel.ClearReferenceImages();
+
+    private void OnRemoveReferenceClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: int index }) ViewModel.RemoveReferenceAt(index);
+    }
 
     private async void OnCancelJobClicked(object sender, RoutedEventArgs e)
     {
@@ -97,11 +121,54 @@ public sealed partial class AiStudioPage : Page
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
+        if (args.PropertyName == nameof(ViewModel.AdditionalReferences)) UpdateReferenceThumbnails();
         if (args.PropertyName == nameof(ViewModel.PreviewImage))
         {
             PreviewImage.Source = ViewModel.PreviewImage is null
                 ? null
                 : InternalImageBitmapAdapter.CreateBitmap(ViewModel.PreviewImage);
+        }
+    }
+
+    private void UpdateReferenceThumbnails()
+    {
+        ReferenceThumbnails.Children.Clear();
+        for (var index = 0; index < ViewModel.AdditionalReferences.Count; index++)
+        {
+            var image = ViewModel.AdditionalReferences[index];
+            var tile = new Grid { Width = 72, Height = 72 };
+            var preview = new Image
+            {
+                Source = InternalImageBitmapAdapter.CreateBitmap(image),
+                Stretch = Stretch.UniformToFill,
+            };
+            AutomationProperties.SetName(preview, $"Ảnh tham chiếu {index + 1}");
+            var frame = new Border
+            {
+                Width = 72,
+                Height = 72,
+                CornerRadius = new CornerRadius(6),
+                BorderThickness = new Thickness(1),
+                BorderBrush = (Brush)Application.Current.Resources["AmsCardBorderBrush"],
+                Child = preview,
+            };
+            var remove = new Button
+            {
+                Content = "×",
+                Tag = index,
+                Width = 24,
+                Height = 24,
+                Padding = new Thickness(0),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(2),
+                FontSize = 16,
+            };
+            AutomationProperties.SetName(remove, $"Xóa ảnh tham chiếu {index + 1}");
+            remove.Click += OnRemoveReferenceClicked;
+            tile.Children.Add(frame);
+            tile.Children.Add(remove);
+            ReferenceThumbnails.Children.Add(tile);
         }
     }
 

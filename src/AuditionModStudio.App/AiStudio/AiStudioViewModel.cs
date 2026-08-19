@@ -214,6 +214,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public string Composition { get => _composition; set { if (Set(ref _composition, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
     public string ColorPalette { get => _colorPalette; set { if (Set(ref _colorPalette, value ?? string.Empty)) OnPropertyChanged(nameof(ComposedPrompt)); } }
     public int AdditionalReferenceCount => _additionalReferences.Count;
+    public IReadOnlyList<InternalImage> AdditionalReferences => _additionalReferences;
     public bool HasAdditionalReferences => AdditionalReferenceCount > 0;
     public string AdditionalReferencesMessage => AdditionalReferenceCount == 0
         ? "Ch\u01B0a c\u00F3 \u1EA3nh tham chi\u1EBFu b\u1ED5 sung."
@@ -437,6 +438,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
             if (imported.Succeeded && imported.Image is not null) images.Add(imported.Image);
         }
         _additionalReferences = images;
+        OnPropertyChanged(nameof(AdditionalReferences));
         OnPropertyChanged(nameof(AdditionalReferenceCount));
         OnPropertyChanged(nameof(HasAdditionalReferences));
         OnPropertyChanged(nameof(AdditionalReferencesMessage));
@@ -446,6 +448,7 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     public void ClearReferenceImages()
     {
         _additionalReferences = [];
+        OnPropertyChanged(nameof(AdditionalReferences));
         OnPropertyChanged(nameof(AdditionalReferenceCount));
         OnPropertyChanged(nameof(HasAdditionalReferences));
         OnPropertyChanged(nameof(AdditionalReferencesMessage));
@@ -612,6 +615,16 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
                 : "Tạo ảnh thất bại. Hãy thử tạo lại ảnh; hệ thống không tự động tạo lại.";
         }
         await RefreshHistoryAsync(cancellationToken);
+    }
+
+    public void RemoveReferenceAt(int index)
+    {
+        if (index < 0 || index >= _additionalReferences.Count) return;
+        _additionalReferences = _additionalReferences.Where((_, current) => current != index).ToArray();
+        OnPropertyChanged(nameof(AdditionalReferences));
+        OnPropertyChanged(nameof(AdditionalReferenceCount));
+        OnPropertyChanged(nameof(HasAdditionalReferences));
+        OnPropertyChanged(nameof(AdditionalReferencesMessage));
     }
 
     private static string FormatElapsed(TimeSpan elapsed) => $"{Math.Max(0, (int)elapsed.TotalMinutes):00}:{elapsed.Seconds:00}";
