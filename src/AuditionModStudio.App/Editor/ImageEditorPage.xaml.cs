@@ -29,12 +29,16 @@ public sealed partial class ImageEditorPage : Page
         InitializeComponent();
         CreateCropHandles();
         ZoomSlider.Minimum = 0.1;
-        ZoomSlider.StepFrequency = 0.1;
+        ZoomSlider.SmallChange = 0.01;
+        ZoomSlider.LargeChange = 0.1;
+        ZoomSlider.StepFrequency = 0.01;
         ZoomSlider.Value = 1;
         CropWidth.Minimum = 0.01;
         CropHeight.Minimum = 0.01;
         CompareZoomSlider.Minimum = 0.1;
-        CompareZoomSlider.StepFrequency = 0.1;
+        CompareZoomSlider.SmallChange = 0.01;
+        CompareZoomSlider.LargeChange = 0.1;
+        CompareZoomSlider.StepFrequency = 0.01;
         CompareZoomSlider.Value = 1;
         CompareDividerSlider.LargeChange = 0.1;
         CompareDividerSlider.SmallChange = 0.01;
@@ -195,7 +199,7 @@ public sealed partial class ImageEditorPage : Page
         }
 
         var delta = e.GetCurrentPoint(EditorCanvas).Properties.MouseWheelDelta;
-        var nextZoom = Math.Clamp(ViewModel.Zoom * (delta > 0 ? 1.1 : 1 / 1.1), 0.1, 8);
+        var nextZoom = Math.Clamp(ViewModel.Zoom + (delta > 0 ? 0.01 : -0.01), 0.1, 8);
         ZoomSlider.Value = nextZoom;
         e.Handled = true;
     }
@@ -392,7 +396,7 @@ public sealed partial class ImageEditorPage : Page
 
         var delta = e.GetCurrentPoint(sender as UIElement).Properties.MouseWheelDelta;
         CompareZoomSlider.Value = Math.Clamp(
-            ViewModel.CompareZoom * (delta > 0 ? 1.1 : 1 / 1.1),
+            ViewModel.CompareZoom + (delta > 0 ? 0.01 : -0.01),
             0.1,
             8);
         e.Handled = true;
