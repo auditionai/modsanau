@@ -557,6 +557,7 @@ public sealed partial class ImageEditorPage : Page
             SetElementBounds(TargetFrame, 0, 0, 0, 0);
             SetElementBounds(CropFrame, 0, 0, 0, 0);
             SetElementBounds(EditorImage, 0, 0, 0, 0);
+            EditorImage.Clip = null;
             foreach (var handle in _cropHandles.Values) handle.Visibility = Visibility.Collapsed;
             return;
         }
@@ -573,6 +574,7 @@ public sealed partial class ImageEditorPage : Page
         {
             SetElementBounds(CropFrame, 0, 0, 0, 0);
             SetElementBounds(EditorImage, 0, 0, 0, 0);
+            EditorImage.Clip = null;
             foreach (var handle in _cropHandles.Values) handle.Visibility = Visibility.Collapsed;
             return;
         }
@@ -583,6 +585,16 @@ public sealed partial class ImageEditorPage : Page
             frameY + projection.ImageBounds.Y,
             projection.ImageBounds.Width,
             projection.ImageBounds.Height);
+        var cropRelativeX = projection.CropBounds.X - projection.ImageBounds.X;
+        var cropRelativeY = projection.CropBounds.Y - projection.ImageBounds.Y;
+        EditorImage.Clip = new RectangleGeometry
+        {
+            Rect = new Rect(
+                Math.Max(0, cropRelativeX),
+                Math.Max(0, cropRelativeY),
+                Math.Max(0, Math.Min(projection.CropBounds.Width, projection.ImageBounds.Width - cropRelativeX)),
+                Math.Max(0, Math.Min(projection.CropBounds.Height, projection.ImageBounds.Height - cropRelativeY)))
+        };
         SetElementBounds(
             CropFrame,
             frameX + projection.CropBounds.X,
