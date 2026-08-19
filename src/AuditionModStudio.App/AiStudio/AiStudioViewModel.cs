@@ -459,11 +459,6 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
 
     public async Task SubmitAsync(AiMask? mask, CancellationToken cancellationToken = default)
     {
-        if (_capabilities is not null && !_capabilities.Current.CanUseAi)
-        {
-            StatusMessage = "Gói sử dụng chưa cho phép dùng AI. Hãy mở Tài khoản để làm mới quyền sử dụng.";
-            return;
-        }
         if (!CanSubmit)
         {
             StatusMessage = "Hãy kiểm tra các yêu cầu đầu vào được đánh dấu trước khi gửi.";
