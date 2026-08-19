@@ -2,6 +2,7 @@ using AuditionModStudio.Core.Dds;
 using AuditionModStudio.Core.Paths;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Buffers.Binary;
 
 namespace AuditionModStudio.Dds;
 
@@ -92,7 +93,8 @@ public sealed class DdsPreviewService(
                     metadata);
             }
 
-            var encodedPng = await File.ReadAllBytesAsync(outputPath, cancellationToken).ConfigureAwait(false);
+            var encodedPng = NormalizeDecodedPngToSrgb(
+                await File.ReadAllBytesAsync(outputPath, cancellationToken).ConfigureAwait(false));
             var dimensions = await PngHeaderReader.ReadDimensionsAsync(outputPath, cancellationToken).ConfigureAwait(false);
             if (dimensions is null
                 || dimensions.Value.Width != metadata.Width
@@ -125,6 +127,47 @@ public sealed class DdsPreviewService(
         finally
         {
             TryDeleteOperationDirectory(operationDirectory);
+        }
+    }
+
+    // texconv labels legacy BC1/BC3 decode output as linear PNG (gAMA=1.0).
+    // Our editor stores/displayes RGBA artwork as sRGB, so preserve that intent before import.
+    private static byte[] NormalizeDecodedPngToSrgb(byte[] png)
+    {
+        const int signatureLength = 8;
+        const uint srgbGamma = 45_455;
+        if (png.Length < signatureLength + 12) return png;
+        for (var offset = signatureLength; offset + 12 <= png.Length;)
+        {
+            var length = BinaryPrimitives.ReadUInt32BigEndian(png.AsSpan(offset, 4));
+            if (length > int.MaxValue || offset + 12L + length > png.Length) return png;
+            var type = png.AsSpan(offset + 4, 4);
+            if (type.SequenceEqual("gAMA"u8) && length == 4)
+            {
+                BinaryPrimitives.WriteUInt32BigEndian(png.AsSpan(offset + 8, 4), srgbGamma);
+                BinaryPrimitives.WriteUInt32BigEndian(png.AsSpan(offset + 12, 4), ComputePngCrc(type, png.AsSpan(offset + 8, 4)));
+                return png;
+            }
+            offset += checked((int)(12 + length));
+        }
+        return png;
+    }
+
+    private static uint ComputePngCrc(ReadOnlySpan<byte> type, ReadOnlySpan<byte> data)
+    {
+        var crc = uint.MaxValue;
+        Update(type);
+        Update(data);
+        return ~crc;
+
+        void Update(ReadOnlySpan<byte> values)
+        {
+            foreach (var value in values)
+            {
+                crc ^= value;
+                for (var bit = 0; bit < 8; bit++)
+                    crc = (crc >> 1) ^ (0xedb88320u & (uint)-(int)(crc & 1));
+            }
         }
     }
 
