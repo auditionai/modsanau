@@ -1,12 +1,14 @@
 using System.ComponentModel;
 using AuditionModStudio.App.Imaging;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Foundation;
+using Windows.Storage.Pickers;
 
 namespace AuditionModStudio.App.Editor;
 
@@ -19,11 +21,13 @@ public sealed partial class ImageEditorPage : Page
     private WriteableBitmap? _afterBitmap;
     private AuditionModStudio.Core.Images.InternalImage? _beforeBitmapSource;
     private AuditionModStudio.Core.Images.InternalImage? _afterBitmapSource;
+    private readonly Dictionary<string, Thumb> _cropHandles = new(StringComparer.Ordinal);
 
     public ImageEditorPage(ImageEditorViewModel viewModel)
     {
         ViewModel = viewModel ?? throw new ArgumentNullException(nameof(viewModel));
         InitializeComponent();
+        CreateCropHandles();
         ZoomSlider.Minimum = 0.1;
         ZoomSlider.StepFrequency = 0.1;
         ZoomSlider.Value = 1;
@@ -44,6 +48,7 @@ public sealed partial class ImageEditorPage : Page
     }
 
     public ImageEditorViewModel ViewModel { get; }
+    public event EventHandler? CreateWithAiRequested;
 
     public async Task ActivateAsync(CancellationToken cancellationToken = default)
     {
@@ -70,8 +75,31 @@ public sealed partial class ImageEditorPage : Page
 
     private void OnCancelClicked(object sender, RoutedEventArgs e) => ViewModel.CancelLoading();
 
+    private async void OnImportReplacementClicked(object sender, RoutedEventArgs e)
+    {
+        if (Application.Current is not App { ActiveWindow: { } window }) return;
+        var picker = new FileOpenPicker();
+        picker.FileTypeFilter.Add(".png");
+        picker.FileTypeFilter.Add(".jpg");
+        picker.FileTypeFilter.Add(".jpeg");
+        picker.FileTypeFilter.Add(".bmp");
+        picker.FileTypeFilter.Add(".webp");
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(window));
+        var file = await picker.PickSingleFileAsync();
+        if (file is not null)
+        {
+            await ViewModel.ImportReplacementImageAsync(file.Path);
+            UpdateCompareBitmaps();
+            UpdateCanvasProjection();
+            UpdateComparePresentation();
+        }
+    }
+
     private async void OnApplyClicked(object sender, RoutedEventArgs e) =>
         await ViewModel.ApplyAsync();
+
+    private void OnCreateWithAiClicked(object sender, RoutedEventArgs e) =>
+        CreateWithAiRequested?.Invoke(this, EventArgs.Empty);
 
     private void OnCancelApplyClicked(object sender, RoutedEventArgs e) => ViewModel.CancelApply();
 
@@ -170,6 +198,60 @@ public sealed partial class ImageEditorPage : Page
         var nextZoom = Math.Clamp(ViewModel.Zoom * (delta > 0 ? 1.1 : 1 / 1.1), 0.1, 8);
         ZoomSlider.Value = nextZoom;
         e.Handled = true;
+    }
+
+    private void CreateCropHandles()
+    {
+        foreach (var position in new[] { "nw", "n", "ne", "e", "se", "s", "sw", "w" })
+        {
+            var handle = new Thumb
+            {
+                Width = 14,
+                Height = 14,
+                Tag = position,
+                Background = (Brush)Application.Current.Resources["AmsWarningBrush"],
+                BorderBrush = (Brush)Application.Current.Resources["AmsCardBrush"],
+                BorderThickness = new Thickness(1),
+                Opacity = 0.95,
+            };
+            AutomationProperties.SetName(handle, $"Điều chỉnh cạnh vùng cắt {position}");
+            handle.DragDelta += OnCropHandleDragDelta;
+            _cropHandles[position] = handle;
+            EditorCanvas.Children.Add(handle);
+        }
+    }
+
+    private void OnCropHandleDragDelta(object sender, DragDeltaEventArgs e)
+    {
+        if (sender is not Thumb { Tag: string position } || !ViewModel.CanEdit) return;
+        var imageLeft = Canvas.GetLeft(EditorImage);
+        var imageTop = Canvas.GetTop(EditorImage);
+        var imageWidth = EditorImage.Width;
+        var imageHeight = EditorImage.Height;
+        if (imageWidth <= 0 || imageHeight <= 0) return;
+
+        var left = Canvas.GetLeft(CropFrame);
+        var top = Canvas.GetTop(CropFrame);
+        var right = left + CropFrame.Width;
+        var bottom = top + CropFrame.Height;
+        const double minimum = 8;
+        if (position.Contains('w')) left = Math.Clamp(left + e.HorizontalChange, imageLeft, right - minimum);
+        if (position.Contains('e')) right = Math.Clamp(right + e.HorizontalChange, left + minimum, imageLeft + imageWidth);
+        if (position.Contains('n')) top = Math.Clamp(top + e.VerticalChange, imageTop, bottom - minimum);
+        if (position.Contains('s')) bottom = Math.Clamp(bottom + e.VerticalChange, top + minimum, imageTop + imageHeight);
+
+        var x = (left - imageLeft) / imageWidth * 100;
+        var y = (top - imageTop) / imageHeight * 100;
+        var width = (right - left) / imageWidth * 100;
+        var height = (bottom - top) / imageHeight * 100;
+        if (ViewModel.SetCropPercent(x, y, width, height))
+        {
+            CropX.Value = x;
+            CropY.Value = y;
+            CropWidth.Value = width;
+            CropHeight.Value = height;
+            UpdateCanvasProjection();
+        }
     }
 
     private void OnCanvasSizeChanged(object sender, SizeChangedEventArgs e)
@@ -475,6 +557,7 @@ public sealed partial class ImageEditorPage : Page
             SetElementBounds(TargetFrame, 0, 0, 0, 0);
             SetElementBounds(CropFrame, 0, 0, 0, 0);
             SetElementBounds(EditorImage, 0, 0, 0, 0);
+            foreach (var handle in _cropHandles.Values) handle.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -490,6 +573,7 @@ public sealed partial class ImageEditorPage : Page
         {
             SetElementBounds(CropFrame, 0, 0, 0, 0);
             SetElementBounds(EditorImage, 0, 0, 0, 0);
+            foreach (var handle in _cropHandles.Values) handle.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -505,6 +589,26 @@ public sealed partial class ImageEditorPage : Page
             frameY + projection.CropBounds.Y,
             projection.CropBounds.Width,
             projection.CropBounds.Height);
+        PositionCropHandles(frameX + projection.CropBounds.X, frameY + projection.CropBounds.Y,
+            projection.CropBounds.Width, projection.CropBounds.Height);
+    }
+
+    private void PositionCropHandles(double x, double y, double width, double height)
+    {
+        var half = 7;
+        var points = new Dictionary<string, (double X, double Y)>
+        {
+            ["nw"] = (x, y), ["n"] = (x + width / 2, y), ["ne"] = (x + width, y),
+            ["e"] = (x + width, y + height / 2), ["se"] = (x + width, y + height),
+            ["s"] = (x + width / 2, y + height), ["sw"] = (x, y + height), ["w"] = (x, y + height / 2),
+        };
+        foreach (var (name, handle) in _cropHandles)
+        {
+            if (!points.TryGetValue(name, out var point)) continue;
+            Canvas.SetLeft(handle, point.X - half);
+            Canvas.SetTop(handle, point.Y - half);
+            handle.Visibility = Visibility.Visible;
+        }
     }
 
     private static void SetElementBounds(
