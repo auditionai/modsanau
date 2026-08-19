@@ -50,6 +50,15 @@
                         Hủy tải
                     </Button>
                     <Button
+                        AutomationProperties.Name="Tải ảnh thay thế"
+                        Click="OnImportReplacementClicked"
+                        Style="{StaticResource AmsSecondaryButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE898;" />
+                            <TextBlock Text="Tải ảnh thay thế" />
+                        </StackPanel>
+                    </Button>
+                    <Button
                         AutomationProperties.Name="Đặt lại khung chỉnh sửa"
                         Click="OnResetClicked"
                         IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
@@ -76,6 +85,12 @@
                         IsEnabled="{x:Bind ViewModel.CanCancelApply, Mode=OneWay}"
                         Style="{StaticResource AmsSecondaryButtonStyle}">
                         Hủy
+                    </Button>
+                    <Button AutomationProperties.Name="Tao anh bang AI tu Texture dang chon" Click="OnCreateWithAiClicked" Style="{StaticResource AmsSecondaryButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE945;" />
+                            <TextBlock Text="Tao bang AI" />
+                        </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -130,9 +145,9 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" Spacing="10">
+                        <StackPanel Spacing="2">
                             <TextBlock Style="{StaticResource AmsSectionTitleStyle}" Text="Khung xem chỉnh sửa" />
-                            <TextBlock VerticalAlignment="Center" Style="{StaticResource AmsCaptionTextStyle}" Text="Khung xem trung tính tối ưu cho việc kiểm tra hình ảnh" />
+                            <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="Chỉnh sửa ảnh nguồn theo đúng khung DDS đích" />
                         </StackPanel>
                         <Border Grid.Column="1" Style="{StaticResource AmsStatusBadgeStyle}">
                             <TextBlock
@@ -221,6 +236,16 @@
                                     IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"
                                     Maximum="8"
                                     ValueChanged="OnZoomChanged" />
+                                <NumberBox
+                                    x:Name="ZoomValueBox"
+                                    Grid.Column="1"
+                                    Width="86"
+                                    Header=""
+                                    Minimum="0.1"
+                                    Maximum="8"
+                                    SmallChange="0.001"
+                                    SpinButtonPlacementMode="Inline"
+                                    ValueChanged="OnZoomValueChanged" />
                             </Grid>
 
                             <TextBlock Style="{StaticResource AmsCaptionTextStyle}" Text="{x:Bind ViewModel.PanSummary, Mode=OneWay}" />

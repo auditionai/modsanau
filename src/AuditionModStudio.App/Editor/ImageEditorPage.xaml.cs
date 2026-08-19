@@ -22,6 +22,7 @@ public sealed partial class ImageEditorPage : Page
     private AuditionModStudio.Core.Images.InternalImage? _beforeBitmapSource;
     private AuditionModStudio.Core.Images.InternalImage? _afterBitmapSource;
     private readonly Dictionary<string, Thumb> _cropHandles = new(StringComparer.Ordinal);
+    private bool _syncingZoom;
 
     public ImageEditorPage(ImageEditorViewModel viewModel)
     {
@@ -29,10 +30,11 @@ public sealed partial class ImageEditorPage : Page
         InitializeComponent();
         CreateCropHandles();
         ZoomSlider.Minimum = 0.1;
-        ZoomSlider.SmallChange = 0.01;
+        ZoomSlider.SmallChange = 0.001;
         ZoomSlider.LargeChange = 0.1;
-        ZoomSlider.StepFrequency = 0.01;
+        ZoomSlider.StepFrequency = 0.001;
         ZoomSlider.Value = 1;
+        ZoomValueBox.Value = 1;
         CropWidth.Minimum = 0.01;
         CropHeight.Minimum = 0.01;
         CompareZoomSlider.Minimum = 0.1;
@@ -59,6 +61,7 @@ public sealed partial class ImageEditorPage : Page
         await ViewModel.ActivateAsync(cancellationToken);
         UpdateCompareBitmaps();
         ZoomSlider.Value = ViewModel.Zoom;
+        ZoomValueBox.Value = ViewModel.Zoom;
         CompareZoomSlider.Value = ViewModel.CompareZoom;
         CompareDividerSlider.Value = ViewModel.CompareDivider;
         CheckerboardToggle.IsChecked = ViewModel.ShowCheckerboard;
@@ -146,11 +149,26 @@ public sealed partial class ImageEditorPage : Page
 
     private void OnZoomChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
+        if (_syncingZoom) return;
         if (ZoomBadgeText is not null) ZoomBadgeText.Text = $"{e.NewValue * 100:0}%";
         if (ViewModel.SetZoom(e.NewValue))
         {
+            _syncingZoom = true;
+            ZoomValueBox.Value = e.NewValue;
+            _syncingZoom = false;
             UpdateCanvasProjection();
         }
+    }
+
+    private void OnZoomValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (_syncingZoom || double.IsNaN(args.NewValue)) return;
+        var zoom = Math.Clamp(args.NewValue, 0.1, 8);
+        _syncingZoom = true;
+        ZoomSlider.Value = zoom;
+        _syncingZoom = false;
+        if (ZoomBadgeText is not null) ZoomBadgeText.Text = $"{zoom * 100:0.0}%";
+        if (ViewModel.SetZoom(zoom)) UpdateCanvasProjection();
     }
 
     private void OnOneToOneClicked(object sender, RoutedEventArgs e) => ZoomSlider.Value = 1;
@@ -199,7 +217,7 @@ public sealed partial class ImageEditorPage : Page
         }
 
         var delta = e.GetCurrentPoint(EditorCanvas).Properties.MouseWheelDelta;
-        var nextZoom = Math.Clamp(ViewModel.Zoom + (delta > 0 ? 0.01 : -0.01), 0.1, 8);
+        var nextZoom = Math.Clamp(ViewModel.Zoom + (delta > 0 ? 0.001 : -0.001), 0.1, 8);
         ZoomSlider.Value = nextZoom;
         e.Handled = true;
     }
