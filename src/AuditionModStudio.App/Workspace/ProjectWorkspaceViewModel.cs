@@ -28,6 +28,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
     private TextureSizeFilter _sizeFilter;
     private TextureAlphaFilter _alphaFilter;
     private string? _categoryFilter;
+    private string? _folderFilter;
     private string _statusMessage = "Chưa mở dự án. Hãy tạo hoặc mở một dự án trước.";
     private Guid? _loadedProjectId;
     private BackgroundTaskId _activeTaskId;
@@ -67,6 +68,8 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         [new(null, "Tất cả danh mục")];
 
     public ImmutableArray<WorkspaceFolderItem> Folders => _folders;
+
+    public ImmutableArray<WorkspaceFolderFilterOption> FolderFilters { get; private set; } = [];
 
     public ImmutableArray<WorkspaceTextureItem> FilteredTextures => _filteredTextures;
 
@@ -153,6 +156,25 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         }
     }
 
+    public WorkspaceFolderFilterOption? SelectedFolderFilter
+    {
+        get => FolderFilters.FirstOrDefault(option => string.Equals(
+            option.DirectoryRelativePath, _folderFilter, StringComparison.Ordinal));
+        set
+        {
+            if (value is null
+                || !FolderFilters.Contains(value)
+                || string.Equals(_folderFilter, value.DirectoryRelativePath, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _folderFilter = value.DirectoryRelativePath;
+            ApplyFilter();
+            OnPropertyChanged();
+        }
+    }
+
     public WorkspaceTextureItem? SelectedTexture
     {
         get => _selectedTexture;
@@ -166,6 +188,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
 
             _selectedTexture = selected;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(CanEditSelectedTexture));
             OnPropertyChanged(nameof(SelectedDisplayName));
             OnPropertyChanged(nameof(SelectedRelativePath));
             OnPropertyChanged(nameof(SelectedTargetSize));
@@ -177,6 +200,8 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
             OnPropertyChanged(nameof(SelectedAssetSummary));
         }
     }
+
+    public bool CanEditSelectedTexture => _selectedTexture is not null;
 
     public bool IsLoading => _isLoading;
 
@@ -408,11 +433,15 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
 
         _loadedProjectId = null;
         await LoadAsync(cancellationToken);
+        var expectedPath = NormalizeTextureRelativePath(textureRelativePath.Value);
         SelectedTexture = _allTextures.FirstOrDefault(item => string.Equals(
-            item.RelativePath,
-            textureRelativePath.Value,
+            NormalizeTextureRelativePath(item.RelativePath),
+            expectedPath,
             StringComparison.OrdinalIgnoreCase));
     }
+
+    private static string NormalizeTextureRelativePath(string value) =>
+        value.Replace('\\', '/').Trim().TrimStart('/');
 
     private void PublishScan(AuditionProject project, SmartModScanResult scanResult)
     {
@@ -433,6 +462,16 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
                 .Select(category => new WorkspaceCategoryFilterOption(category, category))
         ];
         _categoryFilter = null;
+        FolderFilters = [
+            new(null, "T\u1EA5t c\u1EA3 th\u01B0 m\u1EE5c"),
+            .. _allTextures
+                .Select(item => item.DirectoryRelativePath)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(folder => folder, StringComparer.Ordinal)
+                .Select(folder => new WorkspaceFolderFilterOption(
+                    folder, string.IsNullOrEmpty(folder) ? "T\u1EC7p g\u1ED1c" : folder))
+        ];
+        _folderFilter = null;
         _selectedTexture = null;
         ApplyFilter();
         SetLoading(false, $"Đã tải thông tin của {_allTextures.Length} Texture.", 100);
@@ -442,7 +481,10 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         OnPropertyChanged(nameof(ProjectName));
         OnPropertyChanged(nameof(CategoryFilters));
         OnPropertyChanged(nameof(SelectedCategoryFilter));
+        OnPropertyChanged(nameof(FolderFilters));
+        OnPropertyChanged(nameof(SelectedFolderFilter));
         OnPropertyChanged(nameof(SelectedTexture));
+        OnPropertyChanged(nameof(CanEditSelectedTexture));
         RaiseSelectedProperties();
     }
 
@@ -453,11 +495,14 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
             project,
             relativePath,
             new TextureRuntimeObservation(true, true, false));
+        var displayName = string.IsNullOrWhiteSpace(texture.ManifestResolution.DisplayName)
+            ? texture.Asset.FileName
+            : texture.ManifestResolution.DisplayName;
         return new WorkspaceTextureItem(
             texture.Asset.RelativePath,
             texture.Asset.DirectoryRelativePath,
             texture.Asset.FileName,
-            texture.ManifestResolution.DisplayName,
+            displayName,
             texture.Metadata.Width,
             texture.Metadata.Height,
             $"{texture.Metadata.Width} × {texture.Metadata.Height}",
@@ -483,6 +528,8 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
             && MatchesAlpha(item)
             && (_categoryFilter is null
                 || string.Equals(item.Category, _categoryFilter, StringComparison.Ordinal))
+            && (_folderFilter is null
+                || string.Equals(item.DirectoryRelativePath, _folderFilter, StringComparison.Ordinal))
             && (query.Length == 0
                 || item.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
                 || item.FileName.Contains(query, StringComparison.OrdinalIgnoreCase)
@@ -567,6 +614,7 @@ public sealed class ProjectWorkspaceViewModel : INotifyPropertyChanged, IWorkspa
         OnPropertyChanged(nameof(CategoryFilters));
         OnPropertyChanged(nameof(SelectedCategoryFilter));
         OnPropertyChanged(nameof(SelectedTexture));
+        OnPropertyChanged(nameof(CanEditSelectedTexture));
         RaiseSelectedProperties();
     }
 

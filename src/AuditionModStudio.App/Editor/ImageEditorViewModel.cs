@@ -14,9 +14,11 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     private readonly IWorkspaceTextureSelection _selection;
     private readonly IImageTransformService _transformService;
     private readonly IImageResizeService _resizeService;
+    private readonly IImageImportService? _imageImportService;
     private readonly ITextureApplyService? _applyService;
     private readonly IApplicationProjectSession? _projectSession;
     private readonly IBackgroundTaskManager? _taskManager;
+    private readonly IUserActivityService? _activity;
     private InternalImage? _sourceImage;
     private InternalImage? _afterImage;
     private InteractiveImageTransformState? _transform;
@@ -42,21 +44,27 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _afterPreviewCancellation;
     private Task _afterPreviewTask = Task.CompletedTask;
     private BackgroundTaskId _activeApplyTaskId;
+    private string _activeActivityOperationId = string.Empty;
+    private DateTimeOffset _activeActivityStarted;
 
     public ImageEditorViewModel(
         IWorkspaceTextureSelection selection,
         IImageTransformService transformService,
         IImageResizeService resizeService,
+        IImageImportService? imageImportService = null,
         ITextureApplyService? applyService = null,
         IApplicationProjectSession? projectSession = null,
-        IBackgroundTaskManager? taskManager = null)
+        IBackgroundTaskManager? taskManager = null,
+        IUserActivityService? activity = null)
     {
         _selection = selection ?? throw new ArgumentNullException(nameof(selection));
         _transformService = transformService ?? throw new ArgumentNullException(nameof(transformService));
         _resizeService = resizeService ?? throw new ArgumentNullException(nameof(resizeService));
+        _imageImportService = imageImportService;
         _applyService = applyService;
         _projectSession = projectSession;
         _taskManager = taskManager;
+        _activity = activity;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -210,6 +218,9 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         }
 
         PrepareForSelectionLoad();
+        var loadOperationId = Guid.NewGuid().ToString("N");
+        var loadStarted = DateTimeOffset.UtcNow;
+        _activity?.Publish("INFO", "Đang mở ảnh Texture để chỉnh sửa.", "Chỉnh sửa ảnh", "Đọc Texture gốc", 0, "Running", loadOperationId);
         SetLoading(true, "Đang tải Texture đã chọn để xem trước.");
         var image = await _selection.LoadSelectedImageAsync(cancellationToken);
         if (activationVersion != Volatile.Read(ref _activationVersion))
@@ -219,6 +230,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
         if (image is null || !ReferenceEquals(selected, _selection.SelectedTexture))
         {
+            _activity?.Publish("ERROR", "Không thể mở ảnh Texture đã chọn.", "Chỉnh sửa ảnh", "Đọc Texture gốc", 0, "Error", loadOperationId, DateTimeOffset.UtcNow - loadStarted);
             ResetEditor("Không thể tải Texture đã chọn. Hãy quay lại Dự án rồi thử lại.");
             return;
         }
@@ -236,6 +248,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         _comparePan = default;
         _loadedRelativePath = selected.RelativePath;
         SetLoading(false, "Texture đã sẵn sàng. Hãy xem trước rồi áp dụng vào dự án.");
+        _activity?.Publish("SUCCESS", "Đã mở ảnh Texture và tạo vùng xem trước.", "Chỉnh sửa ảnh", "Sẵn sàng chỉnh sửa", 100, "Success", loadOperationId, DateTimeOffset.UtcNow - loadStarted);
         RaiseSelectionProperties();
         OnPropertyChanged(nameof(SourceImage));
         OnPropertyChanged(nameof(BeforeImage));
@@ -250,6 +263,56 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
     }
 
     public bool CancelLoading() => _selection.CancelSelectedImageLoading();
+
+    public async Task<bool> ImportReplacementImageAsync(
+        string sourcePath,
+        CancellationToken cancellationToken = default)
+    {
+        if (_imageImportService is null || string.IsNullOrWhiteSpace(sourcePath))
+        {
+            return false;
+        }
+
+        var importOperationId = Guid.NewGuid().ToString("N");
+        var importStarted = DateTimeOffset.UtcNow;
+        _activity?.Publish("INFO", "Đang nhập ảnh thay thế từ máy tính.", "Chỉnh sửa ảnh", "Đọc ảnh nguồn", 0, "Running", importOperationId);
+        var imported = await _imageImportService.ImportAsync(
+            new ImageImportRequest(sourcePath), cancellationToken).ConfigureAwait(false);
+        if (!imported.Succeeded || imported.Image is null)
+        {
+            _activity?.Publish("ERROR", "Không đọc được ảnh thay thế.", "Chỉnh sửa ảnh", "Đọc ảnh nguồn", 0, "Error", importOperationId, DateTimeOffset.UtcNow - importStarted);
+            _statusMessage = "Không thể đọc ảnh thay thế. Hãy chọn PNG, JPG, BMP hoặc WebP hợp lệ.";
+            OnPropertyChanged(nameof(StatusMessage));
+            return false;
+        }
+
+        var create = _transformService.Create(imported.Image);
+        if (!create.Succeeded || create.Value is null)
+        {
+            _statusMessage = "Ảnh thay thế không thể mở trong trình chỉnh sửa.";
+            OnPropertyChanged(nameof(StatusMessage));
+            return false;
+        }
+
+        _sourceImage = imported.Image;
+        _transform = create.Value;
+        _afterImage = null;
+        _loadedRelativePath = _selection.SelectedTexture?.RelativePath ?? string.Empty;
+        _compareZoom = 1;
+        _comparePan = default;
+        _statusMessage = "Đã tải ảnh thay thế. Chỉnh sửa theo khung DDS rồi bấm Áp dụng Texture.";
+        OnPropertyChanged(nameof(StatusMessage));
+        OnPropertyChanged(nameof(SourceImage));
+        OnPropertyChanged(nameof(BeforeImage));
+        OnPropertyChanged(nameof(AfterImage));
+        OnPropertyChanged(nameof(HasImage));
+        OnPropertyChanged(nameof(CanEdit));
+        AdvanceTransformRevision();
+        AdvanceCompareRevision();
+        await RefreshAfterPreviewAsync().ConfigureAwait(false);
+        _activity?.Publish("SUCCESS", "Đã nhập ảnh thay thế và tạo xem trước chỉnh sửa.", "Chỉnh sửa ảnh", "Xem trước", 100, "Success", importOperationId, DateTimeOffset.UtcNow - importStarted);
+        return true;
+    }
 
     public bool CancelApply() =>
         _activeApplyTaskId.IsValid && _taskManager?.TryCancel(_activeApplyTaskId) == true;
@@ -281,6 +344,11 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         }
 
         TextureApplyResult? applyResult = null;
+        var applyOperationId = Guid.NewGuid().ToString("N");
+        var applyStarted = DateTimeOffset.UtcNow;
+        _activeActivityOperationId = applyOperationId;
+        _activeActivityStarted = applyStarted;
+        _activity?.Publish("INFO", "Bắt đầu áp dụng ảnh chỉnh sửa vào Texture.", "Chỉnh sửa ảnh", "Chuẩn bị DDS", 0, "Running", applyOperationId);
         _isApplying = true;
         _applyProgress = 0;
         _applyStatus = "Đang chuẩn bị áp dụng Texture.";
@@ -312,6 +380,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
                 }), cancellationToken);
             if (!enqueue.Succeeded)
             {
+                _activity?.Publish("ERROR", "Không thể đưa thao tác áp dụng ảnh vào hàng đợi.", "Chỉnh sửa ảnh", "Xếp hàng", 0, "Error", applyOperationId, DateTimeOffset.UtcNow - applyStarted);
                 _applyStatus = "Không thể đưa tác vụ áp dụng Texture vào hàng đợi.";
                 OnPropertyChanged(nameof(ApplyStatus));
                 return false;
@@ -326,6 +395,9 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
                 || !ReferenceEquals(_projectSession.Project, project)
                 || !ReferenceEquals(_projectSession.Workspace, workspace))
             {
+                _activity?.Publish(snapshot?.State == BackgroundTaskState.Cancelled ? "WARNING" : "ERROR",
+                    snapshot?.State == BackgroundTaskState.Cancelled ? "Đã hủy áp dụng ảnh." : "Không thể áp dụng ảnh; Texture đã được khôi phục.",
+                    "Chỉnh sửa ảnh", "Kết thúc", (int)_applyProgress, snapshot?.State == BackgroundTaskState.Cancelled ? "Cancelled" : "Error", applyOperationId, DateTimeOffset.UtcNow - applyStarted);
                 _applyStatus = snapshot?.State == BackgroundTaskState.Cancelled || applyResult?.Cancelled == true
                 ? "Đã hủy áp dụng; Texture làm việc đã được khôi phục."
                 : "Không thể áp dụng; Texture làm việc đã được khôi phục.";
@@ -335,6 +407,15 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
 
             await _projectSession.ActivateAsync(applyResult.Project, workspace);
             await _selection.RefreshAfterApplyAsync(texturePath, cancellationToken);
+            if (_selection.SelectedTexture is null)
+            {
+                _applyProgress = 100;
+                _applyStatus = "Texture đã được áp dụng, nhưng không thể chọn lại trong Dự án. Hãy mở Dự án và chọn Texture vừa áp dụng để xem lại.";
+                OnPropertyChanged(nameof(ApplyProgress));
+                OnPropertyChanged(nameof(ApplyStatus));
+                _activity?.Publish("WARNING", "Texture đã áp dụng nhưng selection không được khôi phục sau khi quét lại.", "Chỉnh sửa ảnh", "Hoàn tất", 100, "Warning", applyOperationId, DateTimeOffset.UtcNow - applyStarted);
+                return true;
+            }
             ResetEditor("Đang tải lại Texture vừa áp dụng.");
             await ActivateAsync(cancellationToken);
             _applyProgress = 100;
@@ -343,10 +424,12 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
                 : "Đã áp dụng Texture an toàn; lịch sử, trạng thái thay đổi và ảnh thu nhỏ đã được lưu.";
             OnPropertyChanged(nameof(ApplyProgress));
             OnPropertyChanged(nameof(ApplyStatus));
+            _activity?.Publish("SUCCESS", "Đã áp dụng ảnh, cập nhật lịch sử và lưu dự án.", "Chỉnh sửa ảnh", "Hoàn tất", 100, "Success", applyOperationId, DateTimeOffset.UtcNow - applyStarted);
             return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            _activity?.Publish("WARNING", "Đã hủy áp dụng ảnh.", "Chỉnh sửa ảnh", "Đã hủy", (int)_applyProgress, "Cancelled", applyOperationId, DateTimeOffset.UtcNow - applyStarted);
             _applyStatus = "Đã hủy áp dụng Texture.";
             OnPropertyChanged(nameof(ApplyStatus));
             return false;
@@ -355,6 +438,7 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         {
             _activeApplyTaskId = default;
             _isApplying = false;
+            _activeActivityOperationId = string.Empty;
             RaiseApplyProperties();
         }
     }
@@ -835,6 +919,10 @@ public sealed class ImageEditorViewModel : INotifyPropertyChanged
         };
         OnPropertyChanged(nameof(ApplyProgress));
         OnPropertyChanged(nameof(ApplyStatus));
+        if (!string.IsNullOrEmpty(_activeActivityOperationId))
+            _activity?.Publish("INFO", _applyStatus, "Chỉnh sửa ảnh", progress.Phase.ToString(),
+                (int)Math.Clamp(_applyProgress, 0, 100), "Running", _activeActivityOperationId,
+                DateTimeOffset.UtcNow - _activeActivityStarted, false);
     }
 
     private void RaiseApplyProperties()
