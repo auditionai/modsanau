@@ -73,9 +73,14 @@ public sealed class SupabaseAiStudioService(
 
     private static IReadOnlyList<AiStudioModelOption> KnownGpti2Models() =>
     [
-        new("gpt-image-2", "GPT Image 2", ["low", "medium", "high"], [], ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], [50]) { Settings = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase) { ["size"] = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], ["quality"] = ["low", "medium", "high"], ["n"] = ["1", "2", "3", "4"] } },
-        new("nano-banana-pro", "Nano Banana PRO", ["low", "medium", "high"], [], ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], [50]) { Settings = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase) { ["size"] = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"], ["quality"] = ["low", "medium", "high"], ["n"] = ["1", "2", "3", "4"] } },
+        new("gpt-image-2", "GPT Image 2", ["low", "medium", "high"], ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"], ["1k", "2k", "4k"], [50]) { Settings = Gpti2Settings() },
+        new("nano-banana-pro", "Nano Banana PRO", ["low", "medium", "high"], ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"], ["1k", "2k", "4k"], [50]) { Settings = Gpti2Settings() },
     ];
+    private static IReadOnlyDictionary<string, IReadOnlyList<string>> Gpti2Settings() => new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["aspect_ratio"] = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"],
+        ["resolution"] = ["1k", "2k", "4k"], ["quality"] = ["low", "medium", "high"],
+    };
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private Uri Endpoint(string action) => new(projectUri, $"functions/v1/gpti2-image?action={action}");
 

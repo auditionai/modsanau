@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
     return respond(req, req.method === "GET" ? { models: data } : data);
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "AI_MODEL_REQUEST_FAILED";
-    const known = message.match(/AI_MODEL_[A-Z_]+|ADMIN_[A-Z_]+/)?.[0] ?? "AI_MODEL_REQUEST_FAILED";
+    const known = message.match(/AI_(?:MODEL|PRESET)_[A-Z_]+|ADMIN_[A-Z_]+/)?.[0] ?? "AI_MODEL_REQUEST_FAILED";
     return respond(req, { error: known }, known.startsWith("ADMIN_") ? 403 : 400);
   }
 });

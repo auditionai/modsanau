@@ -12,6 +12,16 @@ const GPTI2_BASE = "https://gpti2.store/v1";
 const MODEL_CACHE_MS = 5 * 60_000;
 let modelCache: { expires: number; models: unknown[] } | null = null;
 const GPTI2_SIZES = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"];
+const GPTI2_SIZE_MATRIX: Record<string, Record<string, string>> = {
+  "1:1": { "1k": "1024x1024", "2k": "1536x1536", "4k": "2048x2048" },
+  "16:9": { "1k": "1280x720", "2k": "2560x1440", "4k": "3840x2160" },
+  "9:16": { "1k": "720x1280", "2k": "1440x2560", "4k": "2160x3840" },
+  "4:3": { "1k": "1024x768", "2k": "2048x1536", "4k": "3200x2400" },
+  "3:4": { "1k": "768x1024", "2k": "1536x2048", "4k": "2400x3200" },
+  "3:2": { "1k": "1536x1024", "2k": "2400x1600", "4k": "3360x2240" },
+  "2:3": { "1k": "1024x1536", "2k": "1600x2400", "4k": "2240x3360" },
+  "21:9": { "1k": "1280x544", "2k": "2560x1088", "4k": "3840x1632" },
+};
 
 function gpti2Pricing() {
   return GPTI2_SIZES.flatMap((size) => ["low", "medium", "high"].flatMap((quality) => [1, 2, 3, 4].map((n) => ({ size, quality, n, cost: 50 * n }))));
@@ -134,11 +144,13 @@ function modelParams(item: AnyMap): AnyMap {
   const identity = `${item.id ?? item.slug ?? item.model ?? ""} ${item.name ?? item.title ?? ""}`.toLowerCase();
   const normalized = normalizeModelId(identity);
   if (normalized === "gpt-image-2") {
-    params.size = ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"];
+    params.aspect_ratio = Object.keys(GPTI2_SIZE_MATRIX);
+    params.resolution = ["1k", "2k", "4k"];
     params.quality = ["low", "medium", "high"];
     params.n = ["1", "2", "3", "4"];
   } else if (normalized === "nano-banana-pro") {
-    params.size ??= ["1024x1024", "1536x1536", "2048x2048", "1280x720", "2560x1440", "3840x2160", "720x1280", "1440x2560", "2160x3840", "1024x768", "2048x1536", "3200x2400", "768x1024", "1536x2048", "2400x3200", "1536x1024", "2400x1600", "3360x2240", "1024x1536", "1600x2400", "2240x3360", "1280x544", "2560x1088", "3840x1632"];
+    params.aspect_ratio ??= Object.keys(GPTI2_SIZE_MATRIX);
+    params.resolution ??= ["1k", "2k", "4k"];
     params.quality ??= ["low", "medium", "high"];
     params.n ??= ["1", "2", "3", "4"];
   }
@@ -178,8 +190,8 @@ async function detailedModel(item: AnyMap) {
 async function models(admin: any) {
   if (modelCache && modelCache.expires > Date.now()) return modelCache.models;
   const imageRows = [
-    { id: "gpt-image-2", name: "GPT Image 2", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { size: GPTI2_SIZES, quality: ["low", "medium", "high"] }, notes: null },
-    { id: "nano-banana-pro", name: "Nano Banana PRO", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { size: GPTI2_SIZES, quality: ["low", "medium", "high"] }, notes: null },
+    { id: "gpt-image-2", name: "GPT Image 2", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { aspect_ratio: Object.keys(GPTI2_SIZE_MATRIX), resolution: ["1k", "2k", "4k"], quality: ["low", "medium", "high"] }, notes: null },
+    { id: "nano-banana-pro", name: "Nano Banana PRO", type: "image", servers: [], pricing: gpti2Pricing(), modes: [], params: { aspect_ratio: Object.keys(GPTI2_SIZE_MATRIX), resolution: ["1k", "2k", "4k"], quality: ["low", "medium", "high"] }, notes: null },
   ];
   const { data, error: syncError } = await adminRpc(admin, "sync", { models: imageRows });
   if (syncError) throw new Error(syncError);
@@ -209,6 +221,14 @@ function pickSettings(model: AnyMap, requested: AnyMap) {
     if (accepted.has(key) && value !== null && value !== undefined && value !== "") result[key] = value;
   }
   return result;
+}
+
+function resolveGpti2Settings(settings: AnyMap) {
+  const aspect = String(settings.aspect_ratio ?? "");
+  const resolution = String(settings.resolution ?? "").toLowerCase();
+  const size = GPTI2_SIZE_MATRIX[aspect]?.[resolution];
+  if (!size) throw new Error("AI_MODEL_SETTING_INVALID");
+  return { ...settings, size };
 }
 
 function pricingCost(model: AnyMap): number {
@@ -421,7 +441,7 @@ Deno.serve(async (req) => {
       const catalog = await models(admin);
       const model = modelById(catalog, modelId);
       if (!model) return error("AI_MODEL_NOT_ALLOWED", 400);
-      const settings = pickSettings(model, (body.settings as AnyMap) ?? {});
+      const settings = resolveGpti2Settings(pickSettings(model, (body.settings as AnyMap) ?? {}));
       let currentPricing: { creditCost: number; pricingVersion: number } | null = null;
       try { currentPricing = await currentModelPricing(admin, modelId, settings); } catch { currentPricing = null; }
       currentPricing ??= null;
@@ -448,7 +468,7 @@ Deno.serve(async (req) => {
       const preset = await activePreset(admin, String(body.preset_id ?? body.presetId ?? ""));
       const referenceImages = readReferenceImages(body.reference_images);
       const creative = readCreativeInputs(body.creative_inputs);
-      const settings = pickSettings(model, (body.settings as AnyMap) ?? {});
+      const settings = resolveGpti2Settings(pickSettings(model, (body.settings as AnyMap) ?? {}));
       const output = readOutput(body.output);
       let guide: Awaited<ReturnType<typeof pngGuideCanvas>> | null = null;
       if (output && typeof settings.size === "string") {
@@ -483,7 +503,7 @@ Deno.serve(async (req) => {
         const submitted = await provider(providerPath, {
           method: "POST",
           headers: { "Idempotency-Key": idempotencyKey, "Prefer": "respond-async" },
-          body: JSON.stringify({ model: modelId, prompt, n: 1, ...settings,
+          body: JSON.stringify({ model: modelId, prompt, n: 1, size: settings.size, quality: settings.quality,
             ...(referenceImages.length ? { reference_images: referenceImages } : {}) }),
         });
         const rawProviderJobId = String(submitted.job_id ?? submitted.id ?? "");
