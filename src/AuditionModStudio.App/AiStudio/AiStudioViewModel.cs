@@ -89,10 +89,10 @@ public sealed class AiStudioViewModel : INotifyPropertyChanged
     private static readonly IReadOnlyList<string> CompositionIdeas = ["Cân đối trung tâm", "Toàn cảnh", "Cận cảnh", "Góc thấp", "Góc cao", "Đối xứng", "Đường dẫn thị giác", "Tiền cảnh rõ", "Hậu cảnh mờ", "Chéo năng động", "Khung trong khung", "Quy tắc một phần ba", "Hình học", "Nhiều lớp chiều sâu", "Không gian âm", "Nhân vật chính giữa", "Nhóm đối tượng", "Vật thể nổi bật", "Bố cục dọc", "Bố cục ngang"];
 
     private static readonly IReadOnlyList<string> ColorPalettes = [
-        "ÄÆ¡n sáº¯c xanh dÆ°Æ¡ng", "ÄÆ¡n sáº¯c Ä‘á»", "ÄÆ¡n sáº¯c xanh lÃ¡", "ÄÆ¡n sáº¯c tím", "Äen tráº¯ng",
-        "Äá» Ä‘en", "Xanh navy vÃ  vÃ ng", "Xanh cyan vÃ  tím", "Há»“ng pastel vÃ  xanh mint", "Cam vÃ  xanh teal",
-        "Tím vÃ  vÃ ng", "Äá» Ä‘Ã´ vÃ  kem", "Xanh rÆ°á»«ng vÃ  nÃ¢u", "HoÃ ng hÃ´n cam h»“ng", "Äáº¡i dÆ°Æ¡ng xanh cyan",
-        "Neon cyberpunk", "Pastel cáº§u vá»“ng", "Kim loáº¡i báº¡c vÃ  xanh", "VÃ ng gold vÃ  Ä‘en", "MÃ u Ä‘áº¥t tá»± nhiÃªn"
+        "\u0110\u01A1n s\u1EAFc xanh d\u01B0\u01A1ng", "\u0110\u01A1n s\u1EAFc \u0111\u1ECF", "\u0110\u01A1n s\u1EAFc xanh l\u00E1", "\u0110\u01A1n s\u1EAFc t\u00EDm", "\u0110en tr\u1EAFng",
+        "\u0110\u1ECF \u0111en", "Xanh navy v\u00E0 v\u00E0ng", "Xanh cyan v\u00E0 t\u00EDm", "H\u1ED3ng pastel v\u00E0 xanh mint", "Cam v\u00E0 xanh teal",
+        "T\u00EDm v\u00E0 v\u00E0ng", "\u0110\u1ECF \u0111\u00F4 v\u00E0 kem", "Xanh r\u1EEBng v\u00E0 n\u00E2u", "Ho\u00E0ng h\u00F4n cam h\u1ED3ng", "\u0110\u1EA1i d\u01B0\u01A1ng xanh cyan",
+        "Neon cyberpunk", "Pastel c\u1EA7u v\u1ED3ng", "Kim lo\u1EA1i b\u1EA1c v\u00E0 xanh", "V\u00E0ng gold v\u00E0 \u0111en", "M\u00E0u \u0111\u1EA5t t\u1EF1 nhi\u00EAn"
     ];
 
     public AiStudioViewModel(
